@@ -5,14 +5,11 @@
 
 .. badges-begin
 
-|PyPI| |Status| |Python Version| |License| |Read the Docs| |Tests| |Codecov| |pre-commit| |Black|
+|PyPI| |Python Version| |License| |Read the Docs| |Tests| |Codecov| |pre-commit| |Black|
 
 .. |PyPI| image:: https://img.shields.io/pypi/v/soccerdata.svg
    :target: https://pypi.org/project/soccerdata/
    :alt: PyPI
-.. |Status| image:: https://img.shields.io/pypi/status/soccerdata.svg
-   :target: https://pypi.org/project/soccerdata/
-   :alt: Status
 .. |Python Version| image:: https://img.shields.io/pypi/pyversions/soccerdata
    :target: https://pypi.org/project/soccerdata
    :alt: Python Version
@@ -54,8 +51,8 @@ locally.
    games = five38.read_games()
 
 To learn how to install, configure and use SoccerData, see the
-`Quickstart guide <http://soccerdata.readthedocs.io/usage.html>`__. For documentation on each of the
-supported data sources, see the `API reference <http://soccerdata.readthedocs.io/reference>`__.
+`Quickstart guide <https://soccerdata.readthedocs.io/en/latest/usage.html>`__. For documentation on each of the
+supported data sources, see the `API reference <https://soccerdata.readthedocs.io/en/latest/reference/>`__.
 
 .. _Club Elo: https://www.clubelo.com/
 .. _ESPN: https://www.espn.com/soccer/

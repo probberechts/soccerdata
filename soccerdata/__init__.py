@@ -1,6 +1,6 @@
 """A collection of tools to read and process soccer data from various sources."""
 
-__version__ = '0.1.0a1'
+__version__ = '0.0.1'
 
 __all__ = [
     'FiveThirtyEight',

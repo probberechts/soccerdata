@@ -70,14 +70,14 @@ include = '\.pyi?$'
 
 [tool.coverage.paths]
 source = ["soccerdata", "*/site-packages"]
-tests = ["tests", "*/tests"]
 
 [tool.coverage.run]
 branch = true
-source = ["soccerdata", "tests"]
+source = ["soccerdata"]
 
 [tool.coverage.report]
 show_missing = true
+ignore_errors = true
 
 [tool.mypy]
 ignore_missing_imports = true

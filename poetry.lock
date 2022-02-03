@@ -866,7 +866,7 @@ docutils = ">=0.11,<1.0"
 
 [[package]]
 name = "rich"
-version = "10.16.2"
+version = "11.1.0"
 description = "Render rich text, tables, progress bars, syntax highlighting, markdown and more to the terminal"
 category = "main"
 optional = false
@@ -1292,7 +1292,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7,<4.0.0"
-content-hash = "1f8557cd4f21932df249472b31fe035f61ad4d2197c6bc36f0f14561923f3b0a"
+content-hash = "1394c7f30a0d68e506cb4a6a25190a574f6a0c08aab2f1d3831ebd646f5a6633"
 
 [metadata.files]
 alabaster = [
@@ -1952,8 +1952,8 @@ restructuredtext-lint = [
     {file = "restructuredtext_lint-1.3.2.tar.gz", hash = "sha256:d3b10a1fe2ecac537e51ae6d151b223b78de9fafdd50e5eb6b08c243df173c80"},
 ]
 rich = [
-    {file = "rich-10.16.2-py3-none-any.whl", hash = "sha256:c59d73bd804c90f747c8d7b1d023b88f2a9ac2454224a4aeaf959b21eeb42d03"},
-    {file = "rich-10.16.2.tar.gz", hash = "sha256:720974689960e06c2efdb54327f8bf0cdbdf4eae4ad73b6c94213cad405c371b"},
+    {file = "rich-11.1.0-py3-none-any.whl", hash = "sha256:365ebcdbfb3aa8d4b0ed2490e0fbf7b886a39d14eb7ea5fb7aece950835e1eed"},
+    {file = "rich-11.1.0.tar.gz", hash = "sha256:43e03d8eec12e21beaecc22c828a41c4247356414a12d5879834863d4ad53816"},
 ]
 "ruamel.yaml" = [
     {file = "ruamel.yaml-0.17.20-py3-none-any.whl", hash = "sha256:810eef9c46523a3f77479c66267a4708255ebe806a2d540078408c2227f011af"},

@@ -1,0 +1,50 @@
+data
+logs
+config
+notebooks/data
+notebooks_priv
+
+*.py[cod]
+
+# C extensions
+*.so
+
+# Packages
+*.egg
+*.egg-info
+dist
+build
+eggs
+parts
+bin
+var
+sdist
+develop-eggs
+.installed.cfg
+lib
+lib64
+__pycache__
+
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage reports
+.coverage
+.tox
+
+# Translations
+*.mo
+
+# Data
+.ipynb_checkpoints
+
+# Sphinx documentation
+docs/_build/
+docs/modules/generated/
+
+# Hidden files
+.*
+
+# ...except these
+!.gitignore
+!.travis.yml

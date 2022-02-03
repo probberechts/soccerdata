@@ -1,0 +1,4 @@
+{
+  "extends": ["config:base", ":automergePatch"],
+  "stabilityDays": 7
+}

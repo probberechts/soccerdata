@@ -296,7 +296,9 @@ class FBref(BaseReader):
             table = tree.xpath("//table[contains(@id, 'sched')]")[0]
             df_table = pd.read_html(etree.tostring(table))[0]
             df_table["Match Report"] = [
-                mlink.xpath("./a/@href")[0] if mlink.xpath("./a") else None
+                mlink.xpath("./a/@href")[0]
+                if mlink.xpath("./a") and mlink.xpath("./a")[0].text == "Match Report"
+                else None
                 for mlink in table.xpath(".//td[@data-stat='match_report']")
             ]
             df_table["league"] = lkey
@@ -388,7 +390,10 @@ class FBref(BaseReader):
         urlmask = FBREF_API + "/en/matches/{}"
         filemask = "match_{}.html"
 
+        # Retrieve games for which a match report is available
         df_schedule = self.read_schedule(force_cache).reset_index()
+        df_schedule = df_schedule[~df_schedule.id.isna() & ~df_schedule.match_report.isnull()]
+        # Selec requested games if available
         if match_id is not None:
             iterator = df_schedule[
                 df_schedule.id.isin([match_id] if isinstance(match_id, str) else match_id)
@@ -396,7 +401,7 @@ class FBref(BaseReader):
             if len(iterator) == 0:
                 raise ValueError("No games found with the given IDs in the selected seasons.")
         else:
-            iterator = df_schedule[~df_schedule.id.isna()]
+            iterator = df_schedule
 
         stats = []
         for i, game in iterator.iterrows():

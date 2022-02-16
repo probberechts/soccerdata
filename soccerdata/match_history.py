@@ -93,7 +93,6 @@ class MatchHistory(BaseReader):
             )
             .dropna(subset=['home_team', 'away_team'])
         )
-        print(df.head())
 
         df['game_id'] = df.apply(make_game_id, axis=1)
         df.set_index(['league', 'season', 'game_id'], inplace=True)

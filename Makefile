@@ -2,25 +2,23 @@
 
 BIN = .venv/bin/
 CODE = soccerdata
+PY = 3.9
 
 init:
 	python3 -m venv .venv
 	poetry install
 
 test:
-	$(BIN)pytest --verbosity=2 --showlocals --strict --log-level=DEBUG --cov=$(CODE) $(args)
+	nox -rs tests-$(PY) -- $(args)
+
+mypy:
+	nox -rs mypy-$(PY) -- $(args)
 
 lint:
-	$(BIN)flake8 --jobs 4 --statistics --show-source $(CODE) tests
-	$(BIN)pylint --jobs 4 --rcfile=setup.cfg $(CODE)
-	$(BIN)mypy $(CODE) tests
-	$(BIN)black --check $(CODE) tests
-	$(BIN)pytest --dead-fixtures --dup-fixtures
+	nox -rs pre-commit -- $(args)
 
-pretty:
-	$(BIN)isort $(CODE) tests
-	$(BIN)black $(CODE) tests
-	$(BIN)unify --in-place --recursive $(CODE) tests
+precommit_install:
+	nox -rs pre-commit -- install
 
 bump_major:
 	$(BIN)bumpversion major
@@ -30,3 +28,7 @@ bump_minor:
 
 bump_patch:
 	$(BIN)bumpversion patch
+
+clean:
+	find . -type f -name "*.py[co]" -delete
+	find . -type d -name "__pycache__" -delete

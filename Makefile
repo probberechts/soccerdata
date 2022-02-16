@@ -21,3 +21,12 @@ pretty:
 	$(BIN)isort $(CODE) tests
 	$(BIN)black $(CODE) tests
 	$(BIN)unify --in-place --recursive $(CODE) tests
+
+bump_major:
+	$(BIN)bumpversion major
+
+bump_minor:
+	$(BIN)bumpversion minor
+
+bump_patch:
+	$(BIN)bumpversion patch

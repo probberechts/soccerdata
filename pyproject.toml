@@ -51,6 +51,7 @@ pre-commit-hooks = "^4.1.0"
 Pygments = "^2.10.0"
 time-machine = "^2.5.0"
 pytest-mock = "^3.6.1"
+bumpversion = "^0.6.0"
 
 [tool.isort]
 profile = "black"

@@ -22,7 +22,7 @@
 .. |Tests| image:: https://github.com/probberechts/soccerdata/workflows/CI/badge.svg
    :target: https://github.com/probberechts/soccerdata/actions?workflow=CI
    :alt: Tests
-.. |Codecov| image:: https://codecov.io/gh/probberechts/soccerdata/branch/main/graph/badge.svg
+.. |Codecov| image:: https://codecov.io/gh/probberechts/soccerdata/branch/master/graph/badge.svg
    :target: https://app.codecov.io/gh/probberechts/soccerdata
    :alt: Codecov
 .. |pre-commit| image:: https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white

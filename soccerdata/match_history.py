@@ -9,7 +9,7 @@ from ._common import BaseReader, make_game_id
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS
 
 MATCH_HISTORY_DATA_DIR = DATA_DIR / 'MatchHistory'
-MATCH_HISTORY_API = 'http://www.football-data.co.uk'
+MATCH_HISTORY_API = 'https://www.football-data.co.uk'
 
 
 class MatchHistory(BaseReader):

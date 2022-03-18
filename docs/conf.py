@@ -5,7 +5,9 @@ copyright = f"2021, {author}"
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
+    "nbsphinx",
 ]
+exclude_patterns = ["_build", "**.ipynb_checkpoints"]
 autodoc_typehints = "description"
 autodoc_member_order = "bysource"
 
@@ -15,7 +17,7 @@ html_theme = "furo"
 html_logo = "_static/logo2.png"
 html_favicon = "_static/favicon.ico"
 html_theme_options = {
-    'sidebar_hide_name': True,
+    "sidebar_hide_name": True,
     "light_css_variables": {
         "color-brand-primary": "#2F3C7E",
         "color-brand-content": "#2F3C7E",

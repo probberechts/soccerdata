@@ -169,7 +169,7 @@ def docs_build(session: Session) -> None:
         args.insert(0, "--color")
 
     session.install(".")
-    session.install("sphinx", "sphinx-click", "furo")
+    session.install("sphinx", "sphinx-click", "furo", "nbsphinx", "ipython")
 
     build_dir = Path("docs", "_build")
     if build_dir.exists():
@@ -183,7 +183,7 @@ def docs(session: Session) -> None:
     """Build and serve the documentation with live reloading on file changes."""
     args = session.posargs or ["--host=0.0.0.0", "docs", "docs/_build"]
     session.install(".")
-    session.install("sphinx", "sphinx-autobuild", "furo")
+    session.install("sphinx", "sphinx-autobuild", "furo", "nbsphinx", "ipython")
 
     build_dir = Path("docs", "_build")
     if build_dir.exists():

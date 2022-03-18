@@ -42,6 +42,7 @@ at these tools:
    :maxdepth: 1
 
    usage
+   datasources/index
    reference/index
    contributing
    License <license>

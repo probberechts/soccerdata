@@ -52,6 +52,7 @@ Pygments = "^2.10.0"
 time-machine = "^2.5.0"
 pytest-mock = "^3.6.1"
 bumpversion = "^0.6.0"
+nbsphinx = "^0.8.8"
 
 [tool.isort]
 profile = "black"

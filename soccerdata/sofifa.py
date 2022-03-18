@@ -1,5 +1,6 @@
 """Scraper for http://sofifa.com."""
 import re
+import time
 from pathlib import Path
 from typing import List, Optional, Union
 
@@ -232,6 +233,7 @@ class SoFIFA(BaseReader):
         ]
 
         for player_name, player in players.iterrows():
+            time.sleep(1)
             # read html page (player overview)
             filepath = self.data_dir / filemask.format(player_name, player.season)
             url = urlmask.format(player['player_id'], player.season[:2])

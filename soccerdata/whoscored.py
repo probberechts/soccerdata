@@ -297,15 +297,31 @@ class WhoScored(BaseReader):
                 if len(stages) > 0:
                     for stage in stages:
                         url = WHOSCORED_URL + stage["url"].replace("Show", "Fixtures")
-                        logger.info("Scraping game schedule with stage=%s from %s", stage, url)
                         self.driver.get(url)
+                        try:
+                            self.driver.find_element_by_xpath("//div[@id='tournament-fixture']")
+                        except NoSuchElementException:
+                            # Tournaments sometimes do not have a fixtures page,
+                            # the summary page has to be used instead
+                            url = WHOSCORED_URL + stage["url"]
+                            self.driver.get(url)
+                        logger.info("Scraping game schedule with stage=%s from %s", stage, url)
                         schedule.extend(self._parse_schedule(stage=stage["name"]))
                 else:
                     url = self.driver.find_element_by_xpath(
                         "//a[text()='Fixtures']"
                     ).get_attribute("href")
-                    logger.info("Scraping game schedule from %s", url)
                     self.driver.get(url)
+                    try:
+                        self.driver.find_element_by_xpath("//div[@id='tournament-fixture']")
+                    except NoSuchElementException:
+                        # Tournaments sometimes do not have a fixtures page,
+                        # the summary page has to be used instead
+                        url = self.driver.find_element_by_xpath(
+                            "//a[text()='Summary']"
+                        ).get_attribute("href")
+                        self.driver.get(url)
+                    logger.info("Scraping game schedule from %s", url)
                     schedule.extend(self._parse_schedule())
                 df_schedule = pd.DataFrame(schedule).assign(league=lkey, season=skey)
                 if not self.no_store:

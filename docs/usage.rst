@@ -197,6 +197,7 @@ Look at you! You’re now basically an expert at SoccerData! ✨
 
 From this point you can:
 
+- Look at the example notebooks for each :ref:`Data source <datasources>`.
 - Take a deep dive into the :ref:`API <api>`.
 - Give us feedback or contribute, see :ref:`Contributing <contributing>`.
 

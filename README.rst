@@ -52,7 +52,7 @@ locally.
 
 To learn how to install, configure and use SoccerData, see the
 `Quickstart guide <https://soccerdata.readthedocs.io/en/latest/usage.html>`__. For documentation on each of the
-supported data sources, see the `API reference <https://soccerdata.readthedocs.io/en/latest/reference/>`__.
+supported data sources, see the `example notebooks <https://soccerdata.readthedocs.io/en/latest/datasources/>`__ and `API reference <https://soccerdata.readthedocs.io/en/latest/reference/>`__.
 
 .. _Club Elo: https://www.clubelo.com/
 .. _ESPN: https://www.espn.com/soccer/

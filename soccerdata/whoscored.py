@@ -553,7 +553,7 @@ class WhoScored(BaseReader):
             chrome_options.add_argument("--load-extension=" + str(path_to_addblocker))
         if use_tor:
             proxy = "socks5://127.0.0.1:9050"
-            resolver_rules = "MAP * 0.0.0.0 , EXCLUDE myproxy"
+            resolver_rules = "MAP * ~NOTFOUND , EXCLUDE 127.0.0.1"
             chrome_options.add_argument("--proxy-server=" + proxy)
             chrome_options.add_argument("--host-resolver-rules=" + resolver_rules)
         return uc.Chrome(options=chrome_options)

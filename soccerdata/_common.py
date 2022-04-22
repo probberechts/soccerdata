@@ -71,9 +71,9 @@ class BaseReader(ABC):
                 "https": "socks5://127.0.0.1:9050",
             }
         elif isinstance(proxy, dict):
-            self.proxy = lambda: proxy
+            self.proxy = lambda: proxy  # type: ignore
         elif isinstance(proxy, list):
-            self.proxy = lambda: random.choice(proxy)
+            self.proxy = lambda: random.choice(proxy)  # type: ignore
         elif callable(proxy):
             self.proxy = proxy
         else:
@@ -131,6 +131,7 @@ class BaseReader(ABC):
             logger.debug("Scraping %s", url)
             return self._download_and_save(url, filepath, var)
         logger.debug("Retrieving %s from cache", url)
+        assert filepath is not None
         return filepath.open(mode="rb")
 
     def _is_cached(
@@ -376,7 +377,6 @@ class BaseSeleniumReader(BaseReader):
         )
         self.path_to_browser = path_to_browser
 
-        self._driver = None
         try:
             self._driver = self._init_webdriver()
         except WebDriverException as e:
@@ -510,7 +510,7 @@ def standardize_colnames(df: pd.DataFrame, cols: Optional[List[str]] = None) -> 
     return df.rename(columns={c: to_snake(c) for c in cols})
 
 
-def get_proxy():
+def get_proxy() -> Dict[str, str]:
     """Return a public proxy."""
     # list of free proxy apis
     # protocols: http, https, socks4 and socks5

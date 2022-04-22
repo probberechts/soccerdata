@@ -179,11 +179,11 @@ class WhoScored(BaseSeleniumReader):
             "//div[contains(@id,'tournament-fixture')]//div[contains(@class,'divtable-row')]"
         )
         time.sleep(5 + random.random() * 5)
-        WebDriverWait(self.driver, 30, poll_frequency=1).until(
+        WebDriverWait(self._driver, 30, poll_frequency=1).until(
             ec.presence_of_element_located((By.XPATH, match_selector))
         )
         stages = []
-        node_stages = self.driver.find_elements_by_xpath("//select[contains(@id,'stages')]/option")
+        node_stages = self._driver.find_elements_by_xpath("//select[contains(@id,'stages')]/option")
         for stage in node_stages:
             stages.append({"url": stage.get_attribute("value"), "name": stage.text})
         return stages
@@ -193,12 +193,12 @@ class WhoScored(BaseSeleniumReader):
             "//div[contains(@id,'tournament-fixture')]//div[contains(@class,'divtable-row')]"
         )
         time.sleep(5 + random.random() * 5)
-        WebDriverWait(self.driver, 30, poll_frequency=1).until(
+        WebDriverWait(self._driver, 30, poll_frequency=1).until(
             ec.presence_of_element_located((By.XPATH, match_selector))
         )
         date_str = "Monday, Jan 1 2021"
         schedule_page = []
-        for node in self.driver.find_elements_by_xpath(match_selector):
+        for node in self._driver.find_elements_by_xpath(match_selector):
             if node.get_attribute("data-id"):
                 time_str = node.find_element_by_xpath("./div[contains(@class,'time')]").text
                 schedule_page.append(
@@ -231,7 +231,7 @@ class WhoScored(BaseSeleniumReader):
                 logger.info("Scraping game schedule for %s", date_str)
 
         try:
-            next_page = self.driver.find_element_by_xpath(
+            next_page = self._driver.find_element_by_xpath(
                 "//div[contains(@id,'date-controller')]/a[contains(@class,'previous') and not(contains(@class, 'is-disabled'))]"  # noqa: E501
             )
         except NoSuchElementException:
@@ -280,35 +280,35 @@ class WhoScored(BaseSeleniumReader):
             schedule = []
             if current_season and not force_cache or (not filepath.exists()) or self.no_cache:
                 time.sleep(random.random() * 5)
-                self.driver.get(url)
+                self._driver.get(url)
                 stages = self._parse_season_stages()
                 if len(stages) > 0:
                     for stage in stages:
                         url = WHOSCORED_URL + stage["url"].replace("Show", "Fixtures")
-                        self.driver.get(url)
+                        self._driver.get(url)
                         try:
-                            self.driver.find_element_by_xpath("//div[@id='tournament-fixture']")
+                            self._driver.find_element_by_xpath("//div[@id='tournament-fixture']")
                         except NoSuchElementException:
                             # Tournaments sometimes do not have a fixtures page,
                             # the summary page has to be used instead
                             url = WHOSCORED_URL + stage["url"]
-                            self.driver.get(url)
+                            self._driver.get(url)
                         logger.info("Scraping game schedule with stage=%s from %s", stage, url)
                         schedule.extend(self._parse_schedule(stage=stage["name"]))
                 else:
-                    url = self.driver.find_element_by_xpath(
+                    url = self._driver.find_element_by_xpath(
                         "//a[text()='Fixtures']"
                     ).get_attribute("href")
-                    self.driver.get(url)
+                    self._driver.get(url)
                     try:
-                        self.driver.find_element_by_xpath("//div[@id='tournament-fixture']")
+                        self._driver.find_element_by_xpath("//div[@id='tournament-fixture']")
                     except NoSuchElementException:
                         # Tournaments sometimes do not have a fixtures page,
                         # the summary page has to be used instead
-                        url = self.driver.find_element_by_xpath(
+                        url = self._driver.find_element_by_xpath(
                             "//a[text()='Summary']"
                         ).get_attribute("href")
-                        self.driver.get(url)
+                        self._driver.get(url)
                     logger.info("Scraping game schedule from %s", url)
                     schedule.extend(self._parse_schedule())
                 df_schedule = pd.DataFrame(schedule).assign(league=lkey, season=skey)
@@ -338,9 +338,9 @@ class WhoScored(BaseSeleniumReader):
         urlmask = WHOSCORED_URL + "/Matches/{}"
         url = urlmask.format(game_id)
         data = {}
-        self.driver.get(url)
+        self._driver.get(url)
         # league and season
-        breadcrumb = self.driver.find_elements_by_xpath(
+        breadcrumb = self._driver.find_elements_by_xpath(
             "//div[@id='breadcrumb-nav']/*[not(contains(@class, 'separator'))]"
         )
         country = breadcrumb[0].text
@@ -348,7 +348,7 @@ class WhoScored(BaseSeleniumReader):
         data["league"] = {v: k for k, v in self._all_leagues().items()}[f"{country} - {league}"]
         data["season"] = season_code(season)
         # match header
-        match_header = self.driver.find_element_by_xpath("//div[@id='match-header']")
+        match_header = self._driver.find_element_by_xpath("//div[@id='match-header']")
         score_info = match_header.find_element_by_xpath(".//div[@class='teams-score-info']")
         data["home_team"] = score_info.find_element_by_xpath(
             "./span[contains(@class,'home team')]"
@@ -527,11 +527,11 @@ class WhoScored(BaseSeleniumReader):
 
     def _handle_banner(self) -> None:
         try:
-            # self.driver.get(WHOSCORED_URL)
+            # self._driver.get(WHOSCORED_URL)
             time.sleep(2)
-            self.driver.find_element_by_xpath("//button[contains(text(), 'AGREE')]").click()
+            self._driver.find_element_by_xpath("//button[contains(text(), 'AGREE')]").click()
             time.sleep(2)
         except NoSuchElementException:
             with open("/tmp/error.html", "w") as f:
-                f.write(self.driver.page_source)
+                f.write(self._driver.page_source)
             raise ElementClickInterceptedException()

@@ -50,4 +50,4 @@ def match_epl_2y():
 @pytest.fixture
 def whoscored():
     """Return a correctly initialized instance of WhoScored."""
-    return foo.WhoScored("ENG-Premier League", 2021, use_tor=False)
+    return foo.WhoScored("ENG-Premier League", 2021)

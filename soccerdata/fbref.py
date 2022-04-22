@@ -76,6 +76,7 @@ class FBref(BaseRequestsReader):
             no_store=no_store,
             data_dir=data_dir,
         )
+        self.rate_limit = 2
         self.seasons = seasons  # type: ignore
 
     def read_leagues(self) -> pd.DataFrame:

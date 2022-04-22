@@ -95,6 +95,8 @@ class WhoScored(BaseSeleniumReader):
             path_to_browser=path_to_browser,
         )
         self.seasons = seasons  # type: ignore
+        self.rate_limit = 5
+        self.random_delay = 5
         if not self.no_store:
             (self.data_dir / "seasons").mkdir(parents=True, exist_ok=True)
             (self.data_dir / "matches").mkdir(parents=True, exist_ok=True)
@@ -183,7 +185,9 @@ class WhoScored(BaseSeleniumReader):
             ec.presence_of_element_located((By.XPATH, match_selector))
         )
         stages = []
-        node_stages = self._driver.find_elements_by_xpath("//select[contains(@id,'stages')]/option")
+        node_stages = self._driver.find_elements_by_xpath(
+            "//select[contains(@id,'stages')]/option"
+        )
         for stage in node_stages:
             stages.append({"url": stage.get_attribute("value"), "name": stage.text})
         return stages

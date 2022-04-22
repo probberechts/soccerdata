@@ -83,6 +83,8 @@ class BaseReader(ABC):
         self.no_cache = no_cache
         self.no_store = no_store
         self.data_dir = data_dir
+        self.rate_limit = 0
+        self.random_delay = 0
         if self.no_store:
             logger.info("Caching is disabled")
         else:
@@ -338,6 +340,7 @@ class BaseRequestsReader(BaseReader):
             while True:
                 try:
                     response = self._session.get(url, stream=True)
+                    time.sleep(self.rate_limit + random.random() * self.max_delay)
                     response.raise_for_status()
                     if not self.no_store and filepath is not None:
                         with filepath.open(mode="wb") as fh:
@@ -418,7 +421,7 @@ class BaseSeleniumReader(BaseReader):
             while True:
                 try:
                     self._driver.get(url)
-                    time.sleep(5 + random.random() * 5)
+                    time.sleep(self.rate_limit + random.random() * self.max_delay)
                     if "Incapsula incident ID" in self._driver.page_source:
                         raise WebDriverException(
                             "Your IP is blocked. Use tor or a proxy to continue scraping."

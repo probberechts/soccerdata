@@ -1,42 +1,36 @@
 """Scraper for http://whoscored.com."""
-import io
 import itertools
 import json
 import random
 import re
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import IO, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pandas as pd
 from lxml import html
 
 try:
-    import undetected_chromedriver as uc
     from selenium.common.exceptions import (
         ElementClickInterceptedException,
-        JavascriptException,
         NoSuchElementException,
-        WebDriverException,
     )
     from selenium.webdriver.common.by import By
     from selenium.webdriver.remote.webelement import WebElement
     from selenium.webdriver.support import expected_conditions as ec
     from selenium.webdriver.support.ui import WebDriverWait
-
-    _has_selenium = True
 except ImportError:
-    _has_selenium = False
+    pass
 
-from ._common import BaseReader, season_code, standardize_colnames
+from ._common import BaseSeleniumReader, season_code, standardize_colnames
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
 
 WHOSCORED_DATADIR = DATA_DIR / "WhoScored"
 WHOSCORED_URL = "https://www.whoscored.com"
 
 
-class WhoScored(BaseReader):
+class WhoScored(BaseSeleniumReader):
     """Provides pd.DataFrames from data available at http://whoscored.com.
 
     Data will be downloaded as necessary and cached locally in
@@ -49,8 +43,23 @@ class WhoScored(BaseReader):
     seasons : string, int or list, optional
         Seasons to include. Supports multiple formats.
         Examples: '16-17'; 2016; '2016-17'; [14, 15, 16]
-    use_tor : bool
-        Whether to use the Tor network to hide your IP.
+    proxy : 'tor' or or dict or list(dict) or callable, optional
+        Use a proxy to hide your IP address. Valid options are:
+            - "tor": Uses the Tor network. Tor should be running in
+              the background on port 9050.
+            - dict: A dictionary with the proxy to use. The dict should be
+              a mapping of supported protocols to proxy addresses. For example::
+
+                  {
+                      'http': 'http://10.10.1.10:3128',
+                      'https': 'http://10.10.1.10:1080',
+                  }
+
+            - list(dict): A list of proxies to choose from. A different proxy will
+              be selected from this list after failed requests, allowing rotating
+              proxies.
+            - callable: A function that returns a valid proxy. This function will
+              be called after failed requests, allowing rotating proxies.
     use_addblocker : bool
         Set to True to use the AddBlocker extension. This requires
         `path_to_addblocker` to be set.
@@ -62,29 +71,28 @@ class WhoScored(BaseReader):
         Path to directory where data will be cached.
     path_to_browser : Path, optional
         Path to the Chrome executable.
-    path_to_addblocker : Path, optional
-        Path to the addblocker extension.
     """
 
     def __init__(
         self,
         leagues: Optional[Union[str, List[str]]] = None,
         seasons: Optional[Union[str, int, Iterable[Union[str, int]]]] = None,
-        use_tor: bool = False,
-        use_addblocker: bool = False,
+        proxy: Optional[
+            Union[str, Dict[str, str], List[Dict[str, str]], Callable[[], Dict[str, str]]]
+        ] = None,
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
         data_dir: Path = WHOSCORED_DATADIR,
         path_to_browser: Optional[Path] = None,
-        path_to_addblocker: Optional[Path] = None,
     ):
         """Initialize the WhoScored reader."""
         super().__init__(
+            leagues=leagues,
+            proxy=proxy,
             no_cache=no_cache,
             no_store=no_store,
-            leagues=leagues,
-            use_tor=use_tor,
             data_dir=data_dir,
+            path_to_browser=path_to_browser,
         )
         self.seasons = seasons  # type: ignore
         if not self.no_store:
@@ -92,26 +100,6 @@ class WhoScored(BaseReader):
             (self.data_dir / "matches").mkdir(parents=True, exist_ok=True)
             (self.data_dir / "previews").mkdir(parents=True, exist_ok=True)
             (self.data_dir / "events").mkdir(parents=True, exist_ok=True)
-
-        if not _has_selenium:
-            raise ImportError("`selenium` is required to scrape data from WhoScored")
-
-        try:
-            self.driver = self._init_webdriver(
-                path_to_browser,
-                path_to_addblocker,
-                use_tor,
-                use_addblocker,
-            )
-        except WebDriverException as e:
-            logger.error(
-                """
-                The ChromeDriver was unable to initiate/spawn a new
-                WebBrowser. You will not be able to scrape new data.
-                %s
-                """,
-                e,
-            )
 
     def read_leagues(self) -> pd.DataFrame:
         """Retrieve the selected leagues from the datasource.
@@ -122,7 +110,7 @@ class WhoScored(BaseReader):
         """
         url = WHOSCORED_URL
         filepath = self.data_dir / "tiers.json"
-        reader = self._download_and_save(url, filepath, var="allRegions")
+        reader = self.get(url, filepath, var="allRegions")
 
         data = json.load(reader)
 
@@ -163,7 +151,7 @@ class WhoScored(BaseReader):
             url = WHOSCORED_URL + league.url
             filemask = "seasons/{}.html"
             filepath = self.data_dir / filemask.format(lkey)
-            reader = self._download_and_save(url, filepath, var=None)
+            reader = self.get(url, filepath, var=None)
 
             # extract team links
             tree = html.parse(reader)
@@ -422,7 +410,7 @@ class WhoScored(BaseReader):
             logger.info(
                 "[%s/%s] Retrieving game with id=%s", i + 1, len(iterator), game["game_id"]
             )
-            reader = self._download_and_save(url, filepath, var=None)
+            reader = self.get(url, filepath, var=None)
 
             # extract missing players
             tree = html.parse(reader)
@@ -518,7 +506,7 @@ class WhoScored(BaseReader):
                 game["league"], game["season"], game["game_id"]
             )
 
-            reader = self._download_and_save(
+            reader = self.get(
                 url,
                 filepath,
                 var="requirejs.s.contexts._.config.config.params.args.matchCentreData",
@@ -536,86 +524,6 @@ class WhoScored(BaseReader):
         df["outcome_type"] = df["outcome_type"].apply(lambda x: x.get("displayName"))
         df["period"] = df["period"].apply(lambda x: x.get("displayName"))
         return df
-
-    @staticmethod
-    def _init_webdriver(
-        path_to_browser: Optional[Union[str, Path]] = None,
-        path_to_addblocker: Optional[Union[str, Path]] = None,
-        use_tor: bool = False,
-        use_addblocker: bool = False,
-    ) -> "uc.Chrome":
-        """Start the Selenium driver."""
-        chrome_options = uc.ChromeOptions()
-        chrome_options.add_argument("--headless")
-        if path_to_browser is not None:
-            chrome_options.add_argument("--binary-location=" + str(path_to_browser))
-        if use_addblocker and path_to_addblocker is not None:
-            chrome_options.add_argument("--load-extension=" + str(path_to_addblocker))
-        if use_tor:
-            proxy = "socks5://127.0.0.1:9050"
-            resolver_rules = "MAP * ~NOTFOUND , EXCLUDE 127.0.0.1"
-            chrome_options.add_argument("--proxy-server=" + proxy)
-            chrome_options.add_argument("--host-resolver-rules=" + resolver_rules)
-        return uc.Chrome(options=chrome_options)
-
-    def _download_and_save(  # noqa: C901
-        self,
-        url: str,
-        filepath: Optional[Path] = None,
-        max_age: Optional[Union[int, timedelta]] = None,
-        no_cache: bool = False,
-        var: Optional[str] = None,
-    ) -> IO[bytes]:
-        """Download file at url to filepath. Overwrites if filepath exists."""
-        # Validate inputs
-        if max_age is not None:
-            if isinstance(max_age, int):
-                _max_age = timedelta(days=max_age)
-            elif isinstance(max_age, timedelta):
-                _max_age = max_age
-            else:
-                raise TypeError("max_age must be of type int or datetime.timedelta")
-        else:
-            _max_age = None
-
-        cache_invalid = False
-        # Check if cached file is too old
-        if no_cache or self.no_cache:
-            cache_invalid = True
-        if _max_age is not None and filepath is not None and filepath.exists():
-            last_modified = datetime.fromtimestamp(filepath.stat().st_mtime)
-            now = datetime.now()
-            if (now - last_modified) > _max_age:
-                cache_invalid = True
-
-        # Download file
-        if cache_invalid or filepath is None or not filepath.exists():
-            logger.info("Scraping %s", url)
-            self.driver.get(url)
-            time.sleep(5 + random.random() * 5)
-            if "Incapsula incident ID" in self.driver.page_source:
-                raise WebDriverException("Your IP is blocked. Use tor to continue scraping.")
-
-            if var is None:
-                response = self.driver.execute_script("return document.body.innerHTML;").encode(
-                    "utf-8"
-                )
-            else:
-                try:
-                    response = self.driver.execute_script("return " + var)
-                except JavascriptException:
-                    logger.error("Could not obtain %s for %s", var, url)
-                    response = {}
-                response = json.dumps(response).encode("utf-8")
-            if not self.no_store and filepath is not None:
-                filepath.parent.mkdir(parents=True, exist_ok=True)
-                with filepath.open(mode="wb") as fh:
-                    fh.write(response)
-            return io.BytesIO(response)
-
-        # Use cached file
-        logger.debug("Retrieving %s from cache", url)
-        return filepath.open(mode="rb")
 
     def _handle_banner(self) -> None:
         try:

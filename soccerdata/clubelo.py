@@ -2,19 +2,19 @@
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 
 import pandas as pd
 from unidecode import unidecode
 
-from ._common import BaseReader, standardize_colnames
+from ._common import BaseRequestsReader, standardize_colnames
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS
 
 CLUB_ELO_DATADIR = DATA_DIR / "ClubElo"
 CLUB_ELO_API = "http://api.clubelo.com"
 
 
-class ClubElo(BaseReader):
+class ClubElo(BaseRequestsReader):
     """Provides pd.DataFrames from CSV API at http://api.clubelo.com.
 
     Data will be downloaded as necessary and cached locally in
@@ -27,6 +27,23 @@ class ClubElo(BaseReader):
 
     Parameters
     ----------
+    proxy : 'tor' or or dict or list(dict) or callable, optional
+        Use a proxy to hide your IP address. Valid options are:
+            - "tor": Uses the Tor network. Tor should be running in
+              the background on port 9050.
+            - dict: A dictionary with the proxy to use. The dict should be
+              a mapping of supported protocols to proxy addresses. For example::
+
+                  {
+                      'http': 'http://10.10.1.10:3128',
+                      'https': 'http://10.10.1.10:1080',
+                  }
+
+            - list(dict): A list of proxies to choose from. A different proxy will
+              be selected from this list after failed requests, allowing rotating
+              proxies.
+            - callable: A function that returns a valid proxy. This function will
+              be called after failed requests, allowing rotating proxies.
     no_cache : bool
         If True, will not use cached data.
     no_store : bool
@@ -36,7 +53,13 @@ class ClubElo(BaseReader):
     """
 
     def __init__(
-        self, no_cache: bool = NOCACHE, no_store: bool = NOSTORE, data_dir: Path = CLUB_ELO_DATADIR
+        self,
+        proxy: Optional[
+            Union[str, Dict[str, str], List[Dict[str, str]], Callable[[], Dict[str, str]]]
+        ] = None,
+        no_cache: bool = NOCACHE,
+        no_store: bool = NOSTORE,
+        data_dir: Path = CLUB_ELO_DATADIR,
     ):
         """Initialize a new ClubElo reader."""
         super().__init__(no_cache=no_cache, no_store=no_store, data_dir=data_dir)
@@ -68,7 +91,7 @@ class ClubElo(BaseReader):
         filepath = self.data_dir / f"{datestring}.csv"
         url = f"{CLUB_ELO_API}/{datestring}"
 
-        data = self._download_and_save(url, filepath)
+        data = self.get(url, filepath)
 
         df = (
             pd.read_csv(
@@ -125,7 +148,7 @@ class ClubElo(BaseReader):
         for _team in teams_to_check:
             filepath = self.data_dir / f"{_team}.csv"
             url = f"{CLUB_ELO_API}/{_team}"
-            data = self._download_and_save(url, filepath, max_age)
+            data = self.get(url, filepath, max_age)
 
             df = (
                 pd.read_csv(

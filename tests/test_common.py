@@ -8,7 +8,7 @@ import time_machine
 
 import soccerdata
 from soccerdata._common import (
-    BaseReader,
+    BaseRequestsReader,
     make_game_id,
     season_code,
     standardize_colnames,
@@ -18,7 +18,7 @@ from soccerdata._common import (
 
 
 def test_download_and_save_not_cached(tmp_path):
-    reader = BaseReader()
+    reader = BaseRequestsReader()
     url = "http://api.clubelo.com/Barcelona"
     filepath = tmp_path / "Barcelona.csv"
     data = reader._download_and_save(url, filepath)
@@ -26,7 +26,7 @@ def test_download_and_save_not_cached(tmp_path):
 
 
 def test_download_and_save_cached(tmp_path):
-    reader = BaseReader()
+    reader = BaseRequestsReader()
     url = "http://api.clubelo.com/Barcelona"
     filepath = tmp_path / "Barcelona.csv"
     data = reader._download_and_save(url, filepath)
@@ -35,7 +35,7 @@ def test_download_and_save_cached(tmp_path):
 
 
 def test_download_and_save_no_cache(tmp_path):
-    reader = BaseReader(no_cache=True)
+    reader = BaseRequestsReader(no_cache=True)
     url = "http://api.clubelo.com/Barcelona"
     filepath = tmp_path / "Barcelona.csv"
     filepath.write_text("bogus")
@@ -44,20 +44,44 @@ def test_download_and_save_no_cache(tmp_path):
 
 
 def test_download_and_save_no_store_no_filepath():
-    reader = BaseReader(no_store=True)
+    reader = BaseRequestsReader(no_store=True)
     url = "http://api.clubelo.com/Barcelona"
     data = reader._download_and_save(url, filepath=None)
     assert isinstance(pd.read_csv(data), pd.DataFrame)
 
 
 def test_download_and_save_no_cache_filepath(tmp_path):
-    reader = BaseReader(no_store=True)
+    reader = BaseRequestsReader(no_store=True)
     url = "http://api.clubelo.com/Barcelona"
     filepath = tmp_path / "Barcelona.csv"
     data = reader._download_and_save(url, filepath)
     assert isinstance(pd.read_csv(data), pd.DataFrame)
     assert not filepath.exists()
 
+
+# def test_download_and_save_requests_tor(tmp_path):
+#     url = "https://check.torproject.org/api/ip"
+#     reader = BaseRequestsReader(proxy=None)
+#     ip_without_proxy = reader.get(url, tmp_path / "myip.txt")
+#     ip_without_proxy = json.load(ip_without_proxy)
+#     proxy_reader = BaseRequestsReader(proxy="tor")
+#     ip_with_proxy = proxy_reader.get(url, tmp_path / "myproxyip.txt")
+#     ip_with_proxy = json.load(ip_with_proxy)
+#     assert ip_without_proxy["IP"] != ip_with_proxy["IP"]
+#     assert ip_with_proxy["IsTor"]
+#
+#
+# def test_download_and_save_selenium_tor(tmp_path):
+#     url = "https://check.torproject.org/api/ip"
+#     reader = BaseSeleniumReader(proxy=None).get(url, tmp_path / "myip.txt")
+#     ip_without_proxy = html.parse(reader).xpath("//pre")[0].text
+#     ip_without_proxy = json.loads(ip_without_proxy)
+#     proxy_reader = BaseSeleniumReader(proxy="tor").get(url, tmp_path / "myproxyip.txt")
+#     ip_with_proxy = html.parse(proxy_reader).xpath("//pre")[0].text
+#     ip_with_proxy = json.loads(ip_with_proxy)
+#     assert ip_without_proxy["IP"] != ip_with_proxy["IP"]
+#     assert ip_with_proxy["IsTor"]
+#
 
 # make_game_id
 
@@ -105,30 +129,30 @@ def test_standardize_colnames():
 
 
 def test_is_complete():
-    reader = BaseReader(no_store=True)
+    reader = BaseRequestsReader(no_store=True)
     with time_machine.travel(datetime.datetime(2020, 12, 25, 1, 24)):
-        assert reader._is_complete('ENG-Premier League', '1920')
-        assert not reader._is_complete('ENG-Premier League', '2021')
+        assert reader._is_complete("ENG-Premier League", "1920")
+        assert not reader._is_complete("ENG-Premier League", "2021")
     with time_machine.travel(datetime.datetime(2021, 2, 25, 1, 24)):
-        assert reader._is_complete('ENG-Premier League', '1920')
-        assert not reader._is_complete('ENG-Premier League', '2021')
+        assert reader._is_complete("ENG-Premier League", "1920")
+        assert not reader._is_complete("ENG-Premier League", "2021")
     with time_machine.travel(datetime.datetime(2021, 7, 1, 1, 24)):
-        assert reader._is_complete('ENG-Premier League', '1920')
-        assert reader._is_complete('ENG-Premier League', '2021')
-        assert not reader._is_complete('ENG-Premier League', '2122')
+        assert reader._is_complete("ENG-Premier League", "1920")
+        assert reader._is_complete("ENG-Premier League", "2021")
+        assert not reader._is_complete("ENG-Premier League", "2122")
 
 
 def test_is_complete_default_value(mocker):
-    mocker.patch.object(soccerdata._common, 'LEAGUE_DICT', {'FAKE-Dummy League': {}})
-    reader = BaseReader(no_store=True)
+    mocker.patch.object(soccerdata._common, "LEAGUE_DICT", {"FAKE-Dummy League": {}})
+    reader = BaseRequestsReader(no_store=True)
     with time_machine.travel(datetime.datetime(2020, 12, 25, 1, 24)):
-        assert reader._is_complete('FAKE-Dummy League', '1920')
+        assert reader._is_complete("FAKE-Dummy League", "1920")
 
 
 def test_is_complete_undefined_league(mocker):
-    reader = BaseReader(no_store=True)
+    reader = BaseRequestsReader(no_store=True)
     with pytest.raises(ValueError):
-        reader._is_complete('FAKE-Dummy League', '1920')
+        reader._is_complete("FAKE-Dummy League", "1920")
 
 
 # Season codes

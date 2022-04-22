@@ -128,11 +128,11 @@ Checkout the `Expert guides`_ on the Tor website for installation
 instructions. After installing Tor, make sure to start it up before scraping.
 This can easily be done by running the ``tor`` command from your terminal (in
 a separate window), Tor will start up and run on “localhost:9050” by default.
-Once Tor is running, you can enable the extension by setting ``use_tor=True``.
+Once Tor is running, you can enable the extension by setting ``proxy='tor'``.
 
 .. code:: python
 
-   ws = sd.WhoScored(use_tor=True)
+   ws = sd.WhoScored(proxy='tor')
 
 
 .. _Expert guides: https://www.torproject.org/docs/tor-browser/

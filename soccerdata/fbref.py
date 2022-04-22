@@ -1,14 +1,14 @@
 """Scraper for http://fbref.com."""
 import itertools
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
 from lxml import etree, html
 
 from ._common import (
-    BaseReader,
+    BaseRequestsReader,
     make_game_id,
     season_code,
     standardize_colnames,
@@ -19,7 +19,7 @@ FBREF_DATADIR = DATA_DIR / "FBref"
 FBREF_API = "https://fbref.com"
 
 
-class FBref(BaseReader):
+class FBref(BaseRequestsReader):
     """Provides pd.DataFrames from data at http://fbref.com.
 
     Data will be downloaded as necessary and cached locally in
@@ -32,8 +32,23 @@ class FBref(BaseReader):
     seasons : string, int or list, optional
         Seasons to include. Supports multiple formats.
         Examples: '16-17'; 2016; '2016-17'; [14, 15, 16]
-    use_tor : bool
-        Whether to use the Tor network to hide your IP.
+    proxy : 'tor' or or dict or list(dict) or callable, optional
+        Use a proxy to hide your IP address. Valid options are:
+            - "tor": Uses the Tor network. Tor should be running in
+              the background on port 9050.
+            - dict: A dictionary with the proxy to use. The dict should be
+              a mapping of supported protocols to proxy addresses. For example::
+
+                  {
+                      'http': 'http://10.10.1.10:3128',
+                      'https': 'http://10.10.1.10:1080',
+                  }
+
+            - list(dict): A list of proxies to choose from. A different proxy will
+              be selected from this list after failed requests, allowing rotating
+              proxies.
+            - callable: A function that returns a valid proxy. This function will
+              be called after failed requests, allowing rotating proxies.
     no_cache : bool
         If True, will not use cached data.
     no_store : bool
@@ -46,7 +61,9 @@ class FBref(BaseReader):
         self,
         leagues: Optional[Union[str, List[str]]] = None,
         seasons: Optional[Union[str, int, List]] = None,
-        use_tor: bool = False,
+        proxy: Optional[
+            Union[str, Dict[str, str], List[Dict[str, str]], Callable[[], Dict[str, str]]]
+        ] = None,
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
         data_dir: Path = FBREF_DATADIR,
@@ -54,7 +71,7 @@ class FBref(BaseReader):
         """Initialize FBref reader."""
         super().__init__(
             leagues=leagues,
-            use_tor=use_tor,
+            proxy=proxy,
             no_cache=no_cache,
             no_store=no_store,
             data_dir=data_dir,
@@ -70,7 +87,7 @@ class FBref(BaseReader):
         """
         url = f"{FBREF_API}/en/comps/"
         filepath = self.data_dir / "leagues.html"
-        reader = self._download_and_save(url, filepath)
+        reader = self.get(url, filepath)
 
         # extract league links
         leagues = []
@@ -107,7 +124,7 @@ class FBref(BaseReader):
             url = FBREF_API + league.url
             filemask = "seasons_{}.html"
             filepath = self.data_dir / filemask.format(lkey)
-            reader = self._download_and_save(url, filepath)
+            reader = self.get(url, filepath)
 
             # extract season links
             tree = html.parse(reader)
@@ -167,7 +184,7 @@ class FBref(BaseReader):
             # read html page (league overview)
             filepath = self.data_dir / filemask.format(lkey, skey)
             url = FBREF_API + season.url
-            reader = self._download_and_save(url, filepath)
+            reader = self.get(url, filepath)
 
             # extract team links
             tree = html.parse(reader)
@@ -232,7 +249,7 @@ class FBref(BaseReader):
             # read html page (league overview)
             filepath = self.data_dir / filemask.format(lkey, skey, tkey)
             url = FBREF_API + team.url
-            reader = self._download_and_save(url, filepath)
+            reader = self.get(url, filepath)
 
             # extract team links
             tree = html.parse(reader)
@@ -283,13 +300,13 @@ class FBref(BaseReader):
             # read html page (league overview)
             url_stats = FBREF_API + season.url
             filepath_stats = self.data_dir / f"teams_{lkey}_{skey}.html"
-            reader = self._download_and_save(url_stats, filepath_stats)
+            reader = self.get(url_stats, filepath_stats)
             tree = html.parse(reader)
 
             url_fixtures = FBREF_API + tree.xpath("//a[text()='Scores & Fixtures']")[0].get("href")
             filepath_fixtures = self.data_dir / f"schedule_{lkey}_{skey}.html"
             current_season = not self._is_complete(lkey, skey)
-            reader = self._download_and_save(
+            reader = self.get(
                 url_fixtures, filepath_fixtures, no_cache=current_season and not force_cache
             )
             tree = html.parse(reader)
@@ -411,7 +428,7 @@ class FBref(BaseReader):
                 "[%s/%s] Retrieving game with id=%s", i + 1, len(iterator), game["game_id"]
             )
             filepath = self.data_dir / filemask.format(game["game_id"])
-            reader = self._download_and_save(url, filepath)
+            reader = self.get(url, filepath)
             tree = html.parse(reader)
             (home_team, away_team) = self._parse_teams(tree)
             if stat_type == "keepers":
@@ -486,7 +503,7 @@ class FBref(BaseReader):
                 "[%s/%s] Retrieving game with id=%s", i + 1, len(iterator), game["game_id"]
             )
             filepath = self.data_dir / filemask.format(game["game_id"])
-            reader = self._download_and_save(url, filepath)
+            reader = self.get(url, filepath)
             tree = html.parse(reader)
             teams = self._parse_teams(tree)
             tables = tree.xpath("//div[@class='lineup']")
@@ -556,7 +573,7 @@ class FBref(BaseReader):
                 "[%s/%s] Retrieving game with id=%s", i + 1, len(iterator), game["game_id"]
             )
             filepath = self.data_dir / filemask.format(game["game_id"])
-            reader = self._download_and_save(url, filepath)
+            reader = self.get(url, filepath)
             tree = html.parse(reader)
             df_table = pd.read_html(etree.tostring(tree), attrs={"id": "shots_all"})[0]
             df_table["game_id"] = game["game_id"]

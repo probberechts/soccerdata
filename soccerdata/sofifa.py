@@ -2,19 +2,19 @@
 import re
 import time
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 
 import pandas as pd
 from lxml import html
 
-from ._common import BaseReader, standardize_colnames
+from ._common import BaseRequestsReader, standardize_colnames
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS
 
 SO_FIFA_DATADIR = DATA_DIR / 'SoFIFA'
 SO_FIFA_API = 'https://sofifa.com'
 
 
-class SoFIFA(BaseReader):
+class SoFIFA(BaseRequestsReader):
     """Provides pd.DataFrames from data at http://sofifa.com.
 
     Data will be downloaded as necessary and cached locally in
@@ -27,8 +27,23 @@ class SoFIFA(BaseReader):
     seasons : string, int or list, optional
         Seasons to include. Supports multiple formats.
         Examples: '16-17'; 2016; '2016-17'; [14, 15, 16]
-    use_tor : bool
-        Whether to use the Tor network to hide your IP.
+    proxy : 'tor' or or dict or list(dict) or callable, optional
+        Use a proxy to hide your IP address. Valid options are:
+            - "tor": Uses the Tor network. Tor should be running in
+              the background on port 9050.
+            - dict: A dictionary with the proxy to use. The dict should be
+              a mapping of supported protocols to proxy addresses. For example::
+
+                  {
+                      'http': 'http://10.10.1.10:3128',
+                      'https': 'http://10.10.1.10:1080',
+                  }
+
+            - list(dict): A list of proxies to choose from. A different proxy will
+              be selected from this list after failed requests, allowing rotating
+              proxies.
+            - callable: A function that returns a valid proxy. This function will
+              be called after failed requests, allowing rotating proxies.
     no_cache : bool
         If True, will not use cached data.
     no_store : bool
@@ -41,7 +56,9 @@ class SoFIFA(BaseReader):
         self,
         leagues: Optional[Union[str, List[str]]] = None,
         seasons: Optional[Union[str, int, List]] = None,
-        use_tor: bool = False,
+        proxy: Optional[
+            Union[str, Dict[str, str], List[Dict[str, str]], Callable[[], Dict[str, str]]]
+        ] = None,
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
         data_dir: Path = SO_FIFA_DATADIR,
@@ -49,7 +66,7 @@ class SoFIFA(BaseReader):
         """Initialize SoFIFA reader."""
         super().__init__(
             leagues=leagues,
-            use_tor=use_tor,
+            proxy=proxy,
             no_cache=no_cache,
             no_store=no_store,
             data_dir=data_dir,
@@ -65,7 +82,7 @@ class SoFIFA(BaseReader):
         """
         # read html page (overview)
         filepath = self.data_dir / 'leagues.html'
-        reader = self._download_and_save(SO_FIFA_API, filepath)
+        reader = self.get(SO_FIFA_API, filepath)
 
         # extract league links
         leagues = []
@@ -103,7 +120,7 @@ class SoFIFA(BaseReader):
                 season_id = skey[:2]
                 filepath = self.data_dir / filemask.format(lkey, skey)
                 url = urlmask.format(league_id, season_id)
-                reader = self._download_and_save(url, filepath)
+                reader = self.get(url, filepath)
 
                 # extract team links
                 tree = html.parse(reader)
@@ -151,7 +168,7 @@ class SoFIFA(BaseReader):
             # read html page (team overview)
             filepath = self.data_dir / filemask.format(team_name, season_id)
             url = urlmask.format(team['team_id'], season_id)
-            reader = self._download_and_save(url, filepath)
+            reader = self.get(url, filepath)
 
             # extract player links
             tree = html.parse(reader)
@@ -237,7 +254,7 @@ class SoFIFA(BaseReader):
             # read html page (player overview)
             filepath = self.data_dir / filemask.format(player_name, player.season)
             url = urlmask.format(player['player_id'], player.season[:2])
-            reader = self._download_and_save(url, filepath)
+            reader = self.get(url, filepath)
 
             # extract scores one-by-one
             tree = html.parse(reader)

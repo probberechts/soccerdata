@@ -2,18 +2,18 @@
 import itertools
 import json
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 
 import pandas as pd
 
-from ._common import BaseReader, make_game_id, standardize_colnames
+from ._common import BaseRequestsReader, make_game_id, standardize_colnames
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS
 
 FIVETHIRTYEIGHT_DATA_DIR = DATA_DIR / 'FiveThirtyEight'
 FIVETHIRTYEIGHT_API = 'https://projects.fivethirtyeight.com/soccer-predictions'
 
 
-class FiveThirtyEight(BaseReader):
+class FiveThirtyEight(BaseRequestsReader):
     """Provides pd.DataFrames from fivethirtyeight's "Club Soccer Predictions" project.
 
     Data will be downloaded as necessary and cached locally in
@@ -31,6 +31,23 @@ class FiveThirtyEight(BaseReader):
     seasons : string, int or list, optional
         Seasons to include. Supports multiple formats.
         Examples: '16-17'; 2016; '2016-17'; [14, 15, 16]
+    proxy : 'tor' or or dict or list(dict) or callable, optional
+        Use a proxy to hide your IP address. Valid options are:
+            - "tor": Uses the Tor network. Tor should be running in
+              the background on port 9050.
+            - dict: A dictionary with the proxy to use. The dict should be
+              a mapping of supported protocols to proxy addresses. For example::
+
+                  {
+                      'http': 'http://10.10.1.10:3128',
+                      'https': 'http://10.10.1.10:1080',
+                  }
+
+            - list(dict): A list of proxies to choose from. A different proxy will
+              be selected from this list after failed requests, allowing rotating
+              proxies.
+            - callable: A function that returns a valid proxy. This function will
+              be called after failed requests, allowing rotating proxies.
     no_cache : bool
         If True, will not use cached data.
     no_store : bool
@@ -43,18 +60,23 @@ class FiveThirtyEight(BaseReader):
         self,
         leagues: Optional[Union[str, List[str]]] = None,
         seasons: Optional[Union[str, int, List]] = None,
+        proxy: Optional[
+            Union[str, Dict[str, str], List[Dict[str, str]], Callable[[], Dict[str, str]]]
+        ] = None,
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
         data_dir: Path = FIVETHIRTYEIGHT_DATA_DIR,
     ):
         """Initialize a new FiveThirtyEight reader."""
-        super().__init__(leagues=leagues, no_cache=no_cache, no_store=no_store, data_dir=data_dir)
+        super().__init__(
+            leagues=leagues, proxy=proxy, no_cache=no_cache, no_store=no_store, data_dir=data_dir
+        )
         self.seasons = seasons  # type: ignore
         self._data = {}
 
         url = f'{FIVETHIRTYEIGHT_API}/data.json'
         filepath = self.data_dir / 'latest.json'
-        reader = self._download_and_save(url, filepath)
+        reader = self.get(url, filepath)
 
         for k, v in json.load(reader).items():
             self._data[k] = v
@@ -114,7 +136,7 @@ class FiveThirtyEight(BaseReader):
         for lkey, skey in itertools.product(self._selected_leagues.values(), self.seasons):
             filepath = self.data_dir / filemask.format(lkey, skey)
             url = urlmask.format(skey[:2], lkey)
-            reader = self._download_and_save(url, filepath)
+            reader = self.get(url, filepath)
             data.extend(json.load(reader))
 
         df = (
@@ -156,7 +178,7 @@ class FiveThirtyEight(BaseReader):
         for lkey, skey in itertools.product(self._selected_leagues.values(), self.seasons):
             filepath = self.data_dir / filemask.format(lkey, skey)
             url = urlmask.format(skey[:2], lkey)
-            reader = self._download_and_save(url, filepath)
+            reader = self.get(url, filepath)
 
             forecasts = json.load(reader)
             for f in forecasts['forecasts']:
@@ -193,7 +215,7 @@ class FiveThirtyEight(BaseReader):
         for lkey, skey in itertools.product(self._selected_leagues.values(), self.seasons):
             filepath = self.data_dir / filemask.format(lkey, skey)
             url = urlmask.format(skey[:2], lkey)
-            reader = self._download_and_save(url, filepath)
+            reader = self.get(url, filepath)
 
             for c in json.load(reader):
                 data.append({'league': lkey, 'season': skey, **c})

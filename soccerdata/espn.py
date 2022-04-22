@@ -4,12 +4,12 @@ import itertools
 import json
 import re
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 
 import pandas as pd
 import requests
 
-from ._common import BaseReader, standardize_colnames
+from ._common import BaseRequestsReader, standardize_colnames
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS
 
 # http://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/summary?event=513466
@@ -19,7 +19,7 @@ ESPN_DATADIR = DATA_DIR / 'ESPN'
 ESPN_API = 'http://site.api.espn.com/apis/site/v2/sports/soccer'
 
 
-class ESPN(BaseReader):
+class ESPN(BaseRequestsReader):
     """Provides pd.DataFrames from JSON api available at http://site.api.espn.com.
 
     Data will be downloaded as necessary and cached locally in
@@ -29,11 +29,27 @@ class ESPN(BaseReader):
     ----------
     leagues : string or iterable, optional
         IDs of leagues to include.
+
     seasons : string, int or list, optional
         Seasons to include. Supports multiple formats.
         Examples: '16-17'; 2016; '2016-17'; [14, 15, 16]
-    use_tor : bool
-        Whether to use the Tor network to hide your IP.
+    proxy : 'tor' or or dict or list(dict) or callable, optional
+        Use a proxy to hide your IP address. Valid options are:
+            - "tor": Uses the Tor network. Tor should be running in
+              the background on port 9050.
+            - dict: A dictionary with the proxy to use. The dict should be
+              a mapping of supported protocols to proxy addresses. For example::
+
+                  {
+                      'http': 'http://10.10.1.10:3128',
+                      'https': 'http://10.10.1.10:1080',
+                  }
+
+            - list(dict): A list of proxies to choose from. A different proxy will
+              be selected from this list after failed requests, allowing rotating
+              proxies.
+            - callable: A function that returns a valid proxy. This function will
+              be called after failed requests, allowing rotating proxies.
     no_cache : bool
         If True, will not use cached data.
     no_store : bool
@@ -46,7 +62,9 @@ class ESPN(BaseReader):
         self,
         leagues: Optional[Union[str, List[str]]] = None,
         seasons: Optional[Union[str, int, List]] = None,
-        use_tor: bool = False,
+        proxy: Optional[
+            Union[str, Dict[str, str], List[Dict[str, str]], Callable[[], Dict[str, str]]]
+        ] = None,
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
         data_dir: Path = ESPN_DATADIR,
@@ -54,7 +72,7 @@ class ESPN(BaseReader):
         """Initialize a new ESPN reader."""
         super().__init__(
             leagues=leagues,
-            use_tor=use_tor,
+            proxy=proxy,
             no_cache=no_cache,
             no_store=no_store,
             data_dir=data_dir,
@@ -97,9 +115,7 @@ class ESPN(BaseReader):
                 url = urlmask.format(lkey, date)
                 filepath = self.data_dir / filemask.format(lkey, date)
                 current_season = not self._is_complete(lkey, skey)
-                reader = self._download_and_save(
-                    url, filepath, no_cache=current_season and not force_cache
-                )
+                reader = self.get(url, filepath, no_cache=current_season and not force_cache)
 
                 data = json.load(reader)
                 df_list.extend(
@@ -163,7 +179,7 @@ class ESPN(BaseReader):
         for i, match in iterator.iterrows():
             url = urlmask.format(match['league_id'], match['game_id'])
             filepath = self.data_dir / filemask.format(match['game_id'])
-            reader = self._download_and_save(url, filepath)
+            reader = self.get(url, filepath)
 
             data = json.load(reader)
             for i in range(2):
@@ -233,7 +249,7 @@ class ESPN(BaseReader):
         for i, match in iterator.iterrows():
             url = urlmask.format(match['league_id'], match['game_id'])
             filepath = self.data_dir / filemask.format(match['game_id'])
-            reader = self._download_and_save(url, filepath)
+            reader = self.get(url, filepath)
 
             data = json.load(reader)
             for i in range(2):

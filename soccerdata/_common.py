@@ -337,21 +337,20 @@ class BaseRequestsReader(BaseReader):
     ) -> IO[bytes]:
         """Download file at url to filepath. Overwrites if filepath exists."""
         for i in range(5):
-            while True:
-                try:
-                    response = self._session.get(url, stream=True)
-                    time.sleep(self.rate_limit + random.random() * self.max_delay)
-                    response.raise_for_status()
-                    if not self.no_store and filepath is not None:
-                        with filepath.open(mode="wb") as fh:
-                            fh.write(response.content)
-                    return io.BytesIO(response.content)
-                except Exception:
-                    logger.exception(
-                        "Error while scraping %s. Retrying... (attempt %d of 5).", url, i + 1
-                    )
-                    self._session = self._init_session()
-                    continue
+            try:
+                response = self._session.get(url, stream=True)
+                time.sleep(self.rate_limit + random.random() * self.max_delay)
+                response.raise_for_status()
+                if not self.no_store and filepath is not None:
+                    with filepath.open(mode="wb") as fh:
+                        fh.write(response.content)
+                return io.BytesIO(response.content)
+            except Exception:
+                logger.exception(
+                    "Error while scraping %s. Retrying... (attempt %d of 5).", url, i + 1
+                )
+                self._session = self._init_session()
+                continue
 
         raise ConnectionError("Could not download %s." % url)
 
@@ -418,33 +417,32 @@ class BaseSeleniumReader(BaseReader):
     ) -> IO[bytes]:
         """Download file at url to filepath. Overwrites if filepath exists."""
         for i in range(5):
-            while True:
-                try:
-                    self._driver.get(url)
-                    time.sleep(self.rate_limit + random.random() * self.max_delay)
-                    if "Incapsula incident ID" in self._driver.page_source:
-                        raise WebDriverException(
-                            "Your IP is blocked. Use tor or a proxy to continue scraping."
-                        )
-                    if var is None:
-                        response = self._driver.execute_script(
-                            "return document.body.innerHTML;"
-                        ).encode("utf-8")
-                    else:
-                        response = json.dumps(self._driver.execute_script("return " + var)).encode(
-                            "utf-8"
-                        )
-                    if not self.no_store and filepath is not None:
-                        filepath.parent.mkdir(parents=True, exist_ok=True)
-                        with filepath.open(mode="wb") as fh:
-                            fh.write(response)
-                    return io.BytesIO(response)
-                except Exception:
-                    logger.exception(
-                        "Error while scraping %s. Retrying... (attempt %d of 5).", url, i + 1
+            try:
+                self._driver.get(url)
+                time.sleep(self.rate_limit + random.random() * self.max_delay)
+                if "Incapsula incident ID" in self._driver.page_source:
+                    raise WebDriverException(
+                        "Your IP is blocked. Use tor or a proxy to continue scraping."
                     )
-                    self._driver = self._init_webdriver()
-                    continue
+                if var is None:
+                    response = self._driver.execute_script(
+                        "return document.body.innerHTML;"
+                    ).encode("utf-8")
+                else:
+                    response = json.dumps(self._driver.execute_script("return " + var)).encode(
+                        "utf-8"
+                    )
+                if not self.no_store and filepath is not None:
+                    filepath.parent.mkdir(parents=True, exist_ok=True)
+                    with filepath.open(mode="wb") as fh:
+                        fh.write(response)
+                return io.BytesIO(response)
+            except Exception:
+                logger.exception(
+                    "Error while scraping %s. Retrying... (attempt %d of 5).", url, i + 1
+                )
+                self._driver = self._init_webdriver()
+                continue
 
         raise ConnectionError("Could not download %s." % url)
 

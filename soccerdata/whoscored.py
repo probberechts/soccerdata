@@ -185,8 +185,8 @@ class WhoScored(BaseSeleniumReader):
             ec.presence_of_element_located((By.XPATH, match_selector))
         )
         stages = []
-        node_stages = self._driver.find_elements_by_xpath(
-            "//select[contains(@id,'stages')]/option"
+        node_stages = self._driver.find_elements(
+            By.XPATH, "//select[contains(@id,'stages')]/option"
         )
         for stage in node_stages:
             stages.append({"url": stage.get_attribute("value"), "name": stage.text})
@@ -202,41 +202,43 @@ class WhoScored(BaseSeleniumReader):
         )
         date_str = "Monday, Jan 1 2021"
         schedule_page = []
-        for node in self._driver.find_elements_by_xpath(match_selector):
+        for node in self._driver.find_elements(By.XPATH, match_selector):
             if node.get_attribute("data-id"):
-                time_str = node.find_element_by_xpath("./div[contains(@class,'time')]").text
+                time_str = node.find_element(By.XPATH, "./div[contains(@class,'time')]").text
                 schedule_page.append(
                     {
                         # fmt: off
                         "game_id": int(
                             re.search(
                                 r"Matches/(\d+)/",
-                                node.find_element_by_xpath(
+                                node.find_element(
+                                    By.XPATH,
                                     "./div[contains(@class,'result')]//a"
                                 ).get_attribute("href")).group(1)  # type: ignore
                         ),
                         # fmt: on
-                        "home_team": node.find_element_by_xpath(
-                            "./div[contains(@class,'team home')]//a"
+                        "home_team": node.find_element(
+                            By.XPATH, "./div[contains(@class,'team home')]//a"
                         ).text,
-                        "away_team": node.find_element_by_xpath(
-                            "./div[contains(@class,'team away')]//a"
+                        "away_team": node.find_element(
+                            By.XPATH, "./div[contains(@class,'team away')]//a"
                         ).text,
                         "date": datetime.strptime(f"{date_str} {time_str}", "%A, %b %d %Y %H:%M"),
-                        "url": node.find_element_by_xpath(
-                            "./div[contains(@class,'result')]//a"
+                        "url": node.find_element(
+                            By.XPATH, "./div[contains(@class,'result')]//a"
                         ).get_attribute("href"),
                     }
                 )
             else:
-                date_str = node.find_element_by_xpath(
-                    "./div[contains(@class,'divtable-header')]"
+                date_str = node.find_element(
+                    By.XPATH, "./div[contains(@class,'divtable-header')]"
                 ).text
                 logger.info("Scraping game schedule for %s", date_str)
 
         try:
-            next_page = self._driver.find_element_by_xpath(
-                "//div[contains(@id,'date-controller')]/a[contains(@class,'previous') and not(contains(@class, 'is-disabled'))]"  # noqa: E501
+            next_page = self._driver.find_element(
+                By.XPATH,
+                "//div[contains(@id,'date-controller')]/a[contains(@class,'previous') and not(contains(@class, 'is-disabled'))]",  # noqa: E501
             )
         except NoSuchElementException:
             next_page = None
@@ -291,7 +293,7 @@ class WhoScored(BaseSeleniumReader):
                         url = WHOSCORED_URL + stage["url"].replace("Show", "Fixtures")
                         self._driver.get(url)
                         try:
-                            self._driver.find_element_by_xpath("//div[@id='tournament-fixture']")
+                            self._driver.find_element(By.XPATH, "//div[@id='tournament-fixture']")
                         except NoSuchElementException:
                             # Tournaments sometimes do not have a fixtures page,
                             # the summary page has to be used instead
@@ -300,17 +302,17 @@ class WhoScored(BaseSeleniumReader):
                         logger.info("Scraping game schedule with stage=%s from %s", stage, url)
                         schedule.extend(self._parse_schedule(stage=stage["name"]))
                 else:
-                    url = self._driver.find_element_by_xpath(
-                        "//a[text()='Fixtures']"
+                    url = self._driver.find_element(
+                        By.XPATH, "//a[text()='Fixtures']"
                     ).get_attribute("href")
                     self._driver.get(url)
                     try:
-                        self._driver.find_element_by_xpath("//div[@id='tournament-fixture']")
+                        self._driver.find_element(By.XPATH, "//div[@id='tournament-fixture']")
                     except NoSuchElementException:
                         # Tournaments sometimes do not have a fixtures page,
                         # the summary page has to be used instead
-                        url = self._driver.find_element_by_xpath(
-                            "//a[text()='Summary']"
+                        url = self._driver.find_element(
+                            By.XPATH, "//a[text()='Summary']"
                         ).get_attribute("href")
                         self._driver.get(url)
                     logger.info("Scraping game schedule from %s", url)
@@ -344,28 +346,30 @@ class WhoScored(BaseSeleniumReader):
         data = {}
         self._driver.get(url)
         # league and season
-        breadcrumb = self._driver.find_elements_by_xpath(
-            "//div[@id='breadcrumb-nav']/*[not(contains(@class, 'separator'))]"
+        breadcrumb = self._driver.find_elements(
+            By.XPATH, "//div[@id='breadcrumb-nav']/*[not(contains(@class, 'separator'))]"
         )
         country = breadcrumb[0].text
         league, season = breadcrumb[1].text.split(" - ")
         data["league"] = {v: k for k, v in self._all_leagues().items()}[f"{country} - {league}"]
         data["season"] = season_code(season)
         # match header
-        match_header = self._driver.find_element_by_xpath("//div[@id='match-header']")
-        score_info = match_header.find_element_by_xpath(".//div[@class='teams-score-info']")
-        data["home_team"] = score_info.find_element_by_xpath(
-            "./span[contains(@class,'home team')]"
+        match_header = self._driver.find_element(By.XPATH, "//div[@id='match-header']")
+        score_info = match_header.find_element(By.XPATH, ".//div[@class='teams-score-info']")
+        data["home_team"] = score_info.find_element(
+            By.XPATH, "./span[contains(@class,'home team')]"
         ).text
-        data["result"] = score_info.find_element_by_xpath("./span[contains(@class,'result')]").text
-        data["away_team"] = score_info.find_element_by_xpath(
-            "./span[contains(@class,'away team')]"
+        data["result"] = score_info.find_element(
+            By.XPATH, "./span[contains(@class,'result')]"
         ).text
-        info_blocks = match_header.find_elements_by_xpath(".//div[@class='info-block cleared']")
+        data["away_team"] = score_info.find_element(
+            By.XPATH, "./span[contains(@class,'away team')]"
+        ).text
+        info_blocks = match_header.find_elements(By.XPATH, ".//div[@class='info-block cleared']")
         for block in info_blocks:
-            for desc_list in block.find_elements_by_tag_name("dl"):
-                for desc_def in desc_list.find_elements_by_tag_name("dt"):
-                    desc_val = desc_def.find_element_by_xpath("./following-sibling::dd")
+            for desc_list in block.find_elements(By.TAG_NAME, "dl"):
+                for desc_def in desc_list.find_elements(By.TAG_NAME, "dt"):
+                    desc_val = desc_def.find_element(By.XPATH, "./following-sibling::dd")
                     data[desc_def.text] = desc_val.text
 
         return data
@@ -404,10 +408,10 @@ class WhoScored(BaseSeleniumReader):
             if len(iterator) == 0:
                 raise ValueError("No games found with the given IDs in the selected seasons.")
         else:
-            iterator = df_schedule
+            iterator = df_schedule.sample(frac=1)
 
         match_sheets = []
-        for i, game in iterator.iterrows():
+        for i, (_, game) in enumerate(iterator.iterrows()):
             url = urlmask.format(game.game_id)
             filepath = DATA_DIR / filemask.format(game["league"], game["season"], game["game_id"])
 
@@ -497,10 +501,10 @@ class WhoScored(BaseSeleniumReader):
             if len(iterator) == 0:
                 raise ValueError("No games found with the given IDs in the selected seasons.")
         else:
-            iterator = df_schedule
+            iterator = df_schedule.sample(frac=1)
 
         events = []
-        for i, game in iterator.iterrows():
+        for i, (_, game) in enumerate(iterator.iterrows()):
             url = urlmask.format(game["game_id"])
             # get league and season
             logger.info(
@@ -533,7 +537,7 @@ class WhoScored(BaseSeleniumReader):
         try:
             # self._driver.get(WHOSCORED_URL)
             time.sleep(2)
-            self._driver.find_element_by_xpath("//button[contains(text(), 'AGREE')]").click()
+            self._driver.find_element(By.XPATH, "//button[contains(text(), 'AGREE')]").click()
             time.sleep(2)
         except NoSuchElementException:
             with open("/tmp/error.html", "w") as f:

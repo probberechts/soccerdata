@@ -96,7 +96,7 @@ class WhoScored(BaseSeleniumReader):
         )
         self.seasons = seasons  # type: ignore
         self.rate_limit = 5
-        self.random_delay = 5
+        self.max_delay = 5
         if not self.no_store:
             (self.data_dir / "seasons").mkdir(parents=True, exist_ok=True)
             (self.data_dir / "matches").mkdir(parents=True, exist_ok=True)

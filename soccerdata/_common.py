@@ -84,7 +84,7 @@ class BaseReader(ABC):
         self.no_store = no_store
         self.data_dir = data_dir
         self.rate_limit = 0
-        self.random_delay = 0
+        self.max_delay = 0
         if self.no_store:
             logger.info("Caching is disabled")
         else:

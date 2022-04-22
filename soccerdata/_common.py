@@ -395,7 +395,7 @@ class BaseSeleniumReader(BaseReader):
     def _init_webdriver(self) -> "uc.Chrome":
         """Start the Selenium driver."""
         # Quit existing driver
-        if self._driver:
+        if hasattr(self, "_driver"):
             self._driver.quit()
         # Start a new driver
         chrome_options = uc.ChromeOptions()

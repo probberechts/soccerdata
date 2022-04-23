@@ -61,9 +61,6 @@ class WhoScored(BaseSeleniumReader):
               proxies.
             - callable: A function that returns a valid proxy. This function will
               be called after failed requests, allowing rotating proxies.
-    use_addblocker : bool
-        Set to True to use the AddBlocker extension. This requires
-        `path_to_addblocker` to be set.
     no_cache : bool
         If True, will not use cached data.
     no_store : bool
@@ -478,7 +475,8 @@ class WhoScored(BaseSeleniumReader):
         match_id: Optional[Union[int, List[int]]] = None,
         force_cache: bool = False,
         live: bool = False,
-    ) -> pd.DataFrame:
+        output_fmt: str = "events",
+        ) -> Optional[Union[pd.DataFrame, Dict[int, List], "socceraction.data.opta.OptaLoader"]]:  # type: ignore
         """Retrieve the the event data for each game in the selected leagues and seasons.
 
         Parameters
@@ -492,16 +490,62 @@ class WhoScored(BaseSeleniumReader):
         live : bool
             If True, will not return a cached copy of the event data. This is
             usefull to scrape live data.
+        output_fmt : str, default: 'events'
+            The output format of the returned data. Possible values are:
+                - 'events' (default): Returns a dataframe with all events.
+                - 'raw': Returns the original unformatted WhoScored JSON.
+                - 'spadl': Returns a dataframe with the SPADL representation
+                  of the original events.
+                  See https://socceraction.readthedocs.io/en/latest/documentation/SPADL.html#spadl
+                - 'atomic-spadl': Returns a dataframe with the Atomic-SPADL representation
+                  of the original events.
+                  See https://socceraction.readthedocs.io/en/latest/documentation/SPADL.html#atomic-spadl
+                - 'loader': Returns a socceraction.data.opta.OptaLoader
+                  instance, which can be used to retrieve the actual data.
+                  See https://socceraction.readthedocs.io/en/latest/modules/generated/socceraction.data.opta.OptaLoader.html#socceraction.data.opta.OptaLoader
+                - None: Doesn't return any data. This is useful to just cache
+                  the data without storing the events in memory.
 
         Raises
         ------
         ValueError
             If the given match_id could not be found in the selected seasons.
+        ImportError
+            If the requested output format is 'spadl', 'atomic-spadl' or
+            'loader' but the socceraction package is not installed.
 
         Returns
         -------
-        pd.DataFrame
+        See the description of the ``output_fmt`` parameter.
         """
+        output_fmt = output_fmt.lower()
+        if output_fmt in ["loader", "spadl", "atomic-spadl"]:
+            if self.no_store:
+                raise ValueError(
+                    "The '{}' output format  is not supported when using the 'no_store' option.".format(
+                        output_fmt
+                    )
+                )
+            try:
+                from socceraction.data.opta import OptaLoader
+                from socceraction.data.opta.parsers import WhoScoredParser
+                from socceraction.data.opta.loader import _eventtypesdf
+                from socceraction.spadl.opta import convert_to_actions
+                from socceraction.atomic.spadl import convert_to_atomic
+
+                if output_fmt == "loader":
+                    import socceraction
+                    from packaging import version
+
+                    if version.parse(socceraction.__version__) < version.parse("1.2.3"):
+                        raise ImportError(
+                            "The 'loader' output format requires socceraction >= 1.2.3"
+                        )
+            except ImportError:
+                raise ImportError(
+                    "The socceraction package is required to use the 'spadl' or 'atomic-spadl' output format. "
+                    "Please install it with `pip install socceraction`."
+                )
         urlmask = WHOSCORED_URL + "/Matches/{}/Live"
         filemask = "events/{}_{}/{}.json"
 
@@ -515,7 +559,7 @@ class WhoScored(BaseSeleniumReader):
         else:
             iterator = df_schedule.sample(frac=1)
 
-        events = []
+        events = {}
         player_names = {}
         team_names = {}
         for i, (_, game) in enumerate(iterator.iterrows()):
@@ -535,13 +579,7 @@ class WhoScored(BaseSeleniumReader):
                 no_cache=live,
             )
             json_data = json.load(reader)
-            if json_data is not None and "events" in json_data:
-                game_events = pd.DataFrame(json_data["events"])
-                game_events["game"] = game["game"]
-                game_events["league"] = game["league"]
-                game_events["season"] = game["season"]
-                game_events["game_id"] = game["game_id"]
-                events.append(game_events)
+            if json_data is not None:
                 player_names.update(
                     {int(k): v for k, v in json_data["playerIdNameDictionary"].items()}
                 )
@@ -551,51 +589,102 @@ class WhoScored(BaseSeleniumReader):
                         for side in ["home", "away"]
                     }
                 )
+                if "events" in json_data:
+                    game_events = json_data["events"]
+                    if output_fmt == "events":
+                        df_events = pd.DataFrame(game_events)
+                        df_events["game"] = game["game"]
+                        df_events["league"] = game["league"]
+                        df_events["season"] = game["season"]
+                        df_events["game_id"] = game["game_id"]
+                        events[game["game_id"]] = df_events
+                    elif output_fmt == "raw":
+                        events[game["game_id"]] = game_events
+                    elif output_fmt in ["spadl", "atomic-spadl"]:
+                        parser = WhoScoredParser(
+                            str(filepath),
+                            competition_id=game["league"],
+                            season_id=game["season"],
+                            game_id=game["game_id"],
+                        )
+                        df_events = (
+                            pd.DataFrame.from_dict(parser.extract_events(), orient="index")
+                            .merge(_eventtypesdf, on="type_id", how="left")
+                            .reset_index(drop=True)
+                        )
+                        df_actions = convert_to_actions(
+                            df_events, home_team_id=int(json_data["home"]["teamId"])
+                        )
+                        if output_fmt == "spadl":
+                            events[game["game_id"]] = df_actions
+                        else:
+                            events[game["game_id"]] = convert_to_atomic(df_actions)
+
             else:
                 logger.warning("No events found for game %s", game["game_id"])
 
+        if output_fmt is None:
+            return None
+
+        if output_fmt == "raw":
+            return events
+
+        if output_fmt == "loader":
+            return OptaLoader(
+                root=self.data_dir,
+                parser="whoscored",
+                feeds={"whoscored": "events/{competition_id}_{season_id}/{game_id}.json"},
+            )
+
         df = (
-            pd.concat(events)
+            pd.concat(events.values())
             .pipe(standardize_colnames)
             .assign(
                 player=lambda x: x.player_id.replace(player_names),
                 team=lambda x: x.team_id.replace(team_names).replace(TEAMNAME_REPLACEMENTS),
             )
-            .set_index(["league", "season", "game", "id"])
-            .sort_index()
         )
-        df["outcome_type"] = df["outcome_type"].apply(lambda x: x.get("displayName"))
-        df["type"] = df["type"].apply(lambda x: x.get("displayName"))
-        df["period"] = df["period"].apply(lambda x: x.get("displayName"))
-        return df[
-            [
-                "period",
-                "minute",
-                "expanded_minute",
-                "type",
-                "outcome_type",
-                "team",
-                "player",
-                "qualifiers",
-                "x",
-                "y",
-                "end_x",
-                "end_y",
-                "goal_mouth_y",
-                "goal_mouth_z",
-                "is_touch",
-                "is_shot",
-                "is_goal",
-                "related_event_id",
-                "related_player_id",
-                "blocked_x",
-                "blocked_y",
-                "card_type",
-                "game_id",
-                "team_id",
-                "player_id",
+
+        if output_fmt == "events":
+            df = (
+                df
+                .set_index(["league", "season", "game", "id"])
+                .sort_index()
+            )
+            df["outcome_type"] = df["outcome_type"].apply(lambda x: x.get("displayName"))
+            df["type"] = df["type"].apply(lambda x: x.get("displayName"))
+            df["period"] = df["period"].apply(lambda x: x.get("displayName"))
+            df = df[
+                [
+                    "period",
+                    "minute",
+                    "expanded_minute",
+                    "type",
+                    "outcome_type",
+                    "team",
+                    "player",
+                    "qualifiers",
+                    "x",
+                    "y",
+                    "end_x",
+                    "end_y",
+                    "goal_mouth_y",
+                    "goal_mouth_z",
+                    "is_touch",
+                    "is_shot",
+                    "is_goal",
+                    "related_event_id",
+                    "related_player_id",
+                    "blocked_x",
+                    "blocked_y",
+                    "card_type",
+                    "game_id",
+                    "team_id",
+                    "player_id",
+                ]
             ]
-        ]
+
+        return df
 
     def _handle_banner(self) -> None:
         try:

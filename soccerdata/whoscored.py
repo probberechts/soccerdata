@@ -10,20 +10,21 @@ from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pandas as pd
 from lxml import html
+from selenium.common.exceptions import (
+    ElementClickInterceptedException,
+    NoSuchElementException,
+)
+from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.support import expected_conditions as ec
+from selenium.webdriver.support.ui import WebDriverWait
 
-try:
-    from selenium.common.exceptions import (
-        ElementClickInterceptedException,
-        NoSuchElementException,
-    )
-    from selenium.webdriver.common.by import By
-    from selenium.webdriver.remote.webelement import WebElement
-    from selenium.webdriver.support import expected_conditions as ec
-    from selenium.webdriver.support.ui import WebDriverWait
-except ImportError:
-    pass
-
-from ._common import BaseSeleniumReader, season_code, standardize_colnames
+from ._common import (
+    BaseSeleniumReader,
+    make_game_id,
+    season_code,
+    standardize_colnames,
+)
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
 
 WHOSCORED_DATADIR = DATA_DIR / "WhoScored"
@@ -185,9 +186,8 @@ class WhoScored(BaseSeleniumReader):
             ec.presence_of_element_located((By.XPATH, match_selector))
         )
         stages = []
-        node_stages = self._driver.find_elements(
-            By.XPATH, "//select[contains(@id,'stages')]/option"
-        )
+        node_stages_selector = "//select[contains(@id,'stages')]/option"
+        node_stages = self._driver.find_elements(By.XPATH, node_stages_selector)
         for stage in node_stages:
             stages.append({"url": stage.get_attribute("value"), "name": stage.text})
         return stages
@@ -207,6 +207,13 @@ class WhoScored(BaseSeleniumReader):
                 time_str = node.find_element(By.XPATH, "./div[contains(@class,'time')]").text
                 schedule_page.append(
                     {
+                        "date": datetime.strptime(f"{date_str} {time_str}", "%A, %b %d %Y %H:%M"),
+                        "home_team": node.find_element(
+                            By.XPATH, "./div[contains(@class,'team home')]//a"
+                        ).text,
+                        "away_team": node.find_element(
+                            By.XPATH, "./div[contains(@class,'team away')]//a"
+                        ).text,
                         # fmt: off
                         "game_id": int(
                             re.search(
@@ -217,13 +224,6 @@ class WhoScored(BaseSeleniumReader):
                                 ).get_attribute("href")).group(1)  # type: ignore
                         ),
                         # fmt: on
-                        "home_team": node.find_element(
-                            By.XPATH, "./div[contains(@class,'team home')]//a"
-                        ).text,
-                        "away_team": node.find_element(
-                            By.XPATH, "./div[contains(@class,'team away')]//a"
-                        ).text,
-                        "date": datetime.strptime(f"{date_str} {time_str}", "%A, %b %d %Y %H:%M"),
                         "url": node.find_element(
                             By.XPATH, "./div[contains(@class,'result')]//a"
                         ).get_attribute("href"),
@@ -334,7 +334,9 @@ class WhoScored(BaseSeleniumReader):
                     "away_team": TEAMNAME_REPLACEMENTS,
                 }
             )
-            .set_index(["league", "season", "game_id"])
+            .assign(date=lambda x: pd.to_datetime(x["date"]))
+            .assign(game=lambda df: df.apply(make_game_id, axis=1))
+            .set_index(["league", "season", "game"])
             .sort_index()
         )
         return df
@@ -426,9 +428,12 @@ class WhoScored(BaseSeleniumReader):
                 # extract team IDs from links
                 match_sheets.append(
                     {
+                        "league": game["league"],
+                        "season": game["season"],
+                        "game": game["game"],
                         "game_id": game["game_id"],
-                        "side": "home",
-                        "player_name": node.xpath("./td[contains(@class,'pn')]/a")[0].text,
+                        "team": game["home_team"],
+                        "player": node.xpath("./td[contains(@class,'pn')]/a")[0].text,
                         "player_id": int(
                             node.xpath("./td[contains(@class,'pn')]/a")[0]
                             .get("href")
@@ -444,9 +449,12 @@ class WhoScored(BaseSeleniumReader):
                 # extract team IDs from links
                 match_sheets.append(
                     {
+                        "league": game["league"],
+                        "season": game["season"],
+                        "game": game["game"],
                         "game_id": game["game_id"],
-                        "side": "away",
-                        "player_name": node.xpath("./td[contains(@class,'pn')]/a")[0].text,
+                        "team": game["away_team"],
+                        "player": node.xpath("./td[contains(@class,'pn')]/a")[0].text,
                         "player_id": int(
                             node.xpath("./td[contains(@class,'pn')]/a")[0]
                             .get("href")
@@ -458,7 +466,11 @@ class WhoScored(BaseSeleniumReader):
                         "status": node.xpath("./td[contains(@class,'confirmed')]")[0].text,
                     }
                 )
-        df = pd.DataFrame(match_sheets).set_index(["game_id", "player_id"]).sort_index()
+        df = (
+            pd.DataFrame(match_sheets)
+            .set_index(["league", "season", "game", "team", "player"])
+            .sort_index()
+        )
         return df
 
     def read_events(
@@ -504,6 +516,8 @@ class WhoScored(BaseSeleniumReader):
             iterator = df_schedule.sample(frac=1)
 
         events = []
+        player_names = {}
+        team_names = {}
         for i, (_, game) in enumerate(iterator.iterrows()):
             url = urlmask.format(game["game_id"])
             # get league and season
@@ -523,15 +537,65 @@ class WhoScored(BaseSeleniumReader):
             json_data = json.load(reader)
             if json_data is not None and "events" in json_data:
                 game_events = pd.DataFrame(json_data["events"])
+                game_events["game"] = game["game"]
+                game_events["league"] = game["league"]
+                game_events["season"] = game["season"]
                 game_events["game_id"] = game["game_id"]
                 events.append(game_events)
+                player_names.update(
+                    {int(k): v for k, v in json_data["playerIdNameDictionary"].items()}
+                )
+                team_names.update(
+                    {
+                        int(json_data[side]["teamId"]): json_data[side]["name"]
+                        for side in ["home", "away"]
+                    }
+                )
             else:
                 logger.warning("No events found for game %s", game["game_id"])
 
-        df = pd.concat(events).pipe(standardize_colnames).set_index(["game_id", "id"]).sort_index()
+        df = (
+            pd.concat(events)
+            .pipe(standardize_colnames)
+            .assign(
+                player=lambda x: x.player_id.replace(player_names),
+                team=lambda x: x.team_id.replace(team_names).replace(TEAMNAME_REPLACEMENTS),
+            )
+            .set_index(["league", "season", "game", "id"])
+            .sort_index()
+        )
         df["outcome_type"] = df["outcome_type"].apply(lambda x: x.get("displayName"))
+        df["type"] = df["type"].apply(lambda x: x.get("displayName"))
         df["period"] = df["period"].apply(lambda x: x.get("displayName"))
-        return df
+        return df[
+            [
+                "period",
+                "minute",
+                "expanded_minute",
+                "type",
+                "outcome_type",
+                "team",
+                "player",
+                "qualifiers",
+                "x",
+                "y",
+                "end_x",
+                "end_y",
+                "goal_mouth_y",
+                "goal_mouth_z",
+                "is_touch",
+                "is_shot",
+                "is_goal",
+                "related_event_id",
+                "related_player_id",
+                "blocked_x",
+                "blocked_y",
+                "card_type",
+                "game_id",
+                "team_id",
+                "player_id",
+            ]
+        ]
 
     def _handle_banner(self) -> None:
         try:

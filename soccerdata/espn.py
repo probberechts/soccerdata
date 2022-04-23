@@ -9,7 +9,7 @@ from typing import Callable, Dict, List, Optional, Union
 import pandas as pd
 import requests
 
-from ._common import BaseRequestsReader, standardize_colnames
+from ._common import BaseRequestsReader, make_game_id, standardize_colnames
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS
 
 # http://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/summary?event=513466
@@ -121,23 +121,25 @@ class ESPN(BaseRequestsReader):
                 df_list.extend(
                     [
                         {
-                            'game_id': int(e['id']),
-                            'league_id': lkey,
+                            'league': lkey,
                             'season': skey,
                             'date': e['date'],
                             'home_team': e['competitions'][0]['competitors'][0]['team']['name'],
                             'away_team': e['competitions'][0]['competitors'][1]['team']['name'],
+                            'game_id': int(e['id']),
+                            'league_id': lkey,
                         }
                         for e in data['events']
                     ]
                 )
         df = (
             pd.DataFrame(df_list)
-            .assign(league=lambda x: x.league_id)
             .pipe(self._translate_league)
             .replace({'home_team': TEAMNAME_REPLACEMENTS, 'away_team': TEAMNAME_REPLACEMENTS})
-            .dropna(subset=['home_team', 'away_team'])
-            .set_index(['league', 'season', 'game_id'])
+            .assign(date=lambda x: pd.to_datetime(x['date']))
+            .dropna(subset=['home_team', 'away_team', 'date'])
+            .assign(game=lambda df: df.apply(make_game_id, axis=1))
+            .set_index(['league', 'season', 'game'])
             .sort_index()
         )
 
@@ -184,7 +186,7 @@ class ESPN(BaseRequestsReader):
             data = json.load(reader)
             for i in range(2):
                 match_sheet = {
-                    'game_id': int(match['game_id']),
+                    'game': match['game'],
                     'league': match['league'],
                     'season': match['season'],
                     'team': data['boxscore']['form'][i]['team']['displayName'],
@@ -206,7 +208,7 @@ class ESPN(BaseRequestsReader):
             pd.DataFrame(df_list)
             .replace({'team': TEAMNAME_REPLACEMENTS})
             .pipe(standardize_colnames)
-            .set_index(['league', 'season', 'game_id', 'team'])
+            .set_index(['league', 'season', 'game', 'team'])
             .sort_index()
         )
         return df
@@ -255,7 +257,7 @@ class ESPN(BaseRequestsReader):
             for i in range(2):
                 for p in data['rosters'][i]['roster']:
                     match_sheet = {
-                        'game_id': match['game_id'],
+                        'game': match['game'],
                         'league': match['league'],
                         'season': match['season'],
                         'team': data['boxscore']['form'][i]['team']['displayName'],
@@ -307,7 +309,7 @@ class ESPN(BaseRequestsReader):
             pd.DataFrame(df_list)
             .replace({'team': TEAMNAME_REPLACEMENTS})
             .pipe(standardize_colnames)
-            .set_index(['league', 'season', 'game_id', 'team', 'player'])
+            .set_index(['league', 'season', 'game', 'team', 'player'])
             .sort_index()
         )
         return df

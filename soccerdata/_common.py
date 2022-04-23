@@ -488,11 +488,17 @@ def season_code(season: Union[str, int]) -> str:  # noqa: C901
 
 def make_game_id(row: pd.Series) -> str:
     """Return a game id based on date, home and away team."""
-    game_id = "{} {}-{}".format(
-        row["date"].strftime("%Y-%m-%d"),
-        row["home_team"],
-        row["away_team"],
-    )
+    if pd.isnull(row["date"]):
+        game_id = "{}-{}".format(
+            row["home_team"],
+            row["away_team"],
+        )
+    else:
+        game_id = "{} {}-{}".format(
+            row["date"].strftime("%Y-%m-%d"),
+            row["home_team"],
+            row["away_team"],
+        )
     return game_id
 
 

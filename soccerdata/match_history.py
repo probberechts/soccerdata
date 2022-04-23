@@ -96,9 +96,6 @@ class MatchHistory(BaseRequestsReader):
             df_list.append(
                 pd.read_csv(
                     reader,
-                    parse_dates=['Date'],
-                    infer_datetime_format=True,
-                    dayfirst=True,
                     encoding='ISO-8859-1',
                 ).assign(season=skey)
             )
@@ -106,6 +103,8 @@ class MatchHistory(BaseRequestsReader):
         df = (
             pd.concat(df_list, sort=False)
             .rename(columns=col_rename)
+            .assign(date=lambda x: pd.to_datetime(x["date"] + ' ' + x['time']))
+            .drop("time", axis=1)
             .pipe(self._translate_league)
             .replace(
                 {
@@ -116,7 +115,7 @@ class MatchHistory(BaseRequestsReader):
             .dropna(subset=['home_team', 'away_team'])
         )
 
-        df['game_id'] = df.apply(make_game_id, axis=1)
-        df.set_index(['league', 'season', 'game_id'], inplace=True)
+        df['game'] = df.apply(make_game_id, axis=1)
+        df.set_index(['league', 'season', 'game'], inplace=True)
         df.sort_index(inplace=True)
         return df

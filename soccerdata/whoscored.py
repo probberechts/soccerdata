@@ -470,13 +470,13 @@ class WhoScored(BaseSeleniumReader):
         )
         return df
 
-    def read_events(
+    def read_events(  # noqa: C901
         self,
         match_id: Optional[Union[int, List[int]]] = None,
         force_cache: bool = False,
         live: bool = False,
-        output_fmt: str = "events",
-        ) -> Optional[Union[pd.DataFrame, Dict[int, List], "socceraction.data.opta.OptaLoader"]]:  # type: ignore
+        output_fmt: Optional[str] = "events",
+    ) -> Optional[Union[pd.DataFrame, Dict[int, List], "OptaLoader"]]:  # type: ignore  # noqa: F821
         """Retrieve the the event data for each game in the selected leagues and seasons.
 
         Parameters
@@ -502,7 +502,7 @@ class WhoScored(BaseSeleniumReader):
                   See https://socceraction.readthedocs.io/en/latest/documentation/SPADL.html#atomic-spadl
                 - 'loader': Returns a socceraction.data.opta.OptaLoader
                   instance, which can be used to retrieve the actual data.
-                  See https://socceraction.readthedocs.io/en/latest/modules/generated/socceraction.data.opta.OptaLoader.html#socceraction.data.opta.OptaLoader
+                  See https://socceraction.readthedocs.io/en/latest/modules/generated/socceraction.data.opta.OptaLoader.html#socceraction.data.opta.OptaLoader  # noqa: E501
                 - None: Doesn't return any data. This is useful to just cache
                   the data without storing the events in memory.
 
@@ -518,20 +518,19 @@ class WhoScored(BaseSeleniumReader):
         -------
         See the description of the ``output_fmt`` parameter.
         """
-        output_fmt = output_fmt.lower()
+        output_fmt = output_fmt.lower() if output_fmt is not None else None
         if output_fmt in ["loader", "spadl", "atomic-spadl"]:
             if self.no_store:
                 raise ValueError(
-                    "The '{}' output format  is not supported when using the 'no_store' option.".format(
-                        output_fmt
-                    )
+                    f"The '{output_fmt}' output format is not supported "
+                    "when using the 'no_store' option."
                 )
             try:
-                from socceraction.data.opta import OptaLoader
-                from socceraction.data.opta.parsers import WhoScoredParser
-                from socceraction.data.opta.loader import _eventtypesdf
-                from socceraction.spadl.opta import convert_to_actions
                 from socceraction.atomic.spadl import convert_to_atomic
+                from socceraction.data.opta import OptaLoader
+                from socceraction.data.opta.loader import _eventtypesdf
+                from socceraction.data.opta.parsers import WhoScoredParser
+                from socceraction.spadl.opta import convert_to_actions
 
                 if output_fmt == "loader":
                     import socceraction
@@ -543,7 +542,8 @@ class WhoScored(BaseSeleniumReader):
                         )
             except ImportError:
                 raise ImportError(
-                    "The socceraction package is required to use the 'spadl' or 'atomic-spadl' output format. "
+                    "The socceraction package is required to use the 'spadl' "
+                    "or 'atomic-spadl' output format. "
                     "Please install it with `pip install socceraction`."
                 )
         urlmask = WHOSCORED_URL + "/Matches/{}/Live"
@@ -646,11 +646,7 @@ class WhoScored(BaseSeleniumReader):
         )
 
         if output_fmt == "events":
-            df = (
-                df
-                .set_index(["league", "season", "game", "id"])
-                .sort_index()
-            )
+            df = df.set_index(["league", "season", "game", "id"]).sort_index()
             df["outcome_type"] = df["outcome_type"].apply(lambda x: x.get("displayName"))
             df["type"] = df["type"].apply(lambda x: x.get("displayName"))
             df["period"] = df["period"].apply(lambda x: x.get("displayName"))

@@ -250,6 +250,7 @@ class FBref(BaseRequestsReader):
             # read html page (league overview)
             filepath = self.data_dir / filemask.format(lkey, skey, tkey)
             url = FBREF_API + team.url
+            print(url)
             reader = self.get(url, filepath)
 
             # extract team links
@@ -362,7 +363,7 @@ class FBref(BaseRequestsReader):
         -------
         list of dict
         """
-        team_nodes = tree.xpath("//div[@class='scorebox']//div[@itemprop='performer']//a")
+        team_nodes = tree.xpath("//div[@class='scorebox']//strong/a")[:2]
         teams = []
         for team in team_nodes:
             teams.append({"id": team.get("href").split("/")[3], "name": team.text.strip()})

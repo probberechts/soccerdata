@@ -249,7 +249,7 @@ class FBref(BaseRequestsReader):
         for (lkey, skey, tkey), team in teams.iterrows():
             # read html page (league overview)
             filepath = self.data_dir / filemask.format(lkey, skey, tkey)
-            url = FBREF_API + team.url
+            url = FBREF_API + team.url.item()
             print(url)
             reader = self.get(url, filepath)
 

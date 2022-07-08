@@ -15,8 +15,6 @@ import pandas as pd
 import requests
 import undetected_chromedriver as uc
 from dateutil.relativedelta import relativedelta
-from fake_useragent import UserAgent
-from requests.adapters import HTTPAdapter
 from selenium.common.exceptions import WebDriverException
 
 from ._config import DATA_DIR, LEAGUE_DICT, logger
@@ -324,9 +322,7 @@ class BaseRequestsReader(BaseReader):
 
     def _init_session(self) -> requests.Session:
         session = requests.Session()
-        session.headers.update({"user-agent": UserAgent(verify_ssl=False).random})
         session.proxies.update(self.proxy())
-        session.mount("http://", HTTPAdapter(max_retries=5))
         return session
 
     def _download_and_save(

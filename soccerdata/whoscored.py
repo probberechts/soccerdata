@@ -199,10 +199,10 @@ class WhoScored(BaseSeleniumReader):
         match_selector = (
             "//div[contains(@id,'tournament-fixture')]//div[contains(@class,'divtable-row')]"
         )
-        time.sleep(5 + random.random() * 5)
         WebDriverWait(self._driver, 30, poll_frequency=1).until(
             ec.presence_of_element_located((By.XPATH, match_selector))
         )
+        time.sleep(5 + random.random() * 5)
         date_str = "Monday, Jan 1 2021"
         schedule_page = []
         for node in self._driver.find_elements(By.XPATH, match_selector):

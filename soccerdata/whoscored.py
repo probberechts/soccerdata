@@ -13,6 +13,7 @@ from lxml import html
 from selenium.common.exceptions import (
     ElementClickInterceptedException,
     NoSuchElementException,
+    TimeoutException,
 )
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
@@ -69,6 +70,9 @@ class WhoScored(BaseSeleniumReader):
         Path to directory where data will be cached.
     path_to_browser : Path, optional
         Path to the Chrome executable.
+    headless : bool, default: True
+        If True, will run Chrome in headless mode. Setting this to False might
+        help to avoid getting blocked.
     """
 
     def __init__(
@@ -82,6 +86,7 @@ class WhoScored(BaseSeleniumReader):
         no_store: bool = NOSTORE,
         data_dir: Path = WHOSCORED_DATADIR,
         path_to_browser: Optional[Path] = None,
+        headless: bool = True,
     ):
         """Initialize the WhoScored reader."""
         super().__init__(
@@ -91,6 +96,7 @@ class WhoScored(BaseSeleniumReader):
             no_store=no_store,
             data_dir=data_dir,
             path_to_browser=path_to_browser,
+            headless=headless,
         )
         self.seasons = seasons  # type: ignore
         self.rate_limit = 5
@@ -290,8 +296,12 @@ class WhoScored(BaseSeleniumReader):
                         url = WHOSCORED_URL + stage["url"].replace("Show", "Fixtures")
                         self._driver.get(url)
                         try:
-                            self._driver.find_element(By.XPATH, "//div[@id='tournament-fixture']")
-                        except NoSuchElementException:
+                            WebDriverWait(self._driver, 30, poll_frequency=1).until(
+                                ec.presence_of_element_located(
+                                    (By.XPATH, "//div[@id='tournament-fixture']")
+                                )
+                            )
+                        except TimeoutException:
                             # Tournaments sometimes do not have a fixtures page,
                             # the summary page has to be used instead
                             url = WHOSCORED_URL + stage["url"]

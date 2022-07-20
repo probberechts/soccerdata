@@ -364,6 +364,7 @@ class BaseSeleniumReader(BaseReader):
         no_store: bool = False,
         data_dir: Path = DATA_DIR,
         path_to_browser: Optional[Path] = None,
+        headless: bool = True,
     ):
         """Initialize the reader."""
         super().__init__(
@@ -374,6 +375,7 @@ class BaseSeleniumReader(BaseReader):
             data_dir=data_dir,
         )
         self.path_to_browser = path_to_browser
+        self.headless = headless
 
         try:
             self._driver = self._init_webdriver()
@@ -394,7 +396,8 @@ class BaseSeleniumReader(BaseReader):
             self._driver.quit()
         # Start a new driver
         chrome_options = uc.ChromeOptions()
-        chrome_options.add_argument("--headless")
+        if self.headless:
+            chrome_options.add_argument("--headless")
         if self.path_to_browser is not None:
             chrome_options.add_argument("--binary-location=" + str(self.path_to_browser))
         proxy = self.proxy()

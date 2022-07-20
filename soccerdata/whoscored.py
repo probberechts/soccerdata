@@ -686,7 +686,7 @@ class WhoScored(BaseSeleniumReader):
         try:
             # self._driver.get(WHOSCORED_URL)
             time.sleep(2)
-            self._driver.find_element(By.XPATH, "//button[contains(text(), 'AGREE')]").click()
+            self._driver.find_element(By.XPATH, "//button[./span[text()='AGREE']]").click()
             time.sleep(2)
         except NoSuchElementException:
             with open("/tmp/error.html", "w") as f:

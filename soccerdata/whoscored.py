@@ -1,8 +1,6 @@
 """Scraper for http://whoscored.com."""
 import itertools
 import json
-import random
-import re
 import time
 from datetime import datetime
 from pathlib import Path
@@ -184,13 +182,12 @@ class WhoScored(BaseSeleniumReader):
         match_selector = (
             "//div[contains(@id,'tournament-fixture')]//div[contains(@class,'divtable-row')]"
         )
-        time.sleep(5 + random.random() * 5)
         WebDriverWait(self._driver, 30, poll_frequency=1).until(
             ec.presence_of_element_located((By.XPATH, match_selector))
         )
-        stages = []
         node_stages_selector = "//select[contains(@id,'stages')]/option"
         node_stages = self._driver.find_elements(By.XPATH, node_stages_selector)
+        stages = []
         for stage in node_stages:
             stages.append({"url": stage.get_attribute("value"), "name": stage.text})
         return stages
@@ -199,50 +196,41 @@ class WhoScored(BaseSeleniumReader):
         match_selector = (
             "//div[contains(@id,'tournament-fixture')]//div[contains(@class,'divtable-row')]"
         )
+        date_selector = "./div[contains(@class,'divtable-header')]"
+        time_selector = "./div[contains(@class,'time')]"
+        home_team_selector = "./div[contains(@class,'team home')]//a"
+        away_team_selector = "./div[contains(@class,'team away')]//a"
+        result_selector = "./div[contains(@class,'result')]//a"
+
         WebDriverWait(self._driver, 30, poll_frequency=1).until(
             ec.presence_of_element_located((By.XPATH, match_selector))
         )
-        time.sleep(5 + random.random() * 5)
-        date_str = "Monday, Jan 1 2021"
+        date_str = None
         schedule_page = []
         for node in self._driver.find_elements(By.XPATH, match_selector):
             if node.get_attribute("data-id"):
-                time_str = node.find_element(By.XPATH, "./div[contains(@class,'time')]").text
+                match_id = int(node.get_attribute("data-id"))
+                time_str = node.find_element(By.XPATH, time_selector).get_attribute("textContent")
+                match_url = node.find_element(By.XPATH, result_selector).get_attribute("href")
                 schedule_page.append(
                     {
                         "date": datetime.strptime(f"{date_str} {time_str}", "%A, %b %d %Y %H:%M"),
-                        "home_team": node.find_element(
-                            By.XPATH, "./div[contains(@class,'team home')]//a"
-                        ).text,
-                        "away_team": node.find_element(
-                            By.XPATH, "./div[contains(@class,'team away')]//a"
-                        ).text,
-                        # fmt: off
-                        "game_id": int(
-                            re.search(
-                                r"Matches/(\d+)/",
-                                node.find_element(
-                                    By.XPATH,
-                                    "./div[contains(@class,'result')]//a"
-                                ).get_attribute("href")).group(1)  # type: ignore
-                        ),
-                        # fmt: on
-                        "url": node.find_element(
-                            By.XPATH, "./div[contains(@class,'result')]//a"
-                        ).get_attribute("href"),
+                        "home_team": node.find_element(By.XPATH, home_team_selector).text,
+                        "away_team": node.find_element(By.XPATH, away_team_selector).text,
+                        "game_id": match_id,
+                        "url": match_url,
                     }
                 )
             else:
-                date_str = node.find_element(
-                    By.XPATH, "./div[contains(@class,'divtable-header')]"
-                ).text
+                date_str = node.find_element(By.XPATH, date_selector).text
                 logger.info("Scraping game schedule for %s", date_str)
 
         try:
-            next_page = self._driver.find_element(
-                By.XPATH,
-                "//div[contains(@id,'date-controller')]/a[contains(@class,'previous') and not(contains(@class, 'is-disabled'))]",  # noqa: E501
+            next_page_selector = (
+                "//div[contains(@id,'date-controller')]"
+                "/a[contains(@class,'previous') and not(contains(@class, 'is-disabled'))]"
             )
+            next_page = self._driver.find_element(By.XPATH, next_page_selector)
         except NoSuchElementException:
             next_page = None
         return schedule_page, next_page
@@ -256,6 +244,7 @@ class WhoScored(BaseSeleniumReader):
         while next_page is not None:
             try:
                 next_page.click()
+                time.sleep(5)
                 logger.debug("Next page")
             except ElementClickInterceptedException:
                 self._handle_banner()
@@ -283,14 +272,21 @@ class WhoScored(BaseSeleniumReader):
 
         all_schedules = []
         for (lkey, skey), season in df_seasons.iterrows():
+
             filepath = self.data_dir / filemask.format(lkey, skey)
             url = WHOSCORED_URL + season.url
-            current_season = not self._is_complete(lkey, skey)
+
             schedule = []
-            if current_season and not force_cache or (not filepath.exists()) or self.no_cache:
-                time.sleep(random.random() * 5)
+            is_current_season = not self._is_complete(lkey, skey)
+            no_cache = (not filepath.exists()) or self.no_cache
+            if (is_current_season and not force_cache) or no_cache:
+                # Scrape the season's schedule
                 self._driver.get(url)
+
+                # Check if season consists of multiple stages
                 stages = self._parse_season_stages()
+
+                # Handle a multi-stage season
                 if len(stages) > 0:
                     for stage in stages:
                         url = WHOSCORED_URL + stage["url"].replace("Show", "Fixtures")
@@ -308,30 +304,40 @@ class WhoScored(BaseSeleniumReader):
                             self._driver.get(url)
                         logger.info("Scraping game schedule with stage=%s from %s", stage, url)
                         schedule.extend(self._parse_schedule(stage=stage["name"]))
+
+                # Handle a single-stage season
                 else:
-                    url = self._driver.find_element(
-                        By.XPATH, "//a[text()='Fixtures']"
-                    ).get_attribute("href")
-                    self._driver.get(url)
+                    fixtures_nav_selector = "//a[text()='Fixtures']"
+                    fixtures_nav = self._driver.find_element(By.XPATH, fixtures_nav_selector)
+                    self._driver.get(fixtures_nav.get_attribute("href"))
                     try:
-                        self._driver.find_element(By.XPATH, "//div[@id='tournament-fixture']")
-                    except NoSuchElementException:
+                        WebDriverWait(self._driver, 30, poll_frequency=1).until(
+                            ec.presence_of_element_located(
+                                (By.XPATH, "//div[@id='tournament-fixture']")
+                            )
+                        )
+                    except TimeoutException:
                         # Tournaments sometimes do not have a fixtures page,
                         # the summary page has to be used instead
-                        url = self._driver.find_element(
-                            By.XPATH, "//a[text()='Summary']"
-                        ).get_attribute("href")
-                        self._driver.get(url)
+                        summary_nav_selector = "//a[text()='Fixtures']"
+                        summary_nav = self._driver.find_element(By.XPATH, summary_nav_selector)
+                        self._driver.get(summary_nav.get_attribute("href"))
                     logger.info("Scraping game schedule from %s", url)
                     schedule.extend(self._parse_schedule())
+
+                # Cache the data
                 df_schedule = pd.DataFrame(schedule).assign(league=lkey, season=skey)
                 if not self.no_store:
                     df_schedule.to_csv(filepath, index=False)
+
             else:
+                # Load cached data
                 logger.info("Retrieving game schedule of %s - %s from the cache", lkey, skey)
                 df_schedule = pd.read_csv(filepath)
+
             all_schedules.append(df_schedule)
 
+        # Construct the output dataframe
         df = (
             pd.concat(all_schedules)
             .drop_duplicates()

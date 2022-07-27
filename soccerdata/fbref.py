@@ -32,7 +32,7 @@ class FBref(BaseRequestsReader):
     seasons : string, int or list, optional
         Seasons to include. Supports multiple formats.
         Examples: '16-17'; 2016; '2016-17'; [14, 15, 16]
-    proxy : 'tor' or or dict or list(dict) or callable, optional
+    proxy : 'tor' or dict or list(dict) or callable, optional
         Use a proxy to hide your IP address. Valid options are:
             - "tor": Uses the Tor network. Tor should be running in
               the background on port 9050.
@@ -208,6 +208,91 @@ class FBref(BaseRequestsReader):
             .set_index(["league", "season", "team"])
             .sort_index()
         )
+        return df
+
+    def read_big5_season_stats(self, stat_type: str = "standard") -> pd.DataFrame:
+        """Retrieve players from the datasource for the selected leagues.
+
+        The following stat types are available:
+            * 'standard'
+            * 'shooting'
+            * 'passing'
+            * 'passing_types'
+            * 'goal_shot_creation'
+            * 'defense'
+            * 'possession'
+            * 'playing_time'
+            * 'misc'
+            * 'keeper'
+            * 'keeper_adv'
+
+        Parameters
+        ----------
+        stat_type :str
+            Type of stats to retrieve.
+
+        Returns
+        -------
+        pd.DataFrame
+        """
+        if stat_type == "goal_shot_creation":
+            page = "gca"
+            stat_type = "gca"
+        elif stat_type == "standard":
+            page = "stats"
+        elif stat_type == "playing_time":
+            page = "playingtime"
+        elif stat_type == "keeper":
+            page = "keepers"
+        elif stat_type == "keeper_adv":
+            page = "keepersadv"
+        else:
+            page = stat_type
+
+        filemask = "big5_{}_{}.html"
+
+        seasons = [f"20{season[:2]}-20{season[2:]}" for season in self.seasons]
+        players = []
+        for season in seasons:
+            url = (f"{FBREF_API}/en/comps/Big5/{season}/{page}/"
+                   f"players/{season}-Big-5-European-Leagues-Stats")
+            filepath = self.data_dir / filemask.format(stat_type, season)
+            reader = self.get(url, filepath)
+
+            # extract team links
+            tree = html.parse(reader)
+            try:
+                table = tree.xpath(f"//table[contains(@id, 'stats_{stat_type}')]")[0]
+            except IndexError:
+                logger.error("%s not available", stat_type)
+                continue
+            player_links = [td.find("a").get("href") for td in
+                            table.xpath('.//td[contains(@data-stat, "player")]')]
+            match_links = [td.find("a").get("href") for td in
+                           table.xpath('.//td[contains(@data-stat, "matches")]')]
+            df_table = pd.read_html(etree.tostring(table))[0]
+            df_table["season"] = season.split('-')[1]
+            rename_unnamed(df_table)
+            # remove lines that are the header row repeated and add urls
+            df_table = df_table[df_table['Rk'] != 'Rk'].copy()
+            df_table["player_link", ""] = player_links
+            df_table["match_link", ""] = match_links
+            players.append(df_table)
+
+        df = pd.concat(players)
+
+        # format league in same way as other methods
+        df['Comp'] = (df['Comp'].str.split(' ').str[0].str.upper() + '-' +
+                      df['Comp'].str.split(' ').str[1:].str.join(' '))
+        df = (
+            df.drop("Matches", axis=1, level=0)
+            .rename(columns={"Player": "player",
+                             "Squad": "team",
+                             "Comp": "league"})
+            .set_index(["league", "season", "team", "player"])
+            .sort_index()
+        )
+        df["Nation"] = df['Nation'].str.split(' ').str[1]
         return df
 
     def read_player_season_stats(self, stat_type: str = "standard") -> pd.DataFrame:
@@ -420,10 +505,10 @@ class FBref(BaseRequestsReader):
             tree = html.parse(reader)
             teams = self._parse_teams(tree)
             tables = tree.xpath("//div[@class='lineup']")
-            for i, table in enumerate(tables):
+            for j, table in enumerate(tables):
                 df_table = pd.read_html(etree.tostring(table))[0]
                 df_table.columns = ["jersey_number", "player"]
-                df_table["team"] = teams[i]["name"]
+                df_table["team"] = teams[j]["name"]
                 if "Bench" in df_table.jersey_number.values:
                     bench_idx = df_table.index[df_table.jersey_number == "Bench"][0]
                     df_table.loc[:bench_idx, "is_starter"] = True

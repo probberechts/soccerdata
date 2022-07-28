@@ -265,10 +265,14 @@ class SoFIFA(BaseRequestsReader):
                 "season": player.season,
             }
             for s in score_labels:
-                nodes = tree.xpath(f"//li[not(self::script)][.//text()[contains(.,'{s}')]]")
+                nodes = tree.xpath(
+                    "(//li[not(self::script)] | //div)"
+                    f"[.//text()[contains(.,'{s}')]]"
+                    "/span[contains(@class, 'tag')]"
+                )
                 # for multiple matches, only accept first match
                 if len(nodes) >= 1:
-                    scores[s] = nodes[0].getchildren()[0].text.strip()
+                    scores[s] = nodes[0].text.strip()
                 # if there's no match, put NA
                 else:
                     scores[s] = None

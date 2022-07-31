@@ -145,7 +145,19 @@ LEAGUE_DICT = {
         "season_start": "Aug",
         "season_end": "May",
     },
+    "Big-5": {
+        "FBref": "Big 5 European Leagues Combined",
+    },
 }
+
+
+FBREF_BIG5 = {"eng Premier League": "ENG-Premier League",
+              "es La Liga": "ESP-La Liga",
+              "it Serie A": "ITA-Serie A",
+              "de Bundesliga": "GER-Bundesliga",
+              "fr Ligue 1": "FRA-Ligue 1",
+              }
+
 _f_custom_league_dict = CONFIG_DIR / "league_dict.json"
 if _f_custom_league_dict.is_file():
     with open(_f_custom_league_dict, encoding='utf8') as json_file:

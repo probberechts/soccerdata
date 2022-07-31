@@ -13,7 +13,7 @@ from ._common import (
     season_code,
     standardize_colnames,
 )
-from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
+from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, FBREF_BIG5, logger
 
 FBREF_DATADIR = DATA_DIR / "FBref"
 FBREF_API = "https://fbref.com"
@@ -109,7 +109,9 @@ class FBref(BaseRequestsReader):
         df["country"] = df["country"].apply(
             lambda x: x.split(" ")[1] if isinstance(x, str) else None
         )
-        return df[df.index.isin(self._selected_leagues.keys())]
+        selected_leagues = list(self._selected_leagues.keys())
+        selected_leagues.append('Big-5')
+        return df[df.index.isin(selected_leagues)]
 
     def read_seasons(self) -> pd.DataFrame:
         """Retrieve the selected seasons for the selected leagues.
@@ -143,6 +145,40 @@ class FBref(BaseRequestsReader):
         df = df.set_index(["league", "season"]).sort_index()
         return df.loc[
             df.index.isin(itertools.product(self._selected_leagues.keys(), self.seasons))
+        ]
+        
+    def read_big5_seasons(self) -> pd.DataFrame:
+        """Retrieve the selected seasons for the big-5 leagues.
+
+        Returns
+        -------
+        pd.DataFrame
+        """
+        df_leagues = self.read_leagues()
+        df_leagues = df_leagues[df_leagues.index == 'Big-5']
+
+        seasons = []
+        for lkey, league in df_leagues.iterrows():
+            url = FBREF_API + league.url
+            filemask = "seasons_{}.html"
+            filepath = self.data_dir / filemask.format(lkey)
+            reader = self.get(url, filepath)
+
+            # extract season links
+            tree = html.parse(reader)
+            df_table = pd.read_html(etree.tostring(tree), attrs={"id": "seasons"})[0]
+            df_table["url"] = tree.xpath("//table[@id='seasons']//th[@data-stat='season']/a/@href")
+            seasons.append(df_table)
+
+        df = (
+            pd.concat(seasons)
+            .pipe(standardize_colnames)
+            .rename(columns={"competition_name": "league"})
+        )
+        df["season"] = df["season"].apply(lambda x: season_code(x))
+        df = df.set_index(["season"]).sort_index()
+        return df.loc[
+            df.index.isin(self.seasons)
         ]
 
     def read_team_season_stats(self, stat_type: str = "standard") -> pd.DataFrame:
@@ -210,7 +246,7 @@ class FBref(BaseRequestsReader):
         )
         return df
 
-    def read_big5_season_stats(self, stat_type: str = "standard") -> pd.DataFrame:
+    def read_player_season_stats(self, stat_type: str = "standard") -> pd.DataFrame:
         """Retrieve players from the datasource for the selected leagues.
 
         The following stat types are available:
@@ -250,40 +286,52 @@ class FBref(BaseRequestsReader):
             page = stat_type
 
         filemask = "big5_{}_{}.html"
-
-        seasons = [f"20{season[:2]}-20{season[2:]}" for season in self.seasons]
+        
+        seasons = self.read_big5_seasons()
+        
         players = []
-        for season in seasons:
-            url = (f"{FBREF_API}/en/comps/Big5/{season}/{page}/"
-                   f"players/{season}-Big-5-European-Leagues-Stats")
-            filepath = self.data_dir / filemask.format(stat_type, season)
+        for skey, season in seasons.iterrows():
+           
+            url = (FBREF_API +
+                   "/".join(season.url.split("/")[:-1]) +
+                   "/" +
+                   page +
+                   "/players/" +
+                   season.url.split("/")[-1]
+                   )
+            print(url)
+            filepath = self.data_dir / filemask.format(stat_type, skey)
             reader = self.get(url, filepath)
-
-            # extract team links
+            
             tree = html.parse(reader)
+            
             try:
                 table = tree.xpath(f"//table[contains(@id, 'stats_{stat_type}')]")[0]
-            except IndexError:
+            except:
                 logger.error("%s not available", stat_type)
                 continue
+                
             player_links = [td.find("a").get("href") for td in
                             table.xpath('.//td[contains(@data-stat, "player")]')]
             match_links = [td.find("a").get("href") for td in
                            table.xpath('.//td[contains(@data-stat, "matches")]')]
             df_table = pd.read_html(etree.tostring(table))[0]
-            df_table["season"] = season.split('-')[1]
             rename_unnamed(df_table)
-            # remove lines that are the header row repeated and add urls
+            # remove lines that are the header row repeated (every 25 lines)
             df_table = df_table[df_table['Rk'] != 'Rk'].copy()
+            # the headers made all rows strings so make them numeric
+            numeric_cols = df_table.columns[6:-1]  # from age until one from end (matches is string)
+            df_table[numeric_cols] = (df_table[numeric_cols]
+                                      .apply(pd.to_numeric, errors='coerce', axis='columns')
+                                      )
+            df_table["season"] = skey
             df_table["player_link", ""] = player_links
             df_table["match_link", ""] = match_links
             players.append(df_table)
-
+            
         df = pd.concat(players)
-
-        # format league in same way as other methods
-        df['Comp'] = (df['Comp'].str.split(' ').str[0].str.upper() + '-' +
-                      df['Comp'].str.split(' ').str[1:].str.join(' '))
+        df["Comp"] = df["Comp"].map(FBREF_BIG5)
+        df = df[df["Comp"].isin(self._selected_leagues)].copy()
         df = (
             df.drop("Matches", axis=1, level=0)
             .rename(columns={"Player": "player",
@@ -294,77 +342,7 @@ class FBref(BaseRequestsReader):
         )
         df["Nation"] = df['Nation'].str.split(' ').str[1]
         return df
-
-    def read_player_season_stats(self, stat_type: str = "standard") -> pd.DataFrame:
-        """Retrieve players from the datasource for the selected leagues.
-
-        The following stat types are available:
-            * 'standard'
-            * 'shooting'
-            * 'passing'
-            * 'passing_types'
-            * 'goal_shot_creation'
-            * 'defense'
-            * 'possession'
-            * 'playing_time'
-            * 'misc'
-            * 'keeper'
-            * 'keeper_adv'
-
-        Parameters
-        ----------
-        stat_type :str
-            Type of stats to retrieve.
-
-        Returns
-        -------
-        pd.DataFrame
-        """
-        # build url
-        filemask = "team_{}_{}_{}.html"
-
-        # get league IDs
-        teams = self.read_team_season_stats()
-
-        if stat_type == "goal_shot_creation":
-            stat_type = "gca"
-
-        # collect teams
-        players = []
-        for (lkey, skey, tkey), team in teams.iterrows():
-            # read html page (league overview)
-            filepath = self.data_dir / filemask.format(lkey, skey, tkey)
-            url = FBREF_API + team.url.item()
-            print(url)
-            reader = self.get(url, filepath)
-
-            # extract team links
-            tree = html.parse(reader)
-            try:
-                table = tree.xpath(f"//table[contains(@id, 'stats_{stat_type}')]")[0]
-            except IndexError:
-                logger.error("%s not available for %s in %s %s", stat_type, tkey, lkey, skey)
-                continue
-            df_table = pd.read_html(etree.tostring(table))[0]
-            df_table["league"] = lkey
-            df_table["season"] = skey
-            df_table["team"] = tkey
-            players.append(df_table)
-
-        # return data frame
-        df = pd.concat(players)
-        rename_unnamed(df)
-        df = (
-            df.drop("Matches", axis=1, level=0)
-            .rename(columns={"Player": "player"})
-            .set_index(["league", "season", "team", "player"])
-            .sort_index()
-        )
-        df["Nation"] = df["Nation"].apply(
-            lambda x: x.split(" ")[1] if isinstance(x, str) else None
-        )
-        return df
-
+   
     def read_schedule(self, force_cache: bool = False) -> pd.DataFrame:
         """Retrieve the game schedule for the selected leagues and seasons.
 

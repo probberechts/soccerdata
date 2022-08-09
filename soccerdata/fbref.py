@@ -130,7 +130,7 @@ class FBref(BaseRequestsReader):
             # extract season links
             tree = html.parse(reader)
             df_table = pd.read_html(etree.tostring(tree), attrs={"id": "seasons"})[0]
-            df_table["url"] = tree.xpath("//table[@id='seasons']//th[@data-stat='season']/a/@href")
+            df_table["url"] = tree.xpath("//table[@id='seasons']//th[@data-stat='year_id']/a/@href")
             seasons.append(df_table)
 
         df = (

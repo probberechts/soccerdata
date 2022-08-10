@@ -195,7 +195,7 @@ class FBref(BaseRequestsReader):
                 etree.tostring(tree), attrs={"id": f"stats_squads_{stat_type}_for"}
             )[0]
             df_table["url"] = tree.xpath(
-                f"//table[@id='stats_squads_{stat_type}_for']//th[@data-stat='squad']/a/@href"
+                f"//table[@id='stats_squads_{stat_type}_for']//th[@data-stat='team']/a/@href"
             )
             df_table["league"] = lkey
             df_table["season"] = skey

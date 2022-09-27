@@ -27,7 +27,7 @@ class ClubElo(BaseRequestsReader):
 
     Parameters
     ----------
-    proxy : 'tor' or or dict or list(dict) or callable, optional
+    proxy : 'tor' or dict or list(dict) or callable, optional
         Use a proxy to hide your IP address. Valid options are:
             - "tor": Uses the Tor network. Tor should be running in
               the background on port 9050.

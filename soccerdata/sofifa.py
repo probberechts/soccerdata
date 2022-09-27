@@ -26,7 +26,7 @@ class SoFIFA(BaseRequestsReader):
     seasons : string, int or list, optional
         Seasons to include. Supports multiple formats.
         Examples: '16-17'; 2016; '2016-17'; [14, 15, 16]
-    proxy : 'tor' or or dict or list(dict) or callable, optional
+    proxy : 'tor' or dict or list(dict) or callable, optional
         Use a proxy to hide your IP address. Valid options are:
             - "tor": Uses the Tor network. Tor should be running in
               the background on port 9050.

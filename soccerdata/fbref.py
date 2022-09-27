@@ -147,7 +147,9 @@ class FBref(BaseRequestsReader):
             df.index.isin(itertools.product(self._selected_leagues.keys(), self.seasons))
         ]
 
-    def read_team_season_stats(self, stat_type: str = "standard") -> pd.DataFrame:
+    def read_team_season_stats(
+        self, stat_type: str = "standard", opponent_stats: bool = True
+    ) -> pd.DataFrame:
         """Retrieve teams from the datasource for the selected leagues.
 
         The following stat types are available:
@@ -167,6 +169,8 @@ class FBref(BaseRequestsReader):
         ----------
         stat_type: str
             Type of stats to retrieve.
+        opponent_stats: bool, default: False
+            If True, will retrieve opponent stats.
 
         Returns
         -------
@@ -181,6 +185,11 @@ class FBref(BaseRequestsReader):
         if stat_type == "goal_shot_creation":
             stat_type = "gca"
 
+        if opponent_stats:
+            stat_type += "_against"
+        else:
+            stat_type += "_for"
+
         # collect teams
         teams = []
         for (lkey, skey), season in seasons.iterrows():
@@ -192,10 +201,10 @@ class FBref(BaseRequestsReader):
             # extract team links
             tree = html.parse(reader)
             df_table = pd.read_html(
-                etree.tostring(tree), attrs={"id": f"stats_squads_{stat_type}_for"}
+                etree.tostring(tree), attrs={"id": f"stats_squads_{stat_type}"}
             )[0]
             df_table["url"] = tree.xpath(
-                f"//table[@id='stats_squads_{stat_type}_for']//th[@data-stat='team']/a/@href"
+                f"//table[@id='stats_squads_{stat_type}']//th[@data-stat='team']/a/@href"
             )
             df_table["league"] = lkey
             df_table["season"] = skey

@@ -252,7 +252,6 @@ class FBref(BaseRequestsReader):
             # read html page (league overview)
             filepath = self.data_dir / filemask.format(lkey, skey, tkey)
             url = FBREF_API + team.url.item()
-            print(url)
             reader = self.get(url, filepath)
 
             # extract team links
@@ -268,7 +267,7 @@ class FBref(BaseRequestsReader):
             df_table["team"] = tkey
             players.append(df_table)
 
-        # return data frame
+        # return dataframe
         df = pd.concat(players)
         rename_unnamed(df)
         df = (
@@ -280,6 +279,11 @@ class FBref(BaseRequestsReader):
         df["Nation"] = df["Nation"].apply(
             lambda x: x.split(" ")[1] if isinstance(x, str) else None
         )
+        # In som seasons "MP" is a separate category, whle it is grouped
+        # under "Playing Time" in other seasons.
+        if ("MP", "") in df.columns:
+            df[("Playing Time", "MP")] = df[("Playing Time", "MP")].fillna(df["MP"])
+            df.drop("MP", axis=1, level=0, inplace=True)
         return df
 
     def read_schedule(self, force_cache: bool = False) -> pd.DataFrame:

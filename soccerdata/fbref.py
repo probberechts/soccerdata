@@ -169,7 +169,7 @@ class FBref(BaseRequestsReader):
         ----------
         stat_type: str
             Type of stats to retrieve.
-        opponent_stats: bool, default: False
+        opponent_stats: bool
             If True, will retrieve opponent stats.
 
         Returns

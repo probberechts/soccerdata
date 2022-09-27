@@ -247,46 +247,63 @@ class FBref(BaseRequestsReader):
         pd.DataFrame
         """
         # build url
-        filemask = "team_{}_{}_{}.html"
+        filemask = "players_{}_{}_{}.html"
 
         # get league IDs
-        teams = self.read_team_season_stats()
+        seasons = self.read_seasons()
 
-        if stat_type == "goal_shot_creation":
+        if stat_type == "standard":
+            page = "stats"
+        elif stat_type == "goal_shot_creation":
+            page = "gca"
             stat_type = "gca"
+        elif stat_type == "playing_time":
+            page = "playingtime"
+        elif stat_type == "keeper":
+            page = "keepers"
+        elif stat_type == "keeper_adv":
+            page = "keepersadv"
+        else:
+            page = stat_type
 
-        # collect teams
+        # collect players
         players = []
-        for (lkey, skey, tkey), team in teams.iterrows():
-            # read html page (league overview)
-            filepath = self.data_dir / filemask.format(lkey, skey, tkey)
-            url = FBREF_API + team.url.item()
+        for (lkey, skey), season in seasons.iterrows():
+            filepath = self.data_dir / filemask.format(lkey, skey, stat_type)
+            url = (
+                FBREF_API
+                + "/".join(season.url.split("/")[:-1])
+                + "/"
+                + page
+                + "/"
+                + season.url.split("/")[-1]
+            )
             reader = self.get(url, filepath)
-
-            # extract team links
             tree = html.parse(reader)
+            el = tree.xpath(f"//comment()[contains(.,'div_stats_{stat_type}')]")
             try:
-                table = tree.xpath(f"//table[contains(@id, 'stats_{stat_type}')]")[0]
+                df_table = pd.read_html(el[0].text, attrs={"id": f"stats_{stat_type}"})[0]
             except IndexError:
-                logger.error("%s not available for %s in %s %s", stat_type, tkey, lkey, skey)
+                logger.error("%s not available in %s %s", stat_type, lkey, skey)
                 continue
-            df_table = pd.read_html(etree.tostring(table))[0]
             df_table["league"] = lkey
             df_table["season"] = skey
-            df_table["team"] = tkey
             players.append(df_table)
 
         # return dataframe
         df = pd.concat(players)
         rename_unnamed(df)
+        df = df[df.Player != "Player"]
         df = (
             df.drop("Matches", axis=1, level=0)
-            .rename(columns={"Player": "player"})
+            .drop("Rk", axis=1, level=0)
+            .rename(columns={"Player": "player", "Squad": "team"})
+            .replace({"team": TEAMNAME_REPLACEMENTS})
             .set_index(["league", "season", "team", "player"])
             .sort_index()
         )
         df["Nation"] = df["Nation"].apply(
-            lambda x: x.split(" ")[1] if isinstance(x, str) else None
+            lambda x: x.split(" ")[1] if isinstance(x, str) and " " in x else None
         )
         # In som seasons "MP" is a separate category, whle it is grouped
         # under "Playing Time" in other seasons.

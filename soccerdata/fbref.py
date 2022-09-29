@@ -270,6 +270,11 @@ class FBref(BaseRequestsReader):
         opponent_stats: bool
             If True, will retrieve opponent stats.
 
+        Raises
+        ------
+        TypeError
+            If ``stat_type`` is not valid.
+
         Returns
         -------
         pd.DataFrame
@@ -342,6 +347,11 @@ class FBref(BaseRequestsReader):
         ----------
         stat_type :str
             Type of stats to retrieve.
+
+        Raises
+        ------
+        TypeError
+            If ``stat_type`` is not valid.
 
         Returns
         -------
@@ -619,6 +629,8 @@ class FBref(BaseRequestsReader):
         ------
         ValueError
             If no games with the given IDs were found for the selected seasons and leagues.
+        TypeError
+            If ``stat_type`` is not valid.
 
         Returns
         -------

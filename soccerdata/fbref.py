@@ -13,7 +13,15 @@ from ._common import (
     season_code,
     standardize_colnames,
 )
-from ._config import DATA_DIR, LEAGUE_DICT, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, BIG_FIVE_DICT, logger
+from ._config import (
+    BIG_FIVE_DICT,
+    DATA_DIR,
+    LEAGUE_DICT,
+    NOCACHE,
+    NOSTORE,
+    TEAMNAME_REPLACEMENTS,
+    logger,
+)
 
 FBREF_DATADIR = DATA_DIR / "FBref"
 FBREF_API = "https://fbref.com"
@@ -78,27 +86,32 @@ class FBref(BaseRequestsReader):
         )
         self.rate_limit = 3
         self.seasons = seasons  # type: ignore
-        self.valid_player = ["standard",
-                             "keeper",
-                             "keeper_adv",
-                             "shooting",
-                             "passing",
-                             "passing_types",
-                             "goal_shot_creation",
-                             "defense",
-                             "possession",
-                             "playing_time",
-                             "misc",
-                            ]
-        self.valid_match = ["summary",
-                            "keepers",
-                            "passing",
-                            "passing_types",
-                            "defense",
-                            "possession",
-                            "misc",
-                            ]
-        if len(self.leagues) == 5 and len(set(self.leagues).intersection(set(LEAGUE_DICT.keys()))) == 5:
+        self.valid_player = [
+            "standard",
+            "keeper",
+            "keeper_adv",
+            "shooting",
+            "passing",
+            "passing_types",
+            "goal_shot_creation",
+            "defense",
+            "possession",
+            "playing_time",
+            "misc",
+        ]
+        self.valid_match = [
+            "summary",
+            "keepers",
+            "passing",
+            "passing_types",
+            "defense",
+            "possession",
+            "misc",
+        ]
+        if (
+            len(self.leagues) == 5
+            and len(set(self.leagues).intersection(set(LEAGUE_DICT.keys()))) == 5
+        ):
             self.big_five = True
         else:
             self.big_five = False
@@ -195,9 +208,7 @@ class FBref(BaseRequestsReader):
             .rename(columns={"competition_name": "league"})
             .drop_duplicates(subset="league")
         )
-        return (df[df["league"] == "Big 5 European Leagues Combined"]
-                .set_index("league")
-               )
+        return df[df["league"] == "Big 5 European Leagues Combined"].set_index("league")
 
     def read_big_five_seasons(self) -> pd.DataFrame:
         """Retrieve the big five seasons.
@@ -229,10 +240,7 @@ class FBref(BaseRequestsReader):
         )
         df["season"] = df["season"].apply(lambda x: season_code(x))
         df["league"] = "Big 5 European Leagues Combined"
-        df = (df
-              .set_index(["league", "season"])
-              .sort_index()
-             )
+        df = df.set_index(["league", "season"]).sort_index()
         return df.loc[
             df.index.isin(itertools.product(["Big 5 European Leagues Combined"], self.seasons))
         ]

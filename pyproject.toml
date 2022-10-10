@@ -40,7 +40,7 @@ sphinx-autobuild = "^2021.3.14"
 furo = "^2022.0.0"
 coverage = {version = "^6.2", extras = ["toml"]}
 pre-commit = "^2.16.0"
-flake8 = "^4.0.1"
+flake8 = "^5.0.0"
 flake8-bugbear = "^22.0.0"
 flake8-docstrings = "^1.6.0"
 flake8-rst-docstrings = "^0.2.5"

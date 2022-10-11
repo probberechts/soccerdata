@@ -14,7 +14,6 @@ from ._common import (
     standardize_colnames,
 )
 from ._config import (
-    BIG_FIVE_DICT,
     DATA_DIR,
     LEAGUE_DICT,
     NOCACHE,
@@ -25,6 +24,14 @@ from ._config import (
 
 FBREF_DATADIR = DATA_DIR / "FBref"
 FBREF_API = "https://fbref.com"
+
+BIG_FIVE_DICT = {
+    "it Serie A": "ITA-Serie A",
+    "fr Ligue 1": "FRA-Ligue 1",
+    "es La Liga": "ESP-La Liga",
+    "eng Premier League": "ENG-Premier League",
+    "de Bundesliga": "GER-Bundesliga",
+}
 
 
 class FBref(BaseRequestsReader):
@@ -283,7 +290,7 @@ class FBref(BaseRequestsReader):
         filemask = "teams_{}_{}.html"
 
         if stat_type not in self.valid_player:
-            raise TypeError(f'Invalid argument: stat_type should be in {self.valid_player}')
+            raise TypeError(f"Invalid argument: stat_type should be in {self.valid_player}")
 
         # get league IDs
         seasons = self.read_seasons()
@@ -361,15 +368,15 @@ class FBref(BaseRequestsReader):
         filemask = "players_{}_{}_{}.html"
 
         if stat_type not in self.valid_player:
-            raise TypeError(f'Invalid argument: stat_type should be in {self.valid_player}')
+            raise TypeError(f"Invalid argument: stat_type should be in {self.valid_player}")
 
         # get league IDs
         if self.big_five:
             seasons = self.read_big_five_seasons()
-            sub_page = '/players'
+            sub_page = "/players"
         else:
             seasons = self.read_seasons()
-            sub_page = ''
+            sub_page = ""
 
         if stat_type == "standard":
             page = "stats"
@@ -640,7 +647,7 @@ class FBref(BaseRequestsReader):
         filemask = "match_{}.html"
 
         if stat_type not in self.valid_match:
-            raise TypeError(f'Invalid argument: stat_type should be in {self.valid_match}')
+            raise TypeError(f"Invalid argument: stat_type should be in {self.valid_match}")
 
         # Retrieve games for which a match report is available
         df_schedule = self.read_schedule(force_cache).reset_index()

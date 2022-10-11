@@ -146,6 +146,13 @@ LEAGUE_DICT = {
         "season_end": "May",
     },
 }
+BIG_FIVE_DICT = {
+    "it Serie A": "ITA-Serie A",
+    "fr Ligue 1": "FRA-Ligue 1",
+    "es La Liga": "ESP-La Liga",
+    "eng Premier League": "ENG-Premier League",
+    "de Bundesliga": "GER-Bundesliga",
+}
 _f_custom_league_dict = CONFIG_DIR / "league_dict.json"
 if _f_custom_league_dict.is_file():
     with open(_f_custom_league_dict, encoding='utf8') as json_file:

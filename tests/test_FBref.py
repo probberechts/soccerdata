@@ -84,6 +84,7 @@ def test_combine_big5():
     assert len(fbref_bigfive.read_leagues()) == 1
     assert len(fbref_bigfive.read_seasons()) == 1
 
+
 @pytest.mark.parametrize(
     "stat_type",
     [
@@ -106,6 +107,7 @@ def test_combine_big5_team_season_stats(fbref_ligue1, stat_type):
         fbref_bigfive.read_team_season_stats(stat_type).loc["FRA-Ligue 1"],
         fbref_ligue1.read_team_season_stats(stat_type).loc["FRA-Ligue 1"],
     )
+
 
 @pytest.mark.parametrize(
     "stat_type",

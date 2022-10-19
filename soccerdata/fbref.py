@@ -1,8 +1,8 @@
 """Scraper for http://fbref.com."""
 import itertools
+import warnings
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Union
-import warnings
 
 import numpy as np
 import pandas as pd
@@ -14,13 +14,7 @@ from ._common import (
     season_code,
     standardize_colnames,
 )
-from ._config import (
-    DATA_DIR,
-    NOCACHE,
-    NOSTORE,
-    TEAMNAME_REPLACEMENTS,
-    logger,
-)
+from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
 
 FBREF_DATADIR = DATA_DIR / "FBref"
 FBREF_API = "https://fbref.com"
@@ -237,9 +231,6 @@ class FBref(BaseRequestsReader):
         if stat_type not in team_stats:
             raise TypeError(f"Invalid argument: stat_type should be in {team_stats}")
 
-        # get league IDs
-        seasons = self.read_seasons()
-
         if stat_type == "standard":
             page = "stats"
         elif stat_type == "keeper":
@@ -259,6 +250,9 @@ class FBref(BaseRequestsReader):
         else:
             stat_type += "_for"
 
+        # get league IDs
+        seasons = self.read_seasons()
+
         # collect teams
         teams = []
         for (lkey, skey), season in seasons.iterrows():
@@ -273,7 +267,6 @@ class FBref(BaseRequestsReader):
                 + (f"/{page}/squads/" if big_five else "/")
                 + season.url.split("/")[-1]
             )
-            print(url)
             reader = self.get(url, filepath)
 
             # extract team links
@@ -360,9 +353,6 @@ class FBref(BaseRequestsReader):
         if stat_type not in player_stats:
             raise TypeError(f"Invalid argument: stat_type should be in {player_stats}")
 
-        # get league IDs
-        seasons = self.read_seasons()
-
         if stat_type == "standard":
             page = "stats"
         elif stat_type == "goal_shot_creation":
@@ -377,6 +367,9 @@ class FBref(BaseRequestsReader):
         else:
             page = stat_type
 
+        # get league IDs
+        seasons = self.read_seasons()
+
         # collect players
         players = []
         for (lkey, skey), season in seasons.iterrows():
@@ -385,27 +378,22 @@ class FBref(BaseRequestsReader):
             url = (
                 FBREF_API
                 + "/".join(season.url.split("/")[:-1])
-                + "/"
-                + page
+                + f"/{page}"
                 + ("/players/" if big_five else "/")
                 + season.url.split("/")[-1]
             )
             reader = self.get(url, filepath)
             tree = html.parse(reader)
-            el = tree.xpath(f"//comment()[contains(.,'div_stats_{stat_type}')]")
-            try:
-                if big_five:
-                    df_table = pd.read_html(etree.tostring(tree))[0]
-                    rename_unnamed(df_table)
-                    df_table["Comp"] = df_table["Comp"].map(BIG_FIVE_DICT)
-                    df_table = df_table.rename(columns={"Comp": "league"})
-                else:
-                    df_table = pd.read_html(el[0].text, attrs={"id": f"stats_{stat_type}"})[0]
-                    rename_unnamed(df_table)
-                    df_table["league"] = lkey
-            except IndexError:
-                logger.error("%s not available in %s %s", stat_type, lkey, skey)
-                continue
+            if big_five:
+                df_table = pd.read_html(etree.tostring(tree))[0]
+                rename_unnamed(df_table)
+                df_table["Comp"] = df_table["Comp"].map(BIG_FIVE_DICT)
+                df_table = df_table.rename(columns={"Comp": "league"})
+            else:
+                el = tree.xpath(f"//comment()[contains(.,'div_stats_{stat_type}')]")
+                df_table = pd.read_html(el[0].text, attrs={"id": f"stats_{stat_type}"})[0]
+                rename_unnamed(df_table)
+                df_table["league"] = lkey
             df_table["season"] = skey
             players.append(df_table)
 

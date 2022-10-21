@@ -1,10 +1,10 @@
 """Scraper for http://fbref.com."""
 import itertools
 import warnings
+from functools import reduce
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Union
 
-import numpy as np
 import pandas as pd
 from lxml import etree, html
 
@@ -278,9 +278,11 @@ class FBref(BaseRequestsReader):
                 df_table["url"] = tree.xpath(
                     f"//table[@id='stats_teams_{stat_type}']//td[@data-stat='team']/a/@href"
                 )
-                rename_unnamed(df_table)
-                df_table["Comp"] = df_table["Comp"].map(BIG_FIVE_DICT)
-                df_table = df_table.rename(columns={"Comp": "league"}).drop("Rk", axis=1, level=0)
+                df_table["league"] = (
+                    df_table.xs("Comp", axis=1, level=1).squeeze().map(BIG_FIVE_DICT)
+                )
+                df_table["season"] = skey
+                df_table = df_table.drop("Rk", axis=1, level=1).drop("Comp", axis=1, level=1)
             else:
                 df_table = pd.read_html(
                     etree.tostring(tree), attrs={"id": f"stats_squads_{stat_type}"}
@@ -288,15 +290,14 @@ class FBref(BaseRequestsReader):
                 df_table["url"] = tree.xpath(
                     f"//table[@id='stats_squads_{stat_type}']//th[@data-stat='team']/a/@href"
                 )
-                rename_unnamed(df_table)
                 df_table["league"] = lkey
-            df_table["season"] = skey
+                df_table["season"] = skey
             teams.append(df_table)
 
         # return data frame
-        df = pd.concat(teams)
         df = (
-            df.rename(columns={"Squad": "team"})
+            _concat(teams)
+            .rename(columns={"Squad": "team"})
             .replace({"team": TEAMNAME_REPLACEMENTS})
             .set_index(["league", "season", "team"])
             .sort_index()
@@ -386,21 +387,21 @@ class FBref(BaseRequestsReader):
             tree = html.parse(reader)
             if big_five:
                 df_table = pd.read_html(etree.tostring(tree))[0]
-                rename_unnamed(df_table)
-                df_table["Comp"] = df_table["Comp"].map(BIG_FIVE_DICT)
-                df_table = df_table.rename(columns={"Comp": "league"})
+                df_table[("Unnamed: league", "league")] = (
+                    df_table.xs("Comp", axis=1, level=1).squeeze().map(BIG_FIVE_DICT)
+                )
+                df_table[("Unnamed: season", "season")] = skey
+                df_table = df_table.drop("Comp", axis=1, level=1)
             else:
                 el = tree.xpath(f"//comment()[contains(.,'div_stats_{stat_type}')]")
                 df_table = pd.read_html(el[0].text, attrs={"id": f"stats_{stat_type}"})[0]
-                rename_unnamed(df_table)
-                df_table["league"] = lkey
-            df_table["season"] = skey
+                df_table[("Unnamed: league", "league")] = lkey
+                df_table[("Unnamed: season", "season")] = skey
             players.append(df_table)
 
         # return dataframe
-        df = pd.concat(players)
+        df = _concat(players)
         df = df[df.Player != "Player"]
-
         df = (
             df.drop("Matches", axis=1, level=0)
             .drop("Rk", axis=1, level=0)
@@ -412,11 +413,6 @@ class FBref(BaseRequestsReader):
         df["Nation"] = df["Nation"].apply(
             lambda x: x.split(" ")[1] if isinstance(x, str) and " " in x else None
         )
-        # In some seasons "MP" is a separate category, while it is grouped
-        # under "Playing Time" in other seasons.
-        if ("MP", "") in df.columns:
-            df[("Playing Time", "MP")] = df[("Playing Time", "MP")].fillna(df["MP"])
-            df.drop("MP", axis=1, level=0, inplace=True)
         return df
 
     def read_schedule(self, force_cache: bool = False) -> pd.DataFrame:
@@ -663,6 +659,9 @@ class FBref(BaseRequestsReader):
             table = tree.xpath("//table[@id='" + id_format.format(home_team["id"]) + "']")[0]
             df_table = pd.read_html(etree.tostring(table))[0]
             df_table["team"] = home_team["name"]
+            df_table["game"] = game["game"]
+            df_table["league"] = game["league"]
+            df_table["season"] = game["season"]
             df_table["game_id"] = game["game_id"]
             stats.append(df_table)
             table = tree.xpath("//table[@id='" + id_format.format(away_team["id"]) + "']")[0]
@@ -671,11 +670,10 @@ class FBref(BaseRequestsReader):
             df_table["game"] = game["game"]
             df_table["league"] = game["league"]
             df_table["season"] = game["season"]
-            df_table["game"] = game["game"]
+            df_table["game_id"] = game["game_id"]
             stats.append(df_table)
 
-        df = pd.concat(stats)
-        rename_unnamed(df)
+        df = _concat(stats)
         df = df[~df.Player.str.contains(r"^\d+\sPlayers$")]
         df = (
             df.rename(columns={"Player": "player"})
@@ -744,10 +742,9 @@ class FBref(BaseRequestsReader):
             df_table["game"] = game["game"]
             shots.append(df_table)
 
-        df = pd.concat(shots)
-        rename_unnamed(df)
         df = (
-            df.rename(columns={"Squad": "team"})
+            _concat(shots)
+            .rename(columns={"Squad": "team"})
             .replace({"team": TEAMNAME_REPLACEMENTS})
             .pipe(
                 standardize_colnames,
@@ -760,21 +757,40 @@ class FBref(BaseRequestsReader):
         return df
 
 
-def rename_unnamed(df: pd.DataFrame) -> None:
+def _concat(dfs: List[pd.DataFrame]) -> pd.DataFrame:
     """Rename unamed columns name for Pandas DataFrame.
-
-    See https://stackoverflow.com/questions/30322581/pandas-read-multiindexed-csv-with-blanks
 
     Parameters
     ----------
-    df : pd.DataFrame object
-        Input dataframe
+    dfs : list(pd.DataFrame)
+        Input dataframes.
+
+    Returns
+    -------
+    pd.DataFrame
+        Concatenated dataframe with uniform column names.
     """
-    columns = pd.DataFrame(df.columns.tolist())
-    columns.loc[columns[0].str.startswith("Unnamed:"), 0] = np.nan
-    # columns[0] = columns[0].fillna(method="ffill")
+    # Look for the most complete level 0 columns
+    all_columns = []
+    for df in dfs:
+        columns = pd.DataFrame(df.columns.tolist())
+        # Move missing columns to level 0
+        columns.replace({"": None}, inplace=True)
+        mask = pd.isnull(columns[1])
+        columns.loc[mask, [0, 1]] = columns.loc[mask, [1, 0]].values
+        # Rename unnamed columns
+        mask = columns[0].str.startswith("Unnamed:").fillna(False)
+        columns.loc[mask, 0] = None
+        all_columns.append(columns)
+    print(all_columns)
+    columns = reduce(lambda l, r: l.combine_first(r), all_columns)
+
+    # Move the remaining missing columns back to level 1 and replace with empyt string
     mask = pd.isnull(columns[0])
-    columns[0] = columns[0].fillna("")
     columns.loc[mask, [0, 1]] = columns.loc[mask, [1, 0]].values
-    df.columns = pd.MultiIndex.from_tuples(columns.to_records(index=False).tolist())
-    # return df
+    columns.loc[mask, 1] = ""
+
+    for df in dfs:
+        df.columns = pd.MultiIndex.from_tuples(columns.to_records(index=False).tolist())
+
+    return pd.concat(dfs)

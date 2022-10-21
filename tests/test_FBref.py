@@ -4,6 +4,7 @@ import pandas as pd
 import pytest
 
 import soccerdata as sd
+from soccerdata.fbref import _concat
 
 # Unittests -------------------------------------------------------------------
 # Happy flow
@@ -103,9 +104,14 @@ def test_combine_big5():
 )
 def test_combine_big5_team_season_stats(fbref_ligue1, stat_type):
     fbref_bigfive = sd.FBref(["Big 5 European Leagues Combined"], 2021)
+    ligue1 = fbref_ligue1.read_team_season_stats(stat_type).loc["FRA-Ligue 1"]
+    bigfive = fbref_bigfive.read_team_season_stats(stat_type).loc["FRA-Ligue 1"]
+    cols = _concat([ligue1, bigfive]).columns
+    ligue1.columns = cols
+    bigfive.columns = cols
     pd.testing.assert_frame_equal(
-        fbref_bigfive.read_team_season_stats(stat_type).loc["FRA-Ligue 1"],
-        fbref_ligue1.read_team_season_stats(stat_type).loc["FRA-Ligue 1"],
+        ligue1,
+        bigfive,
     )
 
 
@@ -127,7 +133,12 @@ def test_combine_big5_team_season_stats(fbref_ligue1, stat_type):
 )
 def test_combine_big5_player_season_stats(fbref_ligue1, stat_type):
     fbref_bigfive = sd.FBref(["Big 5 European Leagues Combined"], 2021)
+    ligue1 = fbref_ligue1.read_player_season_stats(stat_type).loc["FRA-Ligue 1"]
+    bigfive = fbref_bigfive.read_player_season_stats(stat_type).loc["FRA-Ligue 1"]
+    cols = _concat([ligue1, bigfive]).columns
+    ligue1.columns = cols
+    bigfive.columns = cols
     pd.testing.assert_frame_equal(
-        fbref_bigfive.read_player_season_stats(stat_type).loc["FRA-Ligue 1"],
-        fbref_ligue1.read_player_season_stats(stat_type).loc["FRA-Ligue 1"],
+        ligue1,
+        bigfive,
     )

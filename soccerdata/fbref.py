@@ -1,9 +1,10 @@
 """Scraper for http://fbref.com."""
 import itertools
+import warnings
+from functools import reduce
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Union
 
-import numpy as np
 import pandas as pd
 from lxml import etree, html
 
@@ -18,6 +19,14 @@ from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
 FBREF_DATADIR = DATA_DIR / "FBref"
 FBREF_API = "https://fbref.com"
 
+BIG_FIVE_DICT = {
+    "it Serie A": "ITA-Serie A",
+    "fr Ligue 1": "FRA-Ligue 1",
+    "es La Liga": "ESP-La Liga",
+    "eng Premier League": "ENG-Premier League",
+    "de Bundesliga": "GER-Bundesliga",
+}
+
 
 class FBref(BaseRequestsReader):
     """Provides pd.DataFrames from data at http://fbref.com.
@@ -28,7 +37,8 @@ class FBref(BaseRequestsReader):
     Parameters
     ----------
     leagues : string or iterable, optional
-        IDs of leagues to include.
+        IDs of leagues to include. For efficiently reading data from the Top-5
+        European leagues, use "Big 5 European Leagues Combined".
     seasons : string, int or list, optional
         Seasons to include. Supports multiple formats.
         Examples: '16-17'; 2016; '2016-17'; [14, 15, 16]
@@ -78,6 +88,29 @@ class FBref(BaseRequestsReader):
         )
         self.rate_limit = 3
         self.seasons = seasons  # type: ignore
+        # check if all top 5 leagues are selected
+        selected_leagues = set(self._leagues_dict.keys())
+        if set(BIG_FIVE_DICT.values()).issubset(selected_leagues):
+            warnings.warn(
+                "You are trying to scrape data for all of the Big 5 European leagues. "
+                "This can be done more efficiently by setting "
+                "leagues='Big 5 European Leagues Combined'."
+            )
+
+    @property
+    def leagues(self) -> List[str]:
+        """Return a list of selected leagues."""
+        selected_leagues = set(self._leagues_dict.keys())
+        if "Big 5 European Leagues Combined" in selected_leagues:
+            selected_leagues -= set(BIG_FIVE_DICT.values())
+        return list(selected_leagues)
+
+    @classmethod
+    def _all_leagues(cls) -> Dict[str, str]:
+        """Return a dict mapping all canonical league IDs to source league IDs."""
+        res = super()._all_leagues()
+        res.update({"Big 5 European Leagues Combined": "Big 5 European Leagues Combined"})
+        return res
 
     def read_leagues(self) -> pd.DataFrame:
         """Retrieve selected leagues from the datasource.
@@ -109,7 +142,7 @@ class FBref(BaseRequestsReader):
         df["country"] = df["country"].apply(
             lambda x: x.split(" ")[1] if isinstance(x, str) else None
         )
-        return df[df.index.isin(self._selected_leagues.keys())]
+        return df[df.index.isin(self.leagues)]
 
     def read_seasons(self) -> pd.DataFrame:
         """Retrieve the selected seasons for the selected leagues.
@@ -118,12 +151,12 @@ class FBref(BaseRequestsReader):
         -------
         pd.DataFrame
         """
+        filemask = "seasons_{}.html"
         df_leagues = self.read_leagues()
 
         seasons = []
         for lkey, league in df_leagues.iterrows():
             url = FBREF_API + league.url
-            filemask = "seasons_{}.html"
             filepath = self.data_dir / filemask.format(lkey)
             reader = self.get(url, filepath)
 
@@ -135,20 +168,18 @@ class FBref(BaseRequestsReader):
             )
             seasons.append(df_table)
 
-        df = (
-            pd.concat(seasons)
-            .pipe(standardize_colnames)
-            .rename(columns={"competition_name": "league"})
-            .pipe(self._translate_league)
-        )
+        df = pd.concat(seasons).pipe(standardize_colnames)
+        # A competition name field is not inlcuded in the Big 5 European Leagues Combined
+        if "competition_name" in df.columns:
+            df = df.rename(columns={"competition_name": "league"}).pipe(self._translate_league)
+        else:
+            df["league"] = "Big 5 European Leagues Combined"
         df["season"] = df["season"].apply(lambda x: season_code(x))
         df = df.set_index(["league", "season"]).sort_index()
-        return df.loc[
-            df.index.isin(itertools.product(self._selected_leagues.keys(), self.seasons))
-        ]
+        return df.loc[df.index.isin(itertools.product(self.leagues, self.seasons))]
 
     def read_team_season_stats(
-        self, stat_type: str = "standard", opponent_stats: bool = True
+        self, stat_type: str = "standard", opponent_stats: bool = False
     ) -> pd.DataFrame:
         """Retrieve teams from the datasource for the selected leagues.
 
@@ -172,49 +203,101 @@ class FBref(BaseRequestsReader):
         opponent_stats: bool
             If True, will retrieve opponent stats.
 
+        Raises
+        ------
+        TypeError
+            If ``stat_type`` is not valid.
+
         Returns
         -------
         pd.DataFrame
         """
-        # build url
-        filemask = "teams_{}_{}.html"
+        team_stats = [
+            "standard",
+            "keeper",
+            "keeper_adv",
+            "shooting",
+            "passing",
+            "passing_types",
+            "goal_shot_creation",
+            "defense",
+            "possession",
+            "playing_time",
+            "misc",
+        ]
 
-        # get league IDs
-        seasons = self.read_seasons()
+        filemask = "teams_{}_{}_{}.html"
 
-        if stat_type == "goal_shot_creation":
+        if stat_type not in team_stats:
+            raise TypeError(f"Invalid argument: stat_type should be in {team_stats}")
+
+        if stat_type == "standard":
+            page = "stats"
+        elif stat_type == "keeper":
+            page = "keepers"
+        elif stat_type == "keeper_adv":
+            page = "keepersadv"
+        elif stat_type == "goal_shot_creation":
+            page = "gca"
             stat_type = "gca"
+        elif stat_type == "playing_time":
+            page = "playingtime"
+        else:
+            page = stat_type
 
         if opponent_stats:
             stat_type += "_against"
         else:
             stat_type += "_for"
 
+        # get league IDs
+        seasons = self.read_seasons()
+
         # collect teams
         teams = []
         for (lkey, skey), season in seasons.iterrows():
+            big_five = lkey == "Big 5 European Leagues Combined"
             # read html page (league overview)
-            filepath = self.data_dir / filemask.format(lkey, skey)
-            url = FBREF_API + season.url
+            filepath = self.data_dir / filemask.format(
+                lkey, skey, stat_type if big_five else "all"
+            )
+            url = (
+                FBREF_API
+                + "/".join(season.url.split("/")[:-1])
+                + (f"/{page}/squads/" if big_five else "/")
+                + season.url.split("/")[-1]
+            )
             reader = self.get(url, filepath)
 
             # extract team links
             tree = html.parse(reader)
-            df_table = pd.read_html(
-                etree.tostring(tree), attrs={"id": f"stats_squads_{stat_type}"}
-            )[0]
-            df_table["url"] = tree.xpath(
-                f"//table[@id='stats_squads_{stat_type}']//th[@data-stat='team']/a/@href"
-            )
-            df_table["league"] = lkey
-            df_table["season"] = skey
+            if big_five:
+                df_table = pd.read_html(
+                    etree.tostring(tree), attrs={"id": f"stats_teams_{stat_type}"}
+                )[0]
+                df_table["url"] = tree.xpath(
+                    f"//table[@id='stats_teams_{stat_type}']//td[@data-stat='team']/a/@href"
+                )
+                df_table["league"] = (
+                    df_table.xs("Comp", axis=1, level=1).squeeze().map(BIG_FIVE_DICT)
+                )
+                df_table["season"] = skey
+                df_table = df_table.drop("Rk", axis=1, level=1).drop("Comp", axis=1, level=1)
+            else:
+                df_table = pd.read_html(
+                    etree.tostring(tree), attrs={"id": f"stats_squads_{stat_type}"}
+                )[0]
+                df_table["url"] = tree.xpath(
+                    f"//table[@id='stats_squads_{stat_type}']//th[@data-stat='team']/a/@href"
+                )
+                df_table["league"] = lkey
+                df_table["season"] = skey
             teams.append(df_table)
 
         # return data frame
-        df = pd.concat(teams)
-        rename_unnamed(df)
         df = (
-            df.rename(columns={"Squad": "team"})
+            _concat(teams)
+            .rename(columns={"Squad": "team"})
             .replace({"team": TEAMNAME_REPLACEMENTS})
             .set_index(["league", "season", "team"])
             .sort_index()
@@ -242,15 +325,33 @@ class FBref(BaseRequestsReader):
         stat_type :str
             Type of stats to retrieve.
 
+        Raises
+        ------
+        TypeError
+            If ``stat_type`` is not valid.
+
         Returns
         -------
         pd.DataFrame
         """
-        # build url
+        player_stats = [
+            "standard",
+            "keeper",
+            "keeper_adv",
+            "shooting",
+            "passing",
+            "passing_types",
+            "goal_shot_creation",
+            "defense",
+            "possession",
+            "playing_time",
+            "misc",
+        ]
+
         filemask = "players_{}_{}_{}.html"
 
-        # get league IDs
-        seasons = self.read_seasons()
+        if stat_type not in player_stats:
+            raise TypeError(f"Invalid argument: stat_type should be in {player_stats}")
 
         if stat_type == "standard":
             page = "stats"
@@ -266,33 +367,39 @@ class FBref(BaseRequestsReader):
         else:
             page = stat_type
 
+        # get league IDs
+        seasons = self.read_seasons()
+
         # collect players
         players = []
         for (lkey, skey), season in seasons.iterrows():
+            big_five = lkey == "Big 5 European Leagues Combined"
             filepath = self.data_dir / filemask.format(lkey, skey, stat_type)
             url = (
                 FBREF_API
                 + "/".join(season.url.split("/")[:-1])
-                + "/"
-                + page
-                + "/"
+                + f"/{page}"
+                + ("/players/" if big_five else "/")
                 + season.url.split("/")[-1]
             )
             reader = self.get(url, filepath)
             tree = html.parse(reader)
-            el = tree.xpath(f"//comment()[contains(.,'div_stats_{stat_type}')]")
-            try:
+            if big_five:
+                df_table = pd.read_html(etree.tostring(tree))[0]
+                df_table[("Unnamed: league", "league")] = (
+                    df_table.xs("Comp", axis=1, level=1).squeeze().map(BIG_FIVE_DICT)
+                )
+                df_table[("Unnamed: season", "season")] = skey
+                df_table = df_table.drop("Comp", axis=1, level=1)
+            else:
+                el = tree.xpath(f"//comment()[contains(.,'div_stats_{stat_type}')]")
                 df_table = pd.read_html(el[0].text, attrs={"id": f"stats_{stat_type}"})[0]
-            except IndexError:
-                logger.error("%s not available in %s %s", stat_type, lkey, skey)
-                continue
-            df_table["league"] = lkey
-            df_table["season"] = skey
+                df_table[("Unnamed: league", "league")] = lkey
+                df_table[("Unnamed: season", "season")] = skey
             players.append(df_table)
 
         # return dataframe
-        df = pd.concat(players)
-        rename_unnamed(df)
+        df = _concat(players)
         df = df[df.Player != "Player"]
         df = (
             df.drop("Matches", axis=1, level=0)
@@ -305,11 +412,6 @@ class FBref(BaseRequestsReader):
         df["Nation"] = df["Nation"].apply(
             lambda x: x.split(" ")[1] if isinstance(x, str) and " " in x else None
         )
-        # In som seasons "MP" is a separate category, whle it is grouped
-        # under "Playing Time" in other seasons.
-        if ("MP", "") in df.columns:
-            df[("Playing Time", "MP")] = df[("Playing Time", "MP")].fillna(df["MP"])
-            df.drop("MP", axis=1, level=0, inplace=True)
         return df
 
     def read_schedule(self, force_cache: bool = False) -> pd.DataFrame:
@@ -502,13 +604,28 @@ class FBref(BaseRequestsReader):
         ------
         ValueError
             If no games with the given IDs were found for the selected seasons and leagues.
+        TypeError
+            If ``stat_type`` is not valid.
 
         Returns
         -------
         pd.DataFrame
         """
+        match_stats = [
+            "summary",
+            "keepers",
+            "passing",
+            "passing_types",
+            "defense",
+            "possession",
+            "misc",
+        ]
+
         urlmask = FBREF_API + "/en/matches/{}"
         filemask = "match_{}.html"
+
+        if stat_type not in match_stats:
+            raise TypeError(f"Invalid argument: stat_type should be in {match_stats}")
 
         # Retrieve games for which a match report is available
         df_schedule = self.read_schedule(force_cache).reset_index()
@@ -541,6 +658,9 @@ class FBref(BaseRequestsReader):
             table = tree.xpath("//table[@id='" + id_format.format(home_team["id"]) + "']")[0]
             df_table = pd.read_html(etree.tostring(table))[0]
             df_table["team"] = home_team["name"]
+            df_table["game"] = game["game"]
+            df_table["league"] = game["league"]
+            df_table["season"] = game["season"]
             df_table["game_id"] = game["game_id"]
             stats.append(df_table)
             table = tree.xpath("//table[@id='" + id_format.format(away_team["id"]) + "']")[0]
@@ -549,11 +669,10 @@ class FBref(BaseRequestsReader):
             df_table["game"] = game["game"]
             df_table["league"] = game["league"]
             df_table["season"] = game["season"]
-            df_table["game"] = game["game"]
+            df_table["game_id"] = game["game_id"]
             stats.append(df_table)
 
-        df = pd.concat(stats)
-        rename_unnamed(df)
+        df = _concat(stats)
         df = df[~df.Player.str.contains(r"^\d+\sPlayers$")]
         df = (
             df.rename(columns={"Player": "player"})
@@ -622,10 +741,9 @@ class FBref(BaseRequestsReader):
             df_table["game"] = game["game"]
             shots.append(df_table)
 
-        df = pd.concat(shots)
-        rename_unnamed(df)
         df = (
-            df.rename(columns={"Squad": "team"})
+            _concat(shots)
+            .rename(columns={"Squad": "team"})
             .replace({"team": TEAMNAME_REPLACEMENTS})
             .pipe(
                 standardize_colnames,
@@ -638,21 +756,42 @@ class FBref(BaseRequestsReader):
         return df
 
 
-def rename_unnamed(df: pd.DataFrame) -> None:
-    """Rename unamed columns name for Pandas DataFrame.
+def _concat(dfs: List[pd.DataFrame]) -> pd.DataFrame:
+    """Merge matching tables scraped from different pages.
 
-    See https://stackoverflow.com/questions/30322581/pandas-read-multiindexed-csv-with-blanks
+    The level 0 headers are not consitent across seasons and leagues, this
+    function tries to determine uniform column names.
 
     Parameters
     ----------
-    df : pd.DataFrame object
-        Input dataframe
+    dfs : list(pd.DataFrame)
+        Input dataframes.
+
+    Returns
+    -------
+    pd.DataFrame
+        Concatenated dataframe with uniform column names.
     """
-    columns = pd.DataFrame(df.columns.tolist())
-    columns.loc[columns[0].str.startswith("Unnamed:"), 0] = np.nan
-    # columns[0] = columns[0].fillna(method="ffill")
+    # Look for the most complete level 0 columns
+    all_columns = []
+    for df in dfs:
+        columns = pd.DataFrame(df.columns.tolist())
+        # Move missing columns to level 0
+        columns.replace({"": None}, inplace=True)
+        mask = pd.isnull(columns[1])
+        columns.loc[mask, [0, 1]] = columns.loc[mask, [1, 0]].values
+        # Rename unnamed columns
+        mask = columns[0].str.startswith("Unnamed:").fillna(False)
+        columns.loc[mask, 0] = None
+        all_columns.append(columns)
+    columns = reduce(lambda l, r: l.combine_first(r), all_columns)
+
+    # Move the remaining missing columns back to level 1 and replace with empyt string
     mask = pd.isnull(columns[0])
-    columns[0] = columns[0].fillna("")
     columns.loc[mask, [0, 1]] = columns.loc[mask, [1, 0]].values
-    df.columns = pd.MultiIndex.from_tuples(columns.to_records(index=False).tolist())
-    # return df
+    columns.loc[mask, 1] = ""
+
+    for df in dfs:
+        df.columns = pd.MultiIndex.from_tuples(columns.to_records(index=False).tolist())
+
+    return pd.concat(dfs)

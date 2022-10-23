@@ -37,7 +37,8 @@ class FBref(BaseRequestsReader):
     Parameters
     ----------
     leagues : string or iterable, optional
-        IDs of leagues to include.
+        IDs of leagues to include. For efficiently reading data from the Top-5
+        European leagues, use "Big 5 European Leagues Combined".
     seasons : string, int or list, optional
         Seasons to include. Supports multiple formats.
         Examples: '16-17'; 2016; '2016-17'; [14, 15, 16]
@@ -150,12 +151,12 @@ class FBref(BaseRequestsReader):
         -------
         pd.DataFrame
         """
+        filemask = "seasons_{}.html"
         df_leagues = self.read_leagues()
 
         seasons = []
         for lkey, league in df_leagues.iterrows():
             url = FBREF_API + league.url
-            filemask = "seasons_{}.html"
             filepath = self.data_dir / filemask.format(lkey)
             reader = self.get(url, filepath)
 
@@ -225,7 +226,6 @@ class FBref(BaseRequestsReader):
             "misc",
         ]
 
-        # build url
         filemask = "teams_{}_{}_{}.html"
 
         if stat_type not in team_stats:
@@ -348,7 +348,6 @@ class FBref(BaseRequestsReader):
             "misc",
         ]
 
-        # build url
         filemask = "players_{}_{}_{}.html"
 
         if stat_type not in player_stats:
@@ -758,7 +757,10 @@ class FBref(BaseRequestsReader):
 
 
 def _concat(dfs: List[pd.DataFrame]) -> pd.DataFrame:
-    """Rename unamed columns name for Pandas DataFrame.
+    """Merge matching tables scraped from different pages.
+
+    The level 0 headers are not consitent across seasons and leagues, this
+    function tries to determine uniform column names.
 
     Parameters
     ----------
@@ -782,7 +784,6 @@ def _concat(dfs: List[pd.DataFrame]) -> pd.DataFrame:
         mask = columns[0].str.startswith("Unnamed:").fillna(False)
         columns.loc[mask, 0] = None
         all_columns.append(columns)
-    print(all_columns)
     columns = reduce(lambda l, r: l.combine_first(r), all_columns)
 
     # Move the remaining missing columns back to level 1 and replace with empyt string

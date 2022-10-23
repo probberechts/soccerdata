@@ -265,14 +265,11 @@ class BaseReader(ABC):
         if "season_end" not in league_dict:
             season_ends = date(datetime.strptime(season[-2:], "%y").year, 7, 1)
         else:
-            season_ends = (
-                date(
-                    datetime.strptime(season[-2:], "%y").year,
-                    datetime.strptime(league_dict["season_end"], "%b").month,
-                    1,
-                )
-                + relativedelta(months=1)
-            )
+            season_ends = date(
+                datetime.strptime(season[-2:], "%y").year,
+                datetime.strptime(league_dict["season_end"], "%b").month,
+                1,
+            ) + relativedelta(months=1)
         return date.today() >= season_ends
 
     @property

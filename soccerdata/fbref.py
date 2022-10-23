@@ -685,7 +685,7 @@ class FBref(BaseRequestsReader):
     def read_shot_events(
         self, match_id: Optional[Union[str, List[str]]] = None, force_cache: bool = False
     ) -> pd.DataFrame:
-        """Retrieve shooting and shot creation event data for the selected seasons or selected matches.
+        """Retrieve shooting data for the selected seasons or selected matches.
 
         The data returned includes who took the shot, when, with which body
         part and from how far away. Additionally, the player creating the

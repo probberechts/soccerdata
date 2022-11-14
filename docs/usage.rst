@@ -174,7 +174,7 @@ For example, for the Dutch Eredivisie this would be:
       "WhoScored": "Netherlands - Eredivisie"
       "season_start": "Aug",
       "season_end": "May",
-    },
+    }
   }
 
 The ``season_end`` and ``season_start`` fields are optional. This should be the

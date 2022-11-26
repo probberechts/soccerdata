@@ -821,10 +821,7 @@ def _concat(dfs: List[pd.DataFrame]) -> pd.DataFrame:
     columns.loc[mask, [0, 1]] = columns.loc[mask, [1, 0]].values
     columns.loc[mask, 1] = ""
 
-    try:
-        for df in dfs:
-            df.columns = pd.MultiIndex.from_tuples(columns.to_records(index=False).tolist())
-    except ValueError:
-        pass
+    for df in dfs:
+        df.columns = pd.MultiIndex.from_tuples(columns.to_records(index=False).tolist())
 
     return pd.concat(dfs)

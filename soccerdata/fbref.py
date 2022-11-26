@@ -390,10 +390,10 @@ class FBref(BaseRequestsReader):
             )
             reader = self.get(url, filepath)
             tree = html.parse(reader)
+            # remove icons
+            for elem in tree.xpath("//td[@data-stat='comp_level']//span"):
+                elem.getparent().remove(elem)
             if big_five:
-                # remove icons
-                for elem in tree.xpath("//table//span"):
-                    elem.getparent().remove(elem)
                 df_table = pd.read_html(etree.tostring(tree))[0]
                 df_table[("Unnamed: league", "league")] = (
                     df_table.xs("Comp", axis=1, level=1).squeeze().map(BIG_FIVE_DICT)
@@ -405,27 +405,29 @@ class FBref(BaseRequestsReader):
                 df_table = pd.read_html(el.text, attrs={"id": f"stats_{stat_type}"})[0]
                 df_table[("Unnamed: league", "league")] = lkey
                 df_table[("Unnamed: season", "season")] = skey
-                if not ('Unnamed: 2_level_0', 'Nation') in df_table.columns:
-                    df_table.loc[:, (slice(None), 'Squad')] = (
-                        df_table.xs("Squad", axis=1, level=1)
-                        .squeeze()
-                        .apply(
-                            lambda x: x.split(" ")[1]
-                            if isinstance(x, str) and x != "Squad"
-                            else None
-                        )
-                    )
-                    df_table.insert(
-                        2,
-                        ("Unnamed: nation", "Nation"),
-                        df_table.xs("Squad", axis=1, level=1).squeeze(),
-                    )
-                else:
-                    df_table.loc[:, (slice(None), 'Nation')] = df_table.loc[
-                        :, (slice(None), 'Nation')
-                    ].apply(
+
+            if not ("Unnamed: 2_level_0", "Nation") in df_table.columns:
+                df_table.loc[:, (slice(None), "Squad")] = (
+                    df_table.xs("Squad", axis=1, level=1)
+                    .squeeze()
+                    .apply(
                         lambda x: x.split(" ")[1] if isinstance(x, str) and x != "Squad" else None
                     )
+                )
+                df_table.insert(
+                    2,
+                    ("Unnamed: nation", "Nation"),
+                    df_table.xs("Squad", axis=1, level=1).squeeze(),
+                )
+            else:
+                df_table.loc[:, (slice(None), "Nation")] = (
+                    df_table.xs("Nation", axis=1, level=1)
+                    .squeeze()
+                    .apply(
+                        lambda x: x.split(" ")[1] if isinstance(x, str) and x != "Nation" else None
+                    )
+                )
+
             players.append(df_table)
 
         # return dataframe

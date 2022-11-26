@@ -84,7 +84,7 @@ class WhoScored(BaseSeleniumReader):
         no_store: bool = NOSTORE,
         data_dir: Path = WHOSCORED_DATADIR,
         path_to_browser: Optional[Path] = None,
-        headless: bool = True,
+        headless: bool = False,
     ):
         """Initialize the WhoScored reader."""
         super().__init__(

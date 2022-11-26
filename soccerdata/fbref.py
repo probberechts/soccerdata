@@ -20,11 +20,11 @@ FBREF_DATADIR = DATA_DIR / "FBref"
 FBREF_API = "https://fbref.com"
 
 BIG_FIVE_DICT = {
-    "it Serie A": "ITA-Serie A",
-    "fr Ligue 1": "FRA-Ligue 1",
-    "es La Liga": "ESP-La Liga",
-    "eng Premier League": "ENG-Premier League",
-    "de Bundesliga": "GER-Bundesliga",
+    "Serie A": "ITA-Serie A",
+    "Ligue 1": "FRA-Ligue 1",
+    "La Liga": "ESP-La Liga",
+    "Premier League": "ENG-Premier League",
+    "Bundesliga": "GER-Bundesliga",
 }
 
 
@@ -139,6 +139,8 @@ class FBref(BaseRequestsReader):
             .set_index("league")
             .sort_index()
         )
+        df["first_season"] = df["first_season"].apply(season_code)
+        df["last_season"] = df["last_season"].apply(season_code)
         df["country"] = df["country"].apply(
             lambda x: x.split(" ")[1] if isinstance(x, str) else None
         )
@@ -164,21 +166,29 @@ class FBref(BaseRequestsReader):
             tree = html.parse(reader)
             df_table = pd.read_html(etree.tostring(tree), attrs={"id": "seasons"})[0]
             df_table["url"] = tree.xpath(
-                "//table[@id='seasons']//th[@data-stat='year_id']/a/@href"
+                "//table[@id='seasons']//th[@data-stat='year_id' or @data-stat='year']/a/@href"
             )
+            # Override the competition name or add if missing
+            df_table["Competition Name"] = lkey
+            # Some tournaments have a "year" column instead of "season"
+            if "Year" in df_table.columns:
+                df_table.rename(columns={"Year": "Season"}, inplace=True)
+            # Get the competition format
+            if "Final" in df_table.columns:
+                df_table["Format"] = "elimination"
+            else:
+                df_table["Format"] = "round-robin"
             seasons.append(df_table)
 
         df = pd.concat(seasons).pipe(standardize_colnames)
-        # A competition name field is not inlcuded in the Big 5 European Leagues Combined
-        if "competition_name" in df.columns:
-            df = df.rename(columns={"competition_name": "league"}).pipe(self._translate_league)
-        else:
-            df["league"] = "Big 5 European Leagues Combined"
-        df["season"] = df["season"].apply(lambda x: season_code(x))
+        df = df.rename(columns={"competition_name": "league"})
+        df["season"] = df["season"].apply(season_code)
         df = df.set_index(["league", "season"]).sort_index()
-        return df.loc[df.index.isin(itertools.product(self.leagues, self.seasons))]
+        return df.loc[
+            df.index.isin(itertools.product(self.leagues, self.seasons)), ["format", "url"]
+        ]
 
-    def read_team_season_stats(
+    def read_team_season_stats(  # noqa: C901
         self, stat_type: str = "standard", opponent_stats: bool = False
     ) -> pd.DataFrame:
         """Retrieve teams from the datasource for the selected leagues.
@@ -257,6 +267,7 @@ class FBref(BaseRequestsReader):
         teams = []
         for (lkey, skey), season in seasons.iterrows():
             big_five = lkey == "Big 5 European Leagues Combined"
+            tournament = season["format"] == "elimination"
             # read html page (league overview)
             filepath = self.data_dir / filemask.format(
                 lkey, skey, stat_type if big_five else "all"
@@ -264,34 +275,29 @@ class FBref(BaseRequestsReader):
             url = (
                 FBREF_API
                 + "/".join(season.url.split("/")[:-1])
-                + (f"/{page}/squads/" if big_five else "/")
+                + (f"/{page}/squads/" if big_five else f"/{page}/" if tournament else "/")
                 + season.url.split("/")[-1]
             )
             reader = self.get(url, filepath)
 
-            # extract team links
-            tree = html.parse(reader)
+            # parse HTML and select table
+            tree = html.parse(reader).xpath(
+                f"//table[@id='stats_teams_{stat_type}' or @id='stats_squads_{stat_type}']"
+            )[0]
+            # remove icons
+            for elem in tree.xpath("//span"):
+                elem.getparent().remove(elem)
+            # parse table
+            df_table = pd.read_html(etree.tostring(tree))[0]
+            df_table["league"] = lkey
+            df_table["season"] = skey
+            df_table["url"] = tree.xpath(".//*[@data-stat='team']/a/@href")
             if big_five:
-                df_table = pd.read_html(
-                    etree.tostring(tree), attrs={"id": f"stats_teams_{stat_type}"}
-                )[0]
-                df_table["url"] = tree.xpath(
-                    f"//table[@id='stats_teams_{stat_type}']//td[@data-stat='team']/a/@href"
-                )
                 df_table["league"] = (
                     df_table.xs("Comp", axis=1, level=1).squeeze().map(BIG_FIVE_DICT)
                 )
-                df_table["season"] = skey
-                df_table = df_table.drop("Rk", axis=1, level=1).drop("Comp", axis=1, level=1)
-            else:
-                df_table = pd.read_html(
-                    etree.tostring(tree), attrs={"id": f"stats_squads_{stat_type}"}
-                )[0]
-                df_table["url"] = tree.xpath(
-                    f"//table[@id='stats_squads_{stat_type}']//th[@data-stat='team']/a/@href"
-                )
-                df_table["league"] = lkey
-                df_table["season"] = skey
+                df_table.drop("Comp", axis=1, level=1, inplace=True)
+                df_table.drop("Rk", axis=1, level=1, inplace=True)
             teams.append(df_table)
 
         # return data frame
@@ -304,7 +310,7 @@ class FBref(BaseRequestsReader):
         )
         return df
 
-    def read_player_season_stats(self, stat_type: str = "standard") -> pd.DataFrame:
+    def read_player_season_stats(self, stat_type: str = "standard") -> pd.DataFrame:  # noqa: C901
         """Retrieve players from the datasource for the selected leagues.
 
         The following stat types are available:
@@ -384,18 +390,44 @@ class FBref(BaseRequestsReader):
             )
             reader = self.get(url, filepath)
             tree = html.parse(reader)
+            # remove icons
+            for elem in tree.xpath("//td[@data-stat='comp_level']//span"):
+                elem.getparent().remove(elem)
             if big_five:
                 df_table = pd.read_html(etree.tostring(tree))[0]
                 df_table[("Unnamed: league", "league")] = (
                     df_table.xs("Comp", axis=1, level=1).squeeze().map(BIG_FIVE_DICT)
                 )
                 df_table[("Unnamed: season", "season")] = skey
-                df_table = df_table.drop("Comp", axis=1, level=1)
+                df_table.drop("Comp", axis=1, level=1, inplace=True)
             else:
-                el = tree.xpath(f"//comment()[contains(.,'div_stats_{stat_type}')]")
-                df_table = pd.read_html(el[0].text, attrs={"id": f"stats_{stat_type}"})[0]
+                el = tree.xpath(f"//comment()[contains(.,'div_stats_{stat_type}')]")[0]
+                df_table = pd.read_html(el.text, attrs={"id": f"stats_{stat_type}"})[0]
                 df_table[("Unnamed: league", "league")] = lkey
                 df_table[("Unnamed: season", "season")] = skey
+
+            if not ("Unnamed: 2_level_0", "Nation") in df_table.columns:
+                df_table.loc[:, (slice(None), "Squad")] = (
+                    df_table.xs("Squad", axis=1, level=1)
+                    .squeeze()
+                    .apply(
+                        lambda x: x.split(" ")[1] if isinstance(x, str) and x != "Squad" else None
+                    )
+                )
+                df_table.insert(
+                    2,
+                    ("Unnamed: nation", "Nation"),
+                    df_table.xs("Squad", axis=1, level=1).squeeze(),
+                )
+            else:
+                df_table.loc[:, (slice(None), "Nation")] = (
+                    df_table.xs("Nation", axis=1, level=1)
+                    .squeeze()
+                    .apply(
+                        lambda x: x.split(" ")[1] if isinstance(x, str) and x != "Nation" else None
+                    )
+                )
+
             players.append(df_table)
 
         # return dataframe
@@ -409,9 +441,7 @@ class FBref(BaseRequestsReader):
             .set_index(["league", "season", "team", "player"])
             .sort_index()
         )
-        df["Nation"] = df["Nation"].apply(
-            lambda x: x.split(" ")[1] if isinstance(x, str) and " " in x else None
-        )
+
         return df
 
     def read_schedule(self, force_cache: bool = False) -> pd.DataFrame:

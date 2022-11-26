@@ -202,28 +202,35 @@ class WhoScored(BaseSeleniumReader):
         away_team_selector = "./div[contains(@class,'team away')]//a"
         result_selector = "./div[contains(@class,'result')]//a"
 
-        WebDriverWait(self._driver, 30, poll_frequency=1).until(
-            ec.presence_of_element_located((By.XPATH, match_selector))
-        )
-        date_str = None
-        schedule_page = []
-        for node in self._driver.find_elements(By.XPATH, match_selector):
-            if node.get_attribute("data-id"):
-                match_id = int(node.get_attribute("data-id"))
-                time_str = node.find_element(By.XPATH, time_selector).get_attribute("textContent")
-                match_url = node.find_element(By.XPATH, result_selector).get_attribute("href")
-                schedule_page.append(
-                    {
-                        "date": datetime.strptime(f"{date_str} {time_str}", "%A, %b %d %Y %H:%M"),
-                        "home_team": node.find_element(By.XPATH, home_team_selector).text,
-                        "away_team": node.find_element(By.XPATH, away_team_selector).text,
-                        "game_id": match_id,
-                        "url": match_url,
-                    }
-                )
-            else:
-                date_str = node.find_element(By.XPATH, date_selector).text
-                logger.info("Scraping game schedule for %s", date_str)
+        try:
+            WebDriverWait(self._driver, 30, poll_frequency=1).until(
+                ec.presence_of_element_located((By.XPATH, match_selector))
+            )
+            date_str = None
+            schedule_page = []
+            for node in self._driver.find_elements(By.XPATH, match_selector):
+                if node.get_attribute("data-id"):
+                    match_id = int(node.get_attribute("data-id"))
+                    time_str = node.find_element(By.XPATH, time_selector).get_attribute(
+                        "textContent"
+                    )
+                    match_url = node.find_element(By.XPATH, result_selector).get_attribute("href")
+                    schedule_page.append(
+                        {
+                            "date": datetime.strptime(
+                                f"{date_str} {time_str}", "%A, %b %d %Y %H:%M"
+                            ),
+                            "home_team": node.find_element(By.XPATH, home_team_selector).text,
+                            "away_team": node.find_element(By.XPATH, away_team_selector).text,
+                            "game_id": match_id,
+                            "url": match_url,
+                        }
+                    )
+                else:
+                    date_str = node.find_element(By.XPATH, date_selector).text
+                    logger.info("Scraping game schedule for %s", date_str)
+        except TimeoutException:
+            schedule_page = []
 
         try:
             next_page_selector = (

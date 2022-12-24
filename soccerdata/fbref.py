@@ -184,9 +184,17 @@ class FBref(BaseRequestsReader):
         df = df.rename(columns={"competition_name": "league"})
         df["season"] = df["season"].apply(season_code)
         df = df.set_index(["league", "season"]).sort_index()
-        return df.loc[
+        seasons = df.loc[
             df.index.isin(itertools.product(self.leagues, self.seasons)), ["format", "url"]
         ]
+        if(df_leagues.shape[0] != seasons.shape[0]):
+            logger.info(
+                "Duplicates detected and removed. Expected %s seasons, found %s. Kept most recent for each duplicate.", df_leagues.shape[0], seasons.shape[0]
+            )
+            seasons = seasons[~seasons.index.duplicated(keep='first')]
+            
+            
+        return seasons
 
     def read_team_season_stats(  # noqa: C901
         self, stat_type: str = "standard", opponent_stats: bool = False
@@ -262,7 +270,7 @@ class FBref(BaseRequestsReader):
 
         # get league IDs
         seasons = self.read_seasons()
-
+        
         # collect teams
         teams = []
         for (lkey, skey), season in seasons.iterrows():

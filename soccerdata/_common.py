@@ -265,11 +265,14 @@ class BaseReader(ABC):
         if "season_end" not in league_dict:
             season_ends = date(datetime.strptime(season[-2:], "%y").year, 7, 1)
         else:
-            season_ends = date(
-                datetime.strptime(season[-2:], "%y").year,
-                datetime.strptime(league_dict["season_end"], "%b").month,
-                1,
-            ) + relativedelta(months=1)
+            season_ends = (
+                date(
+                    datetime.strptime(season[-2:], "%y").year,
+                    datetime.strptime(league_dict["season_end"], "%b").month,
+                    1,
+                )
+                + relativedelta(months=1)
+            )
         return date.today() >= season_ends
 
     @property
@@ -287,7 +290,7 @@ class BaseReader(ABC):
         if seasons is None:
             logger.info("No seasons provided. Will retrieve data for the last 5 seasons.")
             year = datetime.today().year
-            seasons = range(year, year - 6, -1)
+            seasons = [f"{y-1}-{y}" for y in range(year, year - 6, -1)]
         if isinstance(seasons, str) or isinstance(seasons, int):
             seasons = [seasons]
         self._season_ids = [season_code(s) for s in seasons]

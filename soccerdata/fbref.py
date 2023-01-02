@@ -183,6 +183,8 @@ class FBref(BaseRequestsReader):
         df = pd.concat(seasons).pipe(standardize_colnames)
         df = df.rename(columns={"competition_name": "league"})
         df["season"] = df["season"].apply(season_code)
+        # if both a 20xx and 19xx season are available, drop the 19xx season
+        df.drop_duplicates(subset=["league", "season"], keep="first", inplace=True)
         df = df.set_index(["league", "season"]).sort_index()
         return df.loc[
             df.index.isin(itertools.product(self.leagues, self.seasons)), ["format", "url"]

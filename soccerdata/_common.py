@@ -458,7 +458,7 @@ def season_code(season: Union[str, int]) -> str:  # noqa: C901
 
     if re.match(pat1, season):
         if int(season[2:]) == int(season[:2]) + 1:
-            if season == "1920" or season == "2021":
+            if season == "2021":
                 msg = 'Season id "{}" is ambiguous: interpreting as "{}-{}"'.format(
                     season, season[:2], season[-2:]
                 )

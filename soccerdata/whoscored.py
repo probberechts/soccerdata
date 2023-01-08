@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Optional, Tuple, Union
 
+import numpy as np
 import pandas as pd
 from lxml import html
 from selenium.common.exceptions import (
@@ -28,6 +29,52 @@ from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
 
 WHOSCORED_DATADIR = DATA_DIR / "WhoScored"
 WHOSCORED_URL = "https://www.whoscored.com"
+
+COLS_EVENTS = {
+    # The ID of the game
+    "game_id": np.nan,
+    # 'PreMatch', 'FirstHalf', 'SecondHalf', 'PostGame'
+    "period": np.nan,
+    # Integer indicating the minute of the event, ignoring stoppage time
+    "minute": -1,
+    # Integer indicating the minute of the event, taking into account stoppage time
+    "expanded_minute": -1,
+    # String describing the event type (e.g. 'Goal', 'Yellow Card', etc.)
+    "type": np.nan,
+    # String describing the event outcome ('Succesful' or 'Unsuccessful')
+    "outcome_type": np.nan,
+    # The ID of the team that the event is associated with
+    "team_id": np.nan,
+    # The name of the team that the event is associated with
+    "team": np.nan,
+    # The ID of the player that the event is associated with
+    "player_id": np.nan,
+    # The name of the player that the event is associated with
+    "player": np.nan,
+    # Coordinates of the event's location
+    "x": np.nan,
+    "y": np.nan,
+    "end_x": np.nan,
+    "end_y": np.nan,
+    # Coordinates of a shot's location
+    "goal_mouth_y": np.nan,
+    "goal_mouth_z": np.nan,
+    # The coordinates where the ball was blocked
+    "blocked_x": np.nan,
+    "blocked_y": np.nan,
+    # List of dicts with event qualifiers
+    "qualifiers": [],
+    # Some boolean flags
+    "is_touch": False,
+    "is_shot": False,
+    "is_goal": False,
+    # 'Yellow', 'Red', 'SecondYellow'
+    "card_type": np.nan,
+    # The ID of an associated event
+    "related_event_id": np.nan,
+    # The ID of a secondary player that the event is associated with
+    "related_player_id": np.nan,
+}
 
 
 class WhoScored(BaseSeleniumReader):
@@ -670,38 +717,21 @@ class WhoScored(BaseSeleniumReader):
 
         if output_fmt == "events":
             df = df.set_index(["league", "season", "game", "id"]).sort_index()
-            df["outcome_type"] = df["outcome_type"].apply(lambda x: x.get("displayName"))
-            df["type"] = df["type"].apply(lambda x: x.get("displayName"))
-            df["period"] = df["period"].apply(lambda x: x.get("displayName"))
-            df = df[
-                [
-                    "period",
-                    "minute",
-                    "expanded_minute",
-                    "type",
-                    "outcome_type",
-                    "team",
-                    "player",
-                    "qualifiers",
-                    "x",
-                    "y",
-                    "end_x",
-                    "end_y",
-                    "goal_mouth_y",
-                    "goal_mouth_z",
-                    "is_touch",
-                    "is_shot",
-                    "is_goal",
-                    "related_event_id",
-                    "related_player_id",
-                    "blocked_x",
-                    "blocked_y",
-                    "card_type",
-                    "game_id",
-                    "team_id",
-                    "player_id",
-                ]
-            ]
+            # add missing columns
+            for col, default in COLS_EVENTS.items():
+                if col not in df.columns:
+                    df[col] = default
+            df["outcome_type"] = df["outcome_type"].apply(
+                lambda x: x.get("displayName") if pd.notnull(x) else x
+            )
+            df["card_type"] = df["card_type"].apply(
+                lambda x: x.get("displayName") if pd.notnull(x) else x
+            )
+            df["type"] = df["type"].apply(lambda x: x.get("displayName") if pd.notnull(x) else x)
+            df["period"] = df["period"].apply(
+                lambda x: x.get("displayName") if pd.notnull(x) else x
+            )
+            df = df[list(COLS_EVENTS.keys())]
 
         return df
 

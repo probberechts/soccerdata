@@ -123,7 +123,7 @@ Chrome`_. A Selenium driver matching your Chrome version will be downloaded
 automatically when you run the scraper.
 
 Even with this setup, it is likely that your IP address will get blocked
-eventually. Therefore, is is recommended to setup a SOCKS5 proxy with Tor.
+eventually. Therefore, it is recommended to setup a SOCKS5 proxy with Tor.
 Checkout the `installation guide`_ on the Tor website for installation
 instructions. After installing Tor, make sure to start it up before scraping.
 This can easily be done by running the ``tor`` command from your terminal (in
@@ -148,7 +148,7 @@ port as
     })
 
 
-.. _insallation guide: https://community.torproject.org/onion-services/setup/install/
+.. _installation guide: https://community.torproject.org/onion-services/setup/install/
 .. _install Chrome: https://www.google.com/chrome/
 
 
@@ -171,9 +171,9 @@ For example, for the Dutch Eredivisie this would be:
       "FBref": "Dutch Eredivisie",
       "ESPN": "ned.1",
       "FiveThirtyEight": "eredivisie",
-      "WhoScored": "Netherlands - Eredivisie"
+      "WhoScored": "Netherlands - Eredivisie",
       "season_start": "Aug",
-      "season_end": "May",
+      "season_end": "May"
     }
   }
 

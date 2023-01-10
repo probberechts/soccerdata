@@ -37,6 +37,8 @@ COLS_EVENTS = {
     "period": np.nan,
     # Integer indicating the minute of the event, ignoring stoppage time
     "minute": -1,
+    # Integer indicating the second of the event, ignoring stoppage time
+    "second": -1,
     # Integer indicating the minute of the event, taking into account stoppage time
     "expanded_minute": -1,
     # String describing the event type (e.g. 'Goal', 'Yellow Card', etc.)

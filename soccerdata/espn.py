@@ -194,7 +194,9 @@ class ESPN(BaseRequestsReader):
                     "venue": data["gameInfo"]["venue"]["fullName"]
                     if "venue" in data["gameInfo"]
                     else None,
-                    "attendance": data["gameInfo"]["attendance"],
+                    "attendance": data["gameInfo"]["attendance"]
+                    if "attendance" in data["gameInfo"]
+                    else None,
                     "capacity": data["gameInfo"]["venue"]["capacity"]
                     if "venue" in data["gameInfo"]
                     else None,

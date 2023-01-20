@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "soccerdata"
-version = "1.3.2"
+version = "1.3.3"
 description = "A collection of wrappers over soccer data from various websites / APIs."
 authors = ["Pieter Robberechts <pieter.robberechts@kuleuven.be>"]
 license = "Apache-2.0"

@@ -15,7 +15,7 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.8,<4.0.0"
+python = ">=3.8.1,<4.0.0"
 pandas = "^1.0"
 requests = "^2.23"
 unicode = "^2.7"
@@ -42,7 +42,7 @@ sphinx-autobuild = "^2021.3.14"
 furo = "^2022.9.29"
 coverage = {version = "^7.0", extras = ["toml"]}
 pre-commit = "^2.16.0"
-flake8 = "^5.0.4"
+flake8 = "^6.0.0"
 flake8-bugbear = "^22.9.23"
 flake8-docstrings = "^1.6.0"
 flake8-rst-docstrings = "^0.3.0"

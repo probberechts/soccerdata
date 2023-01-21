@@ -816,7 +816,7 @@ def _concat(dfs: List[pd.DataFrame]) -> pd.DataFrame:
         mask = columns[0].str.startswith("Unnamed:").fillna(False)
         columns.loc[mask, 0] = None
         all_columns.append(columns)
-    columns = reduce(lambda l, r: l.combine_first(r), all_columns)
+    columns = reduce(lambda left, right: left.combine_first(right), all_columns)
 
     # Move the remaining missing columns back to level 1 and replace with empyt string
     mask = pd.isnull(columns[0])

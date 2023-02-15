@@ -79,7 +79,7 @@ COLS_EVENTS = {
 }
 
 
-def _parse_datetime(ts):
+def _parse_datetime(ts: str) -> datetime:
     """Parse a timestamp from WhoScored.
 
     WhoScored sometimes displays days of the week and months in Swahili. This

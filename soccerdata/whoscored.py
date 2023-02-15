@@ -79,6 +79,52 @@ COLS_EVENTS = {
 }
 
 
+def _parse_datetime(ts):
+    """Parse a timestamp from WhoScored.
+
+    WhoScored sometimes displays days of the week and months in Swahili. This
+    function implements a fallback for this.
+
+    Parameters
+    ----------
+    ts : str
+        Timestamp to parse.
+
+    Returns
+    -------
+    datetime.datetime
+    """
+    try:
+        return datetime.strptime(ts, "%A, %b %d %Y %H:%M")
+    except ValueError:
+        swahili_months = {
+            "Jan": "Jan",
+            "Feb": "Feb",
+            "Maa": "Mar",
+            "Apr": "Apr",
+            "Mei": "May",
+            "Jun": "Jun",
+            "Jul": "Jul",
+            "Ago": "Aug",
+            "Sep": "Sep",
+            "Okt": "Oct",
+            "Nov": "Nov",
+            "Des": "Dec",
+        }
+        swahili_days = {
+            "Jumatatu": "Monday",
+            "Jumanne": "Tuesday",
+            "Jumatano": "Wednesday",
+            "Alhamisi": "Thursday",
+            "Ijumaa": "Friday",
+            "Jumamosi": "Saturday",
+            "Jumapili": "Sunday",
+        }
+        for sw, en in {**swahili_months, **swahili_days}.items():
+            ts = ts.replace(sw, en)
+        return datetime.strptime(ts, "%A, %b %d %Y %H:%M")
+
+
 class WhoScored(BaseSeleniumReader):
     """Provides pd.DataFrames from data available at http://whoscored.com.
 
@@ -266,9 +312,7 @@ class WhoScored(BaseSeleniumReader):
                     match_url = node.find_element(By.XPATH, result_selector).get_attribute("href")
                     schedule_page.append(
                         {
-                            "date": datetime.strptime(
-                                f"{date_str} {time_str}", "%A, %b %d %Y %H:%M"
-                            ),
+                            "date": _parse_datetime(f"{date_str} {time_str}"),
                             "home_team": node.find_element(By.XPATH, home_team_selector).text,
                             "away_team": node.find_element(By.XPATH, away_team_selector).text,
                             "game_id": match_id,
@@ -328,7 +372,6 @@ class WhoScored(BaseSeleniumReader):
 
         all_schedules = []
         for (lkey, skey), season in df_seasons.iterrows():
-
             filepath = self.data_dir / filemask.format(lkey, skey)
             url = WHOSCORED_URL + season.url
 

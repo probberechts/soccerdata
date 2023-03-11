@@ -100,7 +100,7 @@ def _parse_datetime(ts: str) -> datetime:
         swahili_months = {
             "Jan": "Jan",
             "Feb": "Feb",
-            "Maa": "Mar",
+            "Mac": "Mar",
             "Apr": "Apr",
             "Mei": "May",
             "Jun": "Jun",

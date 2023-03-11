@@ -748,7 +748,9 @@ class WhoScored(BaseSeleniumReader):
             return OptaLoader(
                 root=self.data_dir,
                 parser="whoscored",
-                feeds={"whoscored": "events/{competition_id}_{season_id}/{game_id}.json"},
+                feeds={
+                    "whoscored": str(Path("events/{competition_id}_{season_id}/{game_id}.json"))
+                },
             )
 
         df = (

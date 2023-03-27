@@ -149,6 +149,9 @@ LEAGUE_DICT = {
         "FBref": "FIFA World Cup",
         "WhoScored": "International - FIFA World Cup",
     },
+    "Big 5 European Leagues Combined": {
+        "FBref": "Big-5-European-Leagues"
+    }
 }
 _f_custom_league_dict = CONFIG_DIR / "league_dict.json"
 if _f_custom_league_dict.is_file():

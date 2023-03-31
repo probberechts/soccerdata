@@ -94,7 +94,8 @@ class FBref(BaseRequestsReader):
             warnings.warn(
                 "You are trying to scrape data for all of the Big 5 European leagues. "
                 "This can be done more efficiently by setting "
-                "leagues='Big 5 European Leagues Combined'."
+                "leagues='Big 5 European Leagues Combined'.",
+                stacklevel=1,
             )
 
     @property

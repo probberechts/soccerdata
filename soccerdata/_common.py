@@ -459,7 +459,7 @@ def season_code(season: Union[str, int]) -> str:  # noqa: C901
                 msg = 'Season id "{}" is ambiguous: interpreting as "{}-{}"'.format(
                     season, season[:2], season[-2:]
                 )
-                warnings.warn(msg)
+                warnings.warn(msg, stacklevel=1)
             return season  # 9495
         elif season[2:] == "99":
             return "".join([season[2:], "00"])  # 1999

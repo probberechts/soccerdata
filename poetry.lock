@@ -627,19 +627,19 @@ pyflakes = ">=3.0.0,<3.1.0"
 
 [[package]]
 name = "flake8-bugbear"
-version = "23.1.20"
+version = "23.3.23"
 description = "A plugin for flake8 finding likely bugs and design problems in your program. Contains warnings that don't belong in pyflakes and pycodestyle."
 category = "dev"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8.1"
 files = [
-    {file = "flake8-bugbear-23.1.20.tar.gz", hash = "sha256:55902ab5a48c5ea53d8689ecd146eda548e72f2724192b9c1d68f6d975d13c06"},
-    {file = "flake8_bugbear-23.1.20-py3-none-any.whl", hash = "sha256:04a115e5f9c8e87c38bdbbcdf9f58223ffe05469c07c9a7bd8633330bc4d078b"},
+    {file = "flake8-bugbear-23.3.23.tar.gz", hash = "sha256:ea565bdb87b96b56dc499edd6cc3ba7f695373d902a5f56c989b74fad7c7719d"},
+    {file = "flake8_bugbear-23.3.23-py3-none-any.whl", hash = "sha256:8a218d13abd6904800970381057ce8e72cde8eea743240c4ef3ede4dd0bc9cfb"},
 ]
 
 [package.dependencies]
 attrs = ">=19.2.0"
-flake8 = ">=3.0.0"
+flake8 = ">=6.0.0"
 
 [package.extras]
 dev = ["coverage", "hypothesis", "hypothesmith (>=0.2)", "pre-commit", "pytest", "tox"]

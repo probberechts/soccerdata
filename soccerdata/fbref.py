@@ -1,6 +1,7 @@
 """Scraper for http://fbref.com."""
 import itertools
 import warnings
+from datetime import date, datetime
 from functools import reduce
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Union
@@ -89,8 +90,7 @@ class FBref(BaseRequestsReader):
         self.rate_limit = 3
         self.seasons = seasons  # type: ignore
         # check if all top 5 leagues are selected
-        selected_leagues = set(self._leagues_dict.keys())
-        if set(BIG_FIVE_DICT.values()).issubset(selected_leagues):
+        if set(BIG_FIVE_DICT.values()).issubset(self.leagues):
             warnings.warn(
                 "You are trying to scrape data for all of the Big 5 European leagues. "
                 "This can be done more efficiently by setting "
@@ -112,6 +112,13 @@ class FBref(BaseRequestsReader):
         res = super()._all_leagues()
         res.update({"Big 5 European Leagues Combined": "Big 5 European Leagues Combined"})
         return res
+
+    def _is_complete(self, league: str, season: str) -> bool:
+        """Check if a season is complete."""
+        if league == "Big 5 European Leagues Combined":
+            season_ends = date(datetime.strptime(season[-2:], "%y").year, 7, 1)
+            return date.today() >= season_ends
+        return super()._is_complete(league, season)
 
     def read_leagues(self) -> pd.DataFrame:
         """Retrieve selected leagues from the datasource.

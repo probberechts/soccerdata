@@ -93,12 +93,14 @@ class MatchHistory(BaseRequestsReader):
             current_season = not self._is_complete(lkey, skey)
             reader = self.get(url, filepath, no_cache=current_season)
 
-            df_list.append(
-                pd.read_csv(
-                    reader,
-                    encoding='ISO-8859-1',
-                ).assign(season=skey)
-            )
+            df_games = pd.read_csv(
+                reader,
+                encoding='ISO-8859-1',
+            ).assign(season=skey)
+            if 'Time' not in df_games.columns:
+                df_games['Time'] = "12:00:00"
+            df_games["Time"] = df_games["Time"].fillna("12:00:00")
+            df_list.append(df_games)
 
         df = (
             pd.concat(df_list, sort=False)

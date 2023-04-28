@@ -7,7 +7,7 @@ import pandas as pd
 from lxml import html
 
 from ._common import BaseRequestsReader, standardize_colnames
-from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS
+from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
 
 SO_FIFA_DATADIR = DATA_DIR / "SoFIFA"
 SO_FIFA_API = "https://sofifa.com"
@@ -166,6 +166,7 @@ class SoFIFA(BaseRequestsReader):
         for _, team in teams.iterrows():
             season_id = team.season[:2]
             team_name = team.team
+
             # read html page (team overview)
             filepath = self.data_dir / filemask.format(team_name, season_id)
             url = urlmask.format(team["team_id"], season_id)
@@ -250,9 +251,11 @@ class SoFIFA(BaseRequestsReader):
             "GK Reflexes",
         ]
 
-        for _, player in players.iterrows():
-            # read html page (player overview)
+        for i, player in players.reset_index().iterrows():
             player_name = player.player
+            logger.info("[%s/%s] Retrieving ratings for %s", i + 1, len(players), player_name)
+
+            # read html page (player overview)
             filepath = self.data_dir / filemask.format(player_name, player.season)
             url = urlmask.format(player["player_id"], player.season[:2])
             reader = self.get(url, filepath)

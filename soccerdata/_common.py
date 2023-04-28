@@ -319,6 +319,15 @@ class BaseRequestsReader(BaseReader):
 
     def _init_session(self) -> requests.Session:
         session = requests.Session()
+        session.headers.update(
+            {
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 6.1; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/59.0.3071.86 Safari/537.36"
+                )
+            }
+        )
         session.proxies.update(self.proxy())
         return session
 

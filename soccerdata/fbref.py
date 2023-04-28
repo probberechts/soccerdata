@@ -698,21 +698,27 @@ class FBref(BaseRequestsReader):
             else:
                 id_format = "stats_{}_" + stat_type
             html_table = tree.find("//table[@id='" + id_format.format(home_team["id"]) + "']")
-            (df_table,) = pd.read_html(html.tostring(html_table))
-            df_table["team"] = home_team["name"]
-            df_table["game"] = game["game"]
-            df_table["league"] = game["league"]
-            df_table["season"] = game["season"]
-            df_table["game_id"] = game["game_id"]
-            stats.append(df_table)
+            if html_table is not None:
+                (df_table,) = pd.read_html(html.tostring(html_table))
+                df_table["team"] = home_team["name"]
+                df_table["game"] = game["game"]
+                df_table["league"] = game["league"]
+                df_table["season"] = game["season"]
+                df_table["game_id"] = game["game_id"]
+                stats.append(df_table)
+            else:
+                logger.warning("No stats found for home team for game with id=%s", game["game_id"])
             html_table = tree.find("//table[@id='" + id_format.format(away_team["id"]) + "']")
-            (df_table,) = pd.read_html(html.tostring(html_table))
-            df_table["team"] = away_team["name"]
-            df_table["game"] = game["game"]
-            df_table["league"] = game["league"]
-            df_table["season"] = game["season"]
-            df_table["game_id"] = game["game_id"]
-            stats.append(df_table)
+            if html_table is not None:
+                (df_table,) = pd.read_html(html.tostring(html_table))
+                df_table["team"] = away_team["name"]
+                df_table["game"] = game["game"]
+                df_table["league"] = game["league"]
+                df_table["season"] = game["season"]
+                df_table["game_id"] = game["game_id"]
+                stats.append(df_table)
+            else:
+                logger.warning("No stats found for away team for game with id=%s", game["game_id"])
 
         df = _concat(stats)
         df = df[~df.Player.str.contains(r"^\d+\sPlayers$")]
@@ -778,11 +784,14 @@ class FBref(BaseRequestsReader):
             reader = self.get(url, filepath)
             tree = html.parse(reader)
             html_table = tree.find("//table[@id='shots_all']")
-            (df_table,) = pd.read_html(html.tostring(html_table))
-            df_table["league"] = game["league"]
-            df_table["season"] = game["season"]
-            df_table["game"] = game["game"]
-            shots.append(df_table)
+            if html_table is not None:
+                (df_table,) = pd.read_html(html.tostring(html_table))
+                df_table["league"] = game["league"]
+                df_table["season"] = game["season"]
+                df_table["game"] = game["game"]
+                shots.append(df_table)
+            else:
+                logger.warning("No shot data found for game with id=%s", game["game_id"])
 
         df = (
             _concat(shots)

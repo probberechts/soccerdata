@@ -2,7 +2,7 @@
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Union
+from typing import IO, Callable, Dict, List, Optional, Union
 
 import pandas as pd
 from unidecode import unidecode
@@ -12,6 +12,12 @@ from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS
 
 CLUB_ELO_DATADIR = DATA_DIR / "ClubElo"
 CLUB_ELO_API = "http://api.clubelo.com"
+
+
+def _parse_csv(data: IO[bytes]) -> pd.DataFrame:
+    return pd.read_csv(
+        data, parse_dates=["From", "To"], infer_datetime_format=True, dayfirst=False
+    )
 
 
 class ClubElo(BaseRequestsReader):
@@ -62,7 +68,7 @@ class ClubElo(BaseRequestsReader):
         data_dir: Path = CLUB_ELO_DATADIR,
     ):
         """Initialize a new ClubElo reader."""
-        super().__init__(no_cache=no_cache, no_store=no_store, data_dir=data_dir)
+        super().__init__(proxy=proxy, no_cache=no_cache, no_store=no_store, data_dir=data_dir)
 
     def read_by_date(self, date: Optional[Union[str, datetime]] = None) -> pd.DataFrame:
         """Retrieve ELO scores for all teams at specified date.
@@ -76,6 +82,13 @@ class ClubElo(BaseRequestsReader):
             Date for which to retrieve ELO scores. If no date is specified,
             get today's scores.
 
+        Raises
+        ------
+        TypeError
+            If date is not a date string or datetime object.
+        ValueError
+            If data is an invalid date string.
+
         Returns
         -------
         pd.DataFrame
@@ -84,8 +97,9 @@ class ClubElo(BaseRequestsReader):
             date = datetime.today()
         elif isinstance(date, str):
             date = datetime.strptime(date, "%Y-%m-%d")
-        else:
-            pass  # Assume datetime object
+
+        if not isinstance(date, datetime):
+            raise TypeError("'date' must be a datetime object or string like 'YYYY-MM-DD'")
 
         datestring = date.strftime("%Y-%m-%d")
         filepath = self.data_dir / f"{datestring}.csv"
@@ -94,9 +108,7 @@ class ClubElo(BaseRequestsReader):
         data = self.get(url, filepath)
 
         df = (
-            pd.read_csv(
-                data, parse_dates=["From", "To"], infer_datetime_format=True, dayfirst=False
-            )
+            _parse_csv(data)
             .pipe(standardize_colnames)
             .rename(columns={"club": "team"})
             .replace({"team": TEAMNAME_REPLACEMENTS})
@@ -114,16 +126,16 @@ class ClubElo(BaseRequestsReader):
     ) -> Optional[pd.DataFrame]:
         """Retrieve full ELO history for one club.
 
-        For the exact spelling of a club's name, check the result
-        of :func:`~soccerdata.ClubElo.read_by_date` or
-        `clubelo.com <http://clubelo.com/Ranking>`__. You can also use
-        alternative team names specified in `teamname_replacements.json`.
-        Values before 1960 should be considered provisional.
+        For the exact spelling of a club's name, check the result of
+        :func:`~soccerdata.ClubElo.read_by_date` or `clubelo.com
+        <http://clubelo.com/Ranking>`__. You can also use alternative team
+        names specified in `teamname_replacements.json`. Values before 1960
+        should be considered provisional.
 
         Parameters
         ----------
         team : str
-            The club's name
+            The club's name.
         max_age : int for age in days, or timedelta object
             The max. age of locally cached file before re-download.
 
@@ -151,12 +163,7 @@ class ClubElo(BaseRequestsReader):
             data = self.get(url, filepath, max_age)
 
             df = (
-                pd.read_csv(
-                    data,
-                    parse_dates=["From", "To"],
-                    infer_datetime_format=True,
-                    dayfirst=False,
-                )
+                _parse_csv(data)
                 .pipe(standardize_colnames)
                 .rename(columns={"club": "team"})
                 .replace("None", float("nan"))

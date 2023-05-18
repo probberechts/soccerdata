@@ -14,7 +14,7 @@ FIVETHIRTYEIGHT_API = "https://projects.fivethirtyeight.com/soccer-predictions"
 
 
 class FiveThirtyEight(BaseRequestsReader):
-    """Provides pd.DataFrames from fivethirtyeight's "Club Soccer Predictions" project.
+    """Provides pd.DataFrames from FiveThirtyEight's "Club Soccer Predictions" project.
 
     Data will be downloaded as necessary and cached locally in
     ``~/soccerdata/data/FiveThirtyEight``.
@@ -27,7 +27,7 @@ class FiveThirtyEight(BaseRequestsReader):
     Parameters
     ----------
     leagues : string or iterable, optional
-        IDs of Leagues to include.
+        IDs of leagues to include.
     seasons : string, int or list, optional
         Seasons to include. Supports multiple formats.
         Examples: '16-17'; 2016; '2016-17'; [14, 15, 16]
@@ -72,14 +72,6 @@ class FiveThirtyEight(BaseRequestsReader):
             leagues=leagues, proxy=proxy, no_cache=no_cache, no_store=no_store, data_dir=data_dir
         )
         self.seasons = seasons  # type: ignore
-        self._data = {}
-
-        url = f"{FIVETHIRTYEIGHT_API}/data.json"
-        filepath = self.data_dir / "latest.json"
-        reader = self.get(url, filepath)
-
-        for k, v in json.load(reader).items():
-            self._data[k] = v
 
     def read_leagues(self) -> pd.DataFrame:
         """Retrieve the selected leagues from the datasource.
@@ -88,8 +80,13 @@ class FiveThirtyEight(BaseRequestsReader):
         -------
         pd.DataFrame
         """
+        url = f"{FIVETHIRTYEIGHT_API}/data.json"
+        filepath = self.data_dir / "latest.json"
+        reader = self.get(url, filepath)
+        data = json.load(reader)
+
         df = (
-            pd.DataFrame.from_dict(self._data["leagues"])
+            pd.DataFrame.from_dict(data["leagues"])
             .rename(columns={"slug": "league", "id": "league_id"})
             .pipe(self._translate_league)
             .pipe(standardize_colnames)
@@ -177,14 +174,14 @@ class FiveThirtyEight(BaseRequestsReader):
             reader = self.get(url, filepath)
 
             forecasts = json.load(reader)
-            for f in forecasts["forecasts"]:
-                for t in f["teams"]:
+            for forecast in forecasts["forecasts"]:
+                for team in forecast["teams"]:
                     data.append(
                         {
                             "league": lkey,
                             "season": skey,
-                            "last_updated": f["last_updated"],
-                            **t,
+                            "last_updated": forecast["last_updated"],
+                            **team,
                         }
                     )
         df = (

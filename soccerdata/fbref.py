@@ -785,13 +785,16 @@ class FBref(BaseRequestsReader):
             tree = html.parse(reader)
             html_table = tree.find("//table[@id='shots_all']")
             if html_table is not None:
-                (df_table,) = pd.read_html(html.tostring(html_table))
+                (df_table,) = pd.read_html(html.tostring(html_table), flavor="lxml")
                 df_table["league"] = game["league"]
                 df_table["season"] = game["season"]
                 df_table["game"] = game["game"]
                 shots.append(df_table)
             else:
                 logger.warning("No shot data found for game with id=%s", game["game_id"])
+
+        if len(shots) == 0:
+            return pd.DataFrame()
 
         df = (
             _concat(shots)

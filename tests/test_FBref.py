@@ -1,13 +1,9 @@
 """Unittests for class soccerdata.FBref."""
-
 import pandas as pd
 import pytest
 
 import soccerdata as sd
-from soccerdata.fbref import _concat
-
-# Unittests -------------------------------------------------------------------
-# Happy flow
+from soccerdata.fbref import FBref, _concat
 
 
 @pytest.mark.parametrize(
@@ -26,13 +22,31 @@ from soccerdata.fbref import _concat
         "misc",
     ],
 )
-def test_read_team_season_stats(fbref_ligue1, stat_type):
+def test_read_team_season_stats(fbref_ligue1: FBref, stat_type: str):
     assert isinstance(fbref_ligue1.read_team_season_stats(stat_type), pd.DataFrame)
 
 
 @pytest.mark.parametrize(
     "stat_type",
     [
+        "schedule",
+        "shooting",
+        "keeper",
+        "passing",
+        "passing_types",
+        "goal_shot_creation",
+        "defense",
+        "possession",
+        "misc",
+    ],
+)
+def test_read_team_match_stats(fbref_ligue1: FBref, stat_type: str):
+    assert isinstance(fbref_ligue1.read_team_match_stats(stat_type), pd.DataFrame)
+
+
+@pytest.mark.parametrize(
+    "stat_type",
+    [
         "standard",
         "shooting",
         "passing",
@@ -46,11 +60,11 @@ def test_read_team_season_stats(fbref_ligue1, stat_type):
         "keeper_adv",
     ],
 )
-def test_read_player_season_stats(fbref_ligue1, stat_type):
+def test_read_player_season_stats(fbref_ligue1: FBref, stat_type: str):
     assert isinstance(fbref_ligue1.read_player_season_stats(stat_type), pd.DataFrame)
 
 
-def test_read_schedule(fbref_ligue1):
+def test_read_schedule(fbref_ligue1: FBref):
     assert isinstance(fbref_ligue1.read_schedule(), pd.DataFrame)
 
 
@@ -66,17 +80,17 @@ def test_read_schedule(fbref_ligue1):
         "misc",
     ],
 )
-def test_read_player_match_stats(fbref_ligue1, stat_type):
+def test_read_player_match_stats(fbref_ligue1: FBref, stat_type: str):
     assert isinstance(
         fbref_ligue1.read_player_match_stats(stat_type, match_id="796787da"), pd.DataFrame
     )
 
 
-def test_read_shot_events(fbref_ligue1):
+def test_read_shot_events(fbref_ligue1: FBref):
     assert isinstance(fbref_ligue1.read_shot_events(match_id="796787da"), pd.DataFrame)
 
 
-def test_read_lineup(fbref_ligue1):
+def test_read_lineup(fbref_ligue1: FBref):
     assert isinstance(fbref_ligue1.read_lineup(match_id="796787da"), pd.DataFrame)
 
 
@@ -102,7 +116,7 @@ def test_combine_big5():
         "misc",
     ],
 )
-def test_combine_big5_team_season_stats(fbref_ligue1, stat_type):
+def test_combine_big5_team_season_stats(fbref_ligue1: FBref, stat_type: str):
     fbref_bigfive = sd.FBref(["Big 5 European Leagues Combined"], 2021)
     ligue1 = fbref_ligue1.read_team_season_stats(stat_type).loc["FRA-Ligue 1"]
     bigfive = fbref_bigfive.read_team_season_stats(stat_type).loc["FRA-Ligue 1"]
@@ -131,7 +145,7 @@ def test_combine_big5_team_season_stats(fbref_ligue1, stat_type):
         "keeper_adv",
     ],
 )
-def test_combine_big5_player_season_stats(fbref_ligue1, stat_type):
+def test_combine_big5_player_season_stats(fbref_ligue1: FBref, stat_type: str):
     fbref_bigfive = sd.FBref(["Big 5 European Leagues Combined"], 2021)
     ligue1 = fbref_ligue1.read_player_season_stats(stat_type).loc["FRA-Ligue 1"]
     bigfive = fbref_bigfive.read_player_season_stats(stat_type).loc["FRA-Ligue 1"]

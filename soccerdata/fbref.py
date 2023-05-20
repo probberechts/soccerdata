@@ -202,7 +202,7 @@ class FBref(BaseRequestsReader):
     def read_team_season_stats(  # noqa: C901
         self, stat_type: str = "standard", opponent_stats: bool = False
     ) -> pd.DataFrame:
-        """Retrieve teams from the datasource for the selected leagues.
+        """Retrieve aggregated season stats for all teams in the selected leagues.
 
         The following stat types are available:
             * 'standard'
@@ -226,7 +226,7 @@ class FBref(BaseRequestsReader):
 
         Raises
         ------
-        TypeError
+        ValueError
             If ``stat_type`` is not valid.
 
         Returns
@@ -250,7 +250,7 @@ class FBref(BaseRequestsReader):
         filemask = "teams_{}_{}_{}.html"
 
         if stat_type not in team_stats:
-            raise TypeError(f"Invalid argument: stat_type should be in {team_stats}")
+            raise ValueError(f"Invalid argument: stat_type should be in {team_stats}")
 
         if stat_type == "standard":
             page = "stats"
@@ -321,6 +321,165 @@ class FBref(BaseRequestsReader):
             .sort_index()
         )
         return df
+
+    def read_team_match_stats(
+        self,
+        stat_type: str = "schedule",
+        opponent_stats: bool = False,
+        team: Optional[Union[str, List[str]]] = None,
+    ) -> pd.DataFrame:
+        """Retrieve the match logs for all teams in the selected leagues.
+
+        The following stat types are available:
+            * 'schedule'
+            * 'keeper'
+            * 'shooting'
+            * 'passing'
+            * 'passing_types'
+            * 'goal_shot_creation'
+            * 'defense'
+            * 'possession'
+            * 'misc'
+
+        Parameters
+        ----------
+        stat_type: str
+            Type of stats to retrieve.
+        opponent_stats: bool
+            If True, will retrieve opponent stats.
+        team_id: str or list of str, optional
+            Team(s) to retrieve. If None, will retrieve all teams.
+
+        Raises
+        ------
+        ValueError
+            If ``stat_type`` is not valid.
+
+        Returns
+        -------
+        pd.DataFrame
+        """
+        team_stats = [
+            "schedule",
+            "shooting",
+            "keeper",
+            "passing",
+            "passing_types",
+            "goal_shot_creation",
+            "defense",
+            "possession",
+            "misc",
+        ]
+
+        filemask = "matchlogs_{}_{}_{}.html"
+
+        if stat_type not in team_stats:
+            raise ValueError(f"Invalid argument: stat_type should be in {team_stats}")
+
+        if stat_type == "goal_shot_creation":
+            stat_type = "gca"
+
+        if opponent_stats:
+            opp_type = "against"
+        else:
+            opp_type = "for"
+
+        # get list of teams
+        df_teams = self.read_team_season_stats()
+
+        if team is not None:
+            # get alternative names of the specified team(s)
+            teams = [team] if isinstance(team, str) else team
+            teams_to_check = []
+            for team in teams:
+                for k, v in TEAMNAME_REPLACEMENTS.items():
+                    if v == team:
+                        teams_to_check.append(k)
+            teams_to_check.append(team)
+
+            # select requested teams
+            iterator = df_teams.loc[pd.IndexSlice[:, :, teams_to_check], :]
+            if len(iterator) == 0:
+                raise ValueError("No data found for the given teams in the selected seasons.")
+        else:
+            iterator = df_teams
+
+        # collect match logs for each team
+        stats = []
+        for (lkey, skey, team), team_url in iterator.url.iteritems():
+            # read html page
+            filepath = self.data_dir / filemask.format(team, skey, stat_type)
+            url = (
+                FBREF_API
+                + team_url.rsplit("/", 1)[0]
+                + "/matchlogs"
+                + "/all_comps"
+                + f"/{stat_type}"
+            )
+            reader = self.get(url, filepath)
+
+            # parse HTML and select table
+            tree = html.parse(reader)
+            (html_table,) = tree.xpath(f"//table[@id='matchlogs_{opp_type}']")
+            # remove icons
+            for elem in html_table.xpath("//span"):
+                elem.getparent().remove(elem)
+            # remove for / against header
+            for elem in html_table.xpath("//th[@data-stat='header_for_against']"):
+                elem.text = ""
+            # remove table sections
+            for elem in html_table.xpath("//tr[contains(@class, 'thead')]"):
+                elem.getparent().remove(elem)
+            # remove aggregate rows
+            for elem in html_table.xpath("//tfoot"):
+                elem.getparent().remove(elem)
+            # parse table
+            (df_table,) = pd.read_html(html.tostring(html_table))
+            df_table["league"] = lkey
+            df_table["season"] = skey
+            df_table["team"] = team
+            df_table["Time"] = html_table.xpath(".//td[@data-stat='start_time']/@csk")
+            df_table["Match Report"] = [
+                mlink.xpath("./a/@href")[0]
+                if mlink.xpath("./a") and mlink.xpath("./a")[0].text == "Match Report"
+                else None
+                for mlink in html_table.xpath(".//td[@data-stat='match_report']")
+            ]
+            nb_levels = df_table.columns.nlevels
+            if nb_levels == 2:
+                df_table = df_table.drop("Comp", axis=1, level=1)
+                df_table = df_table.drop("Match Report", axis=1, level=1)
+                df_table = df_table.drop("Time", axis=1, level=1)
+            else:
+                del df_table["Comp"]
+            stats.append(df_table)
+
+        # return data frame
+        df = (
+            _concat(stats)
+            .rename(
+                columns={
+                    "xG": "xg",
+                    "xGA": "opponent_xg",
+                }
+            )
+            .replace(
+                {
+                    "Opponent": TEAMNAME_REPLACEMENTS,
+                }
+            )
+        )
+        df["date"] = pd.to_datetime(df["date"]).ffill()
+        df_tmp = df[["team", "opponent", "venue", "date"]].copy()
+        df_tmp.columns = ["team", "opponent", "venue", "date"]
+        df_tmp["home_team"] = df_tmp.apply(
+            lambda x: x["team"] if x["venue"] == "Home" else x["opponent"], axis=1
+        )
+        df_tmp["away_team"] = df_tmp.apply(
+            lambda x: x["team"] if x["venue"] == "Away" else x["opponent"], axis=1
+        )
+        df["game"] = df_tmp.apply(make_game_id, axis=1)
+        return df.set_index(["league", "season", "team", "game"]).sort_index().loc[self.leagues]
 
     def read_player_season_stats(self, stat_type: str = "standard") -> pd.DataFrame:  # noqa: C901
         """Retrieve players from the datasource for the selected leagues.
@@ -832,9 +991,10 @@ def _concat(dfs: List[pd.DataFrame]) -> pd.DataFrame:
     for df in dfs:
         columns = pd.DataFrame(df.columns.tolist())
         # Move missing columns to level 0
-        columns.replace({"": None}, inplace=True)
-        mask = pd.isnull(columns[1])
-        columns.loc[mask, [0, 1]] = columns.loc[mask, [1, 0]].values
+        if columns.shape[1] == 2:
+            columns.replace({"": None}, inplace=True)
+            mask = pd.isnull(columns[1])
+            columns.loc[mask, [0, 1]] = columns.loc[mask, [1, 0]].values
         # Rename unnamed columns
         mask = columns[0].str.startswith("Unnamed:").fillna(False)
         columns.loc[mask, 0] = None
@@ -842,11 +1002,12 @@ def _concat(dfs: List[pd.DataFrame]) -> pd.DataFrame:
     columns = reduce(lambda left, right: left.combine_first(right), all_columns)
 
     # Move the remaining missing columns back to level 1 and replace with empyt string
-    mask = pd.isnull(columns[0])
-    columns.loc[mask, [0, 1]] = columns.loc[mask, [1, 0]].values
-    columns.loc[mask, 1] = ""
+    if columns.shape[1] == 2:
+        mask = pd.isnull(columns[0])
+        columns.loc[mask, [0, 1]] = columns.loc[mask, [1, 0]].values
+        columns.loc[mask, 1] = ""
 
-    for df in dfs:
-        df.columns = pd.MultiIndex.from_tuples(columns.to_records(index=False).tolist())
+        for df in dfs:
+            df.columns = pd.MultiIndex.from_tuples(columns.to_records(index=False).tolist())
 
     return pd.concat(dfs)

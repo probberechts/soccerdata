@@ -516,6 +516,13 @@ def standardize_colnames(df: pd.DataFrame, cols: Optional[List[str]] = None) -> 
         name = re.sub("([a-z0-9])([A-Z])", r"\1_\2", name)
         return name.lower().replace("-", "_").replace(" ", "")
 
+    if df.columns.nlevels > 1 and cols is None:
+        # only standardize the first level
+        new_df = df.copy()
+        new_cols = [to_snake(c) for c in df.columns.levels[0]]
+        new_df.columns = new_df.columns.set_levels(new_cols, level=0)
+        return new_df
+
     if cols is None:
         cols = list(df.columns)
 

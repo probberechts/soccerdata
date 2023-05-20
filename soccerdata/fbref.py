@@ -202,7 +202,7 @@ class FBref(BaseRequestsReader):
     def read_team_season_stats(  # noqa: C901
         self, stat_type: str = "standard", opponent_stats: bool = False
     ) -> pd.DataFrame:
-        """Retrieve aggregated season stats for all teams in the selected leagues.
+        """Retrieve aggregated season stats for all teams in the selected leagues and seasons.
 
         The following stat types are available:
             * 'standard'
@@ -315,20 +315,21 @@ class FBref(BaseRequestsReader):
         # return data frame
         df = (
             _concat(teams)
-            .rename(columns={"Squad": "team"})
+            .rename(columns={"Squad": "team", "# Pl": "players_used"})
             .replace({"team": TEAMNAME_REPLACEMENTS})
+            # .pipe(standardize_colnames)
             .set_index(["league", "season", "team"])
             .sort_index()
         )
         return df
 
-    def read_team_match_stats(
+    def read_team_match_stats(  # noqa: C901
         self,
         stat_type: str = "schedule",
         opponent_stats: bool = False,
         team: Optional[Union[str, List[str]]] = None,
     ) -> pd.DataFrame:
-        """Retrieve the match logs for all teams in the selected leagues.
+        """Retrieve the match logs for all teams in the selected leagues and seasons.
 
         The following stat types are available:
             * 'schedule'
@@ -347,7 +348,7 @@ class FBref(BaseRequestsReader):
             Type of stats to retrieve.
         opponent_stats: bool
             If True, will retrieve opponent stats.
-        team_id: str or list of str, optional
+        team: str or list of str, optional
             Team(s) to retrieve. If None, will retrieve all teams.
 
         Raises
@@ -392,13 +393,13 @@ class FBref(BaseRequestsReader):
             teams = [team] if isinstance(team, str) else team
             teams_to_check = []
             for team in teams:
-                for k, v in TEAMNAME_REPLACEMENTS.items():
-                    if v == team:
-                        teams_to_check.append(k)
+                for alt_name, norm_name in TEAMNAME_REPLACEMENTS.items():
+                    if norm_name == team:
+                        teams_to_check.append(alt_name)
             teams_to_check.append(team)
 
             # select requested teams
-            iterator = df_teams.loc[pd.IndexSlice[:, :, teams_to_check], :]
+            iterator = df_teams.loc[df_teams.index.isin(teams_to_check, level=2), :]
             if len(iterator) == 0:
                 raise ValueError("No data found for the given teams in the selected seasons.")
         else:
@@ -406,7 +407,7 @@ class FBref(BaseRequestsReader):
 
         # collect match logs for each team
         stats = []
-        for (lkey, skey, team), team_url in iterator.url.iteritems():
+        for (lkey, skey, team), team_url in iterator.url.items():
             # read html page
             filepath = self.data_dir / filemask.format(team, skey, stat_type)
             url = (
@@ -457,19 +458,28 @@ class FBref(BaseRequestsReader):
         # return data frame
         df = (
             _concat(stats)
-            .rename(
-                columns={
-                    "xG": "xg",
-                    "xGA": "opponent_xg",
-                }
-            )
             .replace(
                 {
                     "Opponent": TEAMNAME_REPLACEMENTS,
                 }
             )
+            .pipe(
+                standardize_colnames,
+                cols=[
+                    "Team",
+                    "Opponent",
+                    "Venue",
+                    "Date",
+                    "Time",
+                    "Round",
+                    "Day",
+                    "Result",
+                    "Match Report",
+                ],
+            )
         )
         df["date"] = pd.to_datetime(df["date"]).ffill()
+        # create match id column
         df_tmp = df[["team", "opponent", "venue", "date"]].copy()
         df_tmp.columns = ["team", "opponent", "venue", "date"]
         df_tmp["home_team"] = df_tmp.apply(
@@ -482,7 +492,7 @@ class FBref(BaseRequestsReader):
         return df.set_index(["league", "season", "team", "game"]).sort_index().loc[self.leagues]
 
     def read_player_season_stats(self, stat_type: str = "standard") -> pd.DataFrame:  # noqa: C901
-        """Retrieve players from the datasource for the selected leagues.
+        """Retrieve players from the datasource for the selected leagues and seasons.
 
         The following stat types are available:
             * 'standard'
@@ -576,29 +586,7 @@ class FBref(BaseRequestsReader):
                 (df_table,) = pd.read_html(el.text, attrs={"id": f"stats_{stat_type}"})
                 df_table[("Unnamed: league", "league")] = lkey
                 df_table[("Unnamed: season", "season")] = skey
-
-            if not ("Unnamed: 2_level_0", "Nation") in df_table.columns:
-                df_table.loc[:, (slice(None), "Squad")] = (
-                    df_table.xs("Squad", axis=1, level=1)
-                    .squeeze()
-                    .apply(
-                        lambda x: x.split(" ")[1] if isinstance(x, str) and x != "Squad" else None
-                    )
-                )
-                df_table.insert(
-                    2,
-                    ("Unnamed: nation", "Nation"),
-                    df_table.xs("Squad", axis=1, level=1).squeeze(),
-                )
-            else:
-                df_table.loc[:, (slice(None), "Nation")] = (
-                    df_table.xs("Nation", axis=1, level=1)
-                    .squeeze()
-                    .apply(
-                        lambda x: x.split(" ")[1] if isinstance(x, str) and x != "Nation" else None
-                    )
-                )
-
+            df_table = _fix_nation_col(df_table)
             players.append(df_table)
 
         # return dataframe
@@ -607,8 +595,9 @@ class FBref(BaseRequestsReader):
         df = (
             df.drop("Matches", axis=1, level=0)
             .drop("Rk", axis=1, level=0)
-            .rename(columns={"Player": "player", "Squad": "team"})
+            .rename(columns={"Squad": "team"})
             .replace({"team": TEAMNAME_REPLACEMENTS})
+            .pipe(standardize_colnames, cols=["Player", "Nation", "Pos", "Age", "Born"])
             .set_index(["league", "season", "team", "player"])
             .sort_index()
         )
@@ -704,82 +693,6 @@ class FBref(BaseRequestsReader):
             teams.append({"id": team.get("href").split("/")[3], "name": team.text.strip()})
         return teams
 
-    def read_lineup(
-        self, match_id: Optional[Union[str, List[str]]] = None, force_cache: bool = False
-    ) -> pd.DataFrame:
-        """Retrieve lineups for the selected leagues and seasons.
-
-        Parameters
-        ----------
-        match_id : int or list of int, optional
-            Retrieve the lineup for a specific game.
-        force_cache : bool
-            By default no cached data is used to scrape the list of available
-            games for the current season. If True, will force the use of
-            cached data anyway.
-
-        Raises
-        ------
-        ValueError
-            If no games with the given IDs were found for the selected seasons and leagues.
-
-        Returns
-        -------
-        pd.DataFrame.
-        """
-        urlmask = FBREF_API + "/en/matches/{}"
-        filemask = "match_{}.html"
-
-        # Retrieve games for which a match report is available
-        df_schedule = self.read_schedule(force_cache).reset_index()
-        df_schedule = df_schedule[~df_schedule.game_id.isna() & ~df_schedule.match_report.isnull()]
-        # Select requested games if available
-        if match_id is not None:
-            iterator = df_schedule[
-                df_schedule.game_id.isin([match_id] if isinstance(match_id, str) else match_id)
-            ]
-            if len(iterator) == 0:
-                raise ValueError("No games found with the given IDs in the selected seasons.")
-        else:
-            iterator = df_schedule
-
-        lineups = []
-        for i, game in iterator.reset_index().iterrows():
-            url = urlmask.format(game["game_id"])
-            # get league and season
-            logger.info(
-                "[%s/%s] Retrieving game with id=%s", i + 1, len(iterator), game["game_id"]
-            )
-            filepath = self.data_dir / filemask.format(game["game_id"])
-            reader = self.get(url, filepath)
-            tree = html.parse(reader)
-            teams = self._parse_teams(tree)
-            html_tables = tree.xpath("//div[@class='lineup']")
-            for i, html_table in enumerate(html_tables):
-                # parse lineup table
-                (df_table,) = pd.read_html(html.tostring(html_table))
-                df_table.columns = ["jersey_number", "player"]
-                df_table["team"] = teams[i]["name"]
-                if "Bench" in df_table.jersey_number.values:
-                    bench_idx = df_table.index[df_table.jersey_number == "Bench"][0]
-                    df_table.loc[:bench_idx, "is_starter"] = True
-                    df_table.loc[bench_idx:, "is_starter"] = False
-                    df_table["game"] = game["game"]
-                    df_table["league"] = game["league"]
-                    df_table["season"] = game["season"]
-                    df_table["game"] = game["game"]
-                    df_table.drop(bench_idx, inplace=True)
-                # augment with stats
-                html_stats_table = tree.find(
-                    "//table[@id='" + "stats_{}_summary".format(teams[i]["id"]) + "']"
-                )
-                (df_stats_table,) = pd.read_html(html.tostring(html_stats_table))
-                df_stats_table = df_stats_table.droplevel(0, axis=1)[["Player", "Pos", "Min"]]
-                df_stats_table.columns = ["player", "position", "minutes_played"]
-                lineups.append(pd.merge(df_table, df_stats_table, on="player", how="left"))
-        df = pd.concat(lineups).set_index(["league", "season", "game", "team", "player"])
-        return df
-
     def read_player_match_stats(
         self,
         stat_type: str = "summary",
@@ -871,6 +784,7 @@ class FBref(BaseRequestsReader):
                 df_table["league"] = game["league"]
                 df_table["season"] = game["season"]
                 df_table["game_id"] = game["game_id"]
+                df_table = _fix_nation_col(df_table)
                 stats.append(df_table)
             else:
                 logger.warning("No stats found for home team for game with id=%s", game["game_id"])
@@ -882,6 +796,7 @@ class FBref(BaseRequestsReader):
                 df_table["league"] = game["league"]
                 df_table["season"] = game["season"]
                 df_table["game_id"] = game["game_id"]
+                df_table = _fix_nation_col(df_table)
                 stats.append(df_table)
             else:
                 logger.warning("No stats found for away team for game with id=%s", game["game_id"])
@@ -889,11 +804,88 @@ class FBref(BaseRequestsReader):
         df = _concat(stats)
         df = df[~df.Player.str.contains(r"^\d+\sPlayers$")]
         df = (
-            df.rename(columns={"Player": "player"})
+            df.rename(columns={"#": "jersey_number"})
             .replace({"team": TEAMNAME_REPLACEMENTS})
+            .pipe(standardize_colnames, cols=["Player", "Nation", "Pos", "Age", "Min"])
             .set_index(["league", "season", "game", "team", "player"])
             .sort_index()
         )
+        return df
+
+    def read_lineup(
+        self, match_id: Optional[Union[str, List[str]]] = None, force_cache: bool = False
+    ) -> pd.DataFrame:
+        """Retrieve lineups for the selected leagues and seasons.
+
+        Parameters
+        ----------
+        match_id : int or list of int, optional
+            Retrieve the lineup for a specific game.
+        force_cache : bool
+            By default no cached data is used to scrape the list of available
+            games for the current season. If True, will force the use of
+            cached data anyway.
+
+        Raises
+        ------
+        ValueError
+            If no games with the given IDs were found for the selected seasons and leagues.
+
+        Returns
+        -------
+        pd.DataFrame.
+        """
+        urlmask = FBREF_API + "/en/matches/{}"
+        filemask = "match_{}.html"
+
+        # Retrieve games for which a match report is available
+        df_schedule = self.read_schedule(force_cache).reset_index()
+        df_schedule = df_schedule[~df_schedule.game_id.isna() & ~df_schedule.match_report.isnull()]
+        # Select requested games if available
+        if match_id is not None:
+            iterator = df_schedule[
+                df_schedule.game_id.isin([match_id] if isinstance(match_id, str) else match_id)
+            ]
+            if len(iterator) == 0:
+                raise ValueError("No games found with the given IDs in the selected seasons.")
+        else:
+            iterator = df_schedule
+
+        lineups = []
+        for i, game in iterator.reset_index().iterrows():
+            url = urlmask.format(game["game_id"])
+            # get league and season
+            logger.info(
+                "[%s/%s] Retrieving game with id=%s", i + 1, len(iterator), game["game_id"]
+            )
+            filepath = self.data_dir / filemask.format(game["game_id"])
+            reader = self.get(url, filepath)
+            tree = html.parse(reader)
+            teams = self._parse_teams(tree)
+            html_tables = tree.xpath("//div[@class='lineup']")
+            for i, html_table in enumerate(html_tables):
+                # parse lineup table
+                (df_table,) = pd.read_html(html.tostring(html_table))
+                df_table.columns = ["jersey_number", "player"]
+                df_table["team"] = teams[i]["name"]
+                if "Bench" in df_table.jersey_number.values:
+                    bench_idx = df_table.index[df_table.jersey_number == "Bench"][0]
+                    df_table.loc[:bench_idx, "is_starter"] = True
+                    df_table.loc[bench_idx:, "is_starter"] = False
+                    df_table["game"] = game["game"]
+                    df_table["league"] = game["league"]
+                    df_table["season"] = game["season"]
+                    df_table["game"] = game["game"]
+                    df_table.drop(bench_idx, inplace=True)
+                # augment with stats
+                html_stats_table = tree.find(
+                    "//table[@id='" + "stats_{}_summary".format(teams[i]["id"]) + "']"
+                )
+                (df_stats_table,) = pd.read_html(html.tostring(html_stats_table))
+                df_stats_table = df_stats_table.droplevel(0, axis=1)[["Player", "Pos", "Min"]]
+                df_stats_table.columns = ["player", "position", "minutes_played"]
+                lineups.append(pd.merge(df_table, df_stats_table, on="player", how="left"))
+        df = pd.concat(lineups).set_index(["league", "season", "game"])
         return df
 
     def read_events(
@@ -971,7 +963,7 @@ class FBref(BaseRequestsReader):
                             "event_type": event_type,
                         }
                     )
-            df_match_events = pd.DataFrame(match_events)
+            df_match_events = pd.DataFrame(match_events).sort_values(by="minute")
             df_match_events["game"] = game["game"]
             df_match_events["league"] = game["league"]
             df_match_events["season"] = game["season"]
@@ -1111,3 +1103,38 @@ def _concat(dfs: List[pd.DataFrame]) -> pd.DataFrame:
             df.columns = pd.MultiIndex.from_tuples(columns.to_records(index=False).tolist())
 
     return pd.concat(dfs)
+
+
+def _fix_nation_col(df_table: pd.DataFrame) -> pd.DataFrame:
+    """Fix the "Nation" column.
+
+    Removes the flag icon for domestic games and adds a 'nations' column for
+    international games based on the team's name.
+
+    Parameters
+    ----------
+    df_table : pd.DataFrame
+        Input dataframe.
+
+    Returns
+    -------
+    pd.DataFrame
+    """
+    if not "Nation" in df_table.columns.get_level_values(1):
+        df_table.loc[:, (slice(None), "Squad")] = (
+            df_table.xs("Squad", axis=1, level=1)
+            .squeeze()
+            .apply(lambda x: x.split(" ")[1] if isinstance(x, str) and x != "Squad" else None)
+        )
+        df_table.insert(
+            2,
+            ("Unnamed: nation", "Nation"),
+            df_table.xs("Squad", axis=1, level=1).squeeze(),
+        )
+    else:
+        df_table.loc[:, (slice(None), "Nation")] = (
+            df_table.xs("Nation", axis=1, level=1)
+            .squeeze(axis=1)
+            .apply(lambda x: x.split(" ")[1] if isinstance(x, str) and x != "Nation" else None)
+        )
+    return df_table

@@ -756,6 +756,7 @@ class FBref(BaseRequestsReader):
             teams = self._parse_teams(tree)
             html_tables = tree.xpath("//div[@class='lineup']")
             for i, html_table in enumerate(html_tables):
+                # parse lineup table
                 (df_table,) = pd.read_html(html.tostring(html_table))
                 df_table.columns = ["jersey_number", "player"]
                 df_table["team"] = teams[i]["name"]
@@ -768,9 +769,15 @@ class FBref(BaseRequestsReader):
                     df_table["season"] = game["season"]
                     df_table["game"] = game["game"]
                     df_table.drop(bench_idx, inplace=True)
-                lineups.append(df_table)
+                # augment with stats
+                html_stats_table = tree.find(
+                    "//table[@id='" + "stats_{}_summary".format(teams[i]["id"]) + "']"
+                )
+                (df_stats_table,) = pd.read_html(html.tostring(html_stats_table))
+                df_stats_table = df_stats_table.droplevel(0, axis=1)[["Player", "Pos", "Min"]]
+                df_stats_table.columns = ["player", "position", "minutes_played"]
+                lineups.append(pd.merge(df_table, df_stats_table, on="player", how="left"))
         df = pd.concat(lineups).set_index(["league", "season", "game", "team", "player"])
-        # TODO: sub in, sub out, position
         return df
 
     def read_player_match_stats(
@@ -889,6 +896,99 @@ class FBref(BaseRequestsReader):
         )
         return df
 
+    def read_events(
+        self, match_id: Optional[Union[str, List[str]]] = None, force_cache: bool = False
+    ) -> pd.DataFrame:
+        """Retrieve match events for the selected seasons or selected matches.
+
+        The data returned includes the timing of goals, cards and substitutions.
+        Also includes the players who are involved in the event.
+
+        Parameters
+        ----------
+        match_id : int or list of int, optional
+            Retrieve the events for a specific game.
+        force_cache : bool
+            By default no cached data is used to scrape the list of available
+            games for the current season. If True, will force the use of
+            cached data anyway.
+
+        Raises
+        ------
+        ValueError
+            If no games with the given IDs were found for the selected seasons and leagues.
+
+        Returns
+        -------
+        pd.DataFrame.
+        """
+        urlmask = FBREF_API + "/en/matches/{}"
+        filemask = "match_{}.html"
+
+        # Retrieve games for which a match report is available
+        df_schedule = self.read_schedule(force_cache).reset_index()
+        df_schedule = df_schedule[~df_schedule.game_id.isna() & ~df_schedule.match_report.isnull()]
+        # Selec requested games if available
+        if match_id is not None:
+            iterator = df_schedule[
+                df_schedule.game_id.isin([match_id] if isinstance(match_id, str) else match_id)
+            ]
+            if len(iterator) == 0:
+                raise ValueError("No games found with the given IDs in the selected seasons.")
+        else:
+            iterator = df_schedule
+
+        events = []
+        for i, game in iterator.reset_index().iterrows():
+            match_events = []
+            url = urlmask.format(game["game_id"])
+            # get league and season
+            logger.info(
+                "[%s/%s] Retrieving game with id=%s", i + 1, len(iterator), game["game_id"]
+            )
+            filepath = self.data_dir / filemask.format(game["game_id"])
+            reader = self.get(url, filepath)
+            tree = html.parse(reader)
+            teams = self._parse_teams(tree)
+            for team, tid in zip(teams, ["a", "b"]):
+                html_events = tree.xpath(f"////*[@id='events_wrap']/div/div[@class='event {tid}']")
+                for e in html_events:
+                    minute = e.xpath("./div[1]")[0].text.replace("&rsquor;", "").strip()
+                    score = e.xpath("./div[1]/small/span")[0].text
+                    player1 = e.xpath("./div[2]/div[2]/div/a")[0].text
+                    if e.xpath("./div[2]/div[2]/small"):
+                        player2 = e.xpath("./div[2]/div[2]/small/a")[0].text
+                    else:
+                        player2 = None
+                    event_type = e.xpath("./div[2]/div[1]/@class")[0].split(" ")[1]
+                    match_events.append(
+                        {
+                            "team": team["name"],
+                            "minute": minute,
+                            "score": score,
+                            "player1": player1,
+                            "player2": player2,
+                            "event_type": event_type,
+                        }
+                    )
+            df_match_events = pd.DataFrame(match_events)
+            df_match_events["game"] = game["game"]
+            df_match_events["league"] = game["league"]
+            df_match_events["season"] = game["season"]
+            events.append(df_match_events)
+
+        if len(events) == 0:
+            return pd.DataFrame()
+
+        df = (
+            _concat(events)
+            .replace({"team": TEAMNAME_REPLACEMENTS})
+            .set_index(["league", "season", "game"])
+            .sort_index()
+            .dropna(how="all")
+        )
+        return df
+
     def read_shot_events(
         self, match_id: Optional[Union[str, List[str]]] = None, force_cache: bool = False
     ) -> pd.DataFrame:
@@ -901,7 +1001,7 @@ class FBref(BaseRequestsReader):
         Parameters
         ----------
         match_id : int or list of int, optional
-            Retrieve the lineup for a specific game.
+            Retrieve the shots for a specific game.
         force_cache : bool
             By default no cached data is used to scrape the list of available
             games for the current season. If True, will force the use of
@@ -963,7 +1063,7 @@ class FBref(BaseRequestsReader):
                 standardize_colnames,
                 cols=["Outcome", "Minute", "Distance", "Player", "Body Part", "Notes", "Event"],
             )
-            .set_index(["league", "season", "game", "team", "player"])
+            .set_index(["league", "season", "game"])
             .sort_index()
             .dropna(how="all")
         )

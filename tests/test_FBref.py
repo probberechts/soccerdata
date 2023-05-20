@@ -85,6 +85,8 @@ def test_read_player_match_stats(fbref_ligue1: FBref, stat_type: str):
         fbref_ligue1.read_player_match_stats(stat_type, match_id="796787da"), pd.DataFrame
     )
 
+def test_read_events(fbref_ligue1: FBref):
+    assert isinstance(fbref_ligue1.read_events(match_id="796787da"), pd.DataFrame)
 
 def test_read_shot_events(fbref_ligue1: FBref):
     assert isinstance(fbref_ligue1.read_shot_events(match_id="796787da"), pd.DataFrame)

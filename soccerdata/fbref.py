@@ -1120,7 +1120,7 @@ def _fix_nation_col(df_table: pd.DataFrame) -> pd.DataFrame:
     -------
     pd.DataFrame
     """
-    if not "Nation" in df_table.columns.get_level_values(1):
+    if "Nation" not in df_table.columns.get_level_values(1):
         df_table.loc[:, (slice(None), "Squad")] = (
             df_table.xs("Squad", axis=1, level=1)
             .squeeze()

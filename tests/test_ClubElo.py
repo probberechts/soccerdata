@@ -38,6 +38,7 @@ def test_read_club_history_max_age(elo: ClubElo) -> None:
     assert isinstance(elo.read_team_history('Feyenoord', max_age), pd.DataFrame)
 
 
+@pytest.mark.fails_gha
 def test_read_club_history_replacement(monkeypatch, tmp_path) -> None:  # type: ignore
     """It should use the replacement names from teamname_replacements.json."""
     monkeypatch.setenv('SOCCERDATA_DIR', str(tmp_path))

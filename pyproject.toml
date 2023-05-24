@@ -35,7 +35,7 @@ pylint = "^2.15.5"
 pytest-deadfixtures = "^2.2.1"
 unify = "^0.5"
 black = "^23.0.0"
-Sphinx = "^6.0.0"
+Sphinx = "^7.0.0"
 sphinx-autobuild = "^2021.3.14"
 furo = "^2023.0.0"
 coverage = {version = "^7.0", extras = ["toml"]}

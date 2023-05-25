@@ -16,7 +16,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = ">=3.8.1,<4.0.0"
-pandas = "^1.0"
+pandas = "^2.0.0"
 requests = "^2.23"
 unicode = "^2.7"
 lxml = "^4.6"

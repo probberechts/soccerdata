@@ -26,7 +26,7 @@ def espn_seriea():
 @pytest.fixture
 def sofifa_bundesliga():
     """Return a correctly initialized instance of SoFIFA filtered by league: Bundesliga."""
-    return foo.SoFIFA("GER-Bundesliga", "20-21")
+    return foo.SoFIFA("GER-Bundesliga", versions=[230012])
 
 
 @pytest.fixture

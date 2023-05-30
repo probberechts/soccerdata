@@ -63,10 +63,10 @@
   color: F1C40F
 - name: ClubElo
   description: Issue or pull request related to the ClubElo scraper
-  color: 273746
+  color: "273746"
 - name: ESPN
   description: Issue or pull request related to the ESPN scraper
-  color: 943126
+  color: "943126"
 - name: FBref
   description: Issue or pull request related to the FBref scraper
   color: 145A32

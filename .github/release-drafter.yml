@@ -23,7 +23,7 @@ categories:
     labels:
       - "dependencies"
       - "build"
-change-template: '* $TITLE (#$NUMBER) @$AUTHOR'
+change-template: "* $TITLE (#$NUMBER) @$AUTHOR"
 template: |
   ## Changes
 

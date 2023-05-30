@@ -7,13 +7,14 @@ from pathlib import Path
 from typing import Callable, Dict, List, Optional, Union
 
 import pandas as pd
-import requests
 
 from ._common import BaseRequestsReader, make_game_id, standardize_colnames
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
 
 # http://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/summary?event=513466
 # http://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard?dates=20180901
+# http://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/news
+# http://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/teams
 
 ESPN_DATADIR = DATA_DIR / "ESPN"
 ESPN_API = "http://site.api.espn.com/apis/site/v2/sports/soccer"
@@ -29,7 +30,6 @@ class ESPN(BaseRequestsReader):
     ----------
     leagues : string or iterable, optional
         IDs of leagues to include.
-
     seasons : string, int or list, optional
         Seasons to include. Supports multiple formats.
         Examples: '16-17'; 2016; '2016-17'; [14, 15, 16]
@@ -104,8 +104,9 @@ class ESPN(BaseRequestsReader):
                 start_date = "".join(["20", skey[:2], "07", "01"])
 
             url = urlmask.format(lkey, start_date)
-            resp = requests.get(url=url)
-            data = resp.json()
+            filepath = self.data_dir / filemask.format(lkey, start_date)
+            reader = self.get(url, filepath)
+            data = json.load(reader)
 
             match_dates = [
                 datetime.datetime.strptime(d, "%Y-%m-%dT%H:%MZ").strftime("%Y%m%d")

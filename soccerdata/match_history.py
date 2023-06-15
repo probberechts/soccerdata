@@ -117,6 +117,7 @@ class MatchHistory(BaseRequestsReader):
             .dropna(subset=['home_team', 'away_team'])
         )
 
+        df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
         df['game'] = df.apply(make_game_id, axis=1)
         df.set_index(['league', 'season', 'game'], inplace=True)
         df.sort_index(inplace=True)

@@ -98,16 +98,15 @@ class MatchHistory(BaseRequestsReader):
                 encoding='ISO-8859-1',
             ).assign(season=skey)
             if 'Time' not in df_games.columns:
-                df_games['Time'] = "12:00:00"
-            df_games["Time"] = df_games["Time"].fillna("12:00:00")
+                df_games['Time'] = "12:00"
+            df_games["Time"] = df_games["Time"].fillna("12:00")
             df_list.append(df_games)
 
         df = (
             pd.concat(df_list, sort=False)
             .rename(columns=col_rename)
             .assign(
-                date=lambda x: pd.to_datetime(x["date"] + ' ' + x['time']),
-                format="%d/%m/%Y %H:%M:%S",
+                date=lambda x: pd.to_datetime(x["date"] + ' ' + x['time'], format="%d/%m/%Y %H:%M")
             )
             .drop("time", axis=1)
             .pipe(self._translate_league)

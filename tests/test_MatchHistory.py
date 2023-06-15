@@ -10,3 +10,4 @@ def test_read_games(match_epl_2y: MatchHistory) -> None:
     df = match_epl_2y.read_games()
     assert isinstance(df, pd.DataFrame)
     assert len(df.index.get_level_values("season").unique()) == 2
+    assert len(df) == 760

@@ -90,7 +90,10 @@ class FBref(BaseRequestsReader):
         self.rate_limit = 3
         self.seasons = seasons  # type: ignore
         # check if all top 5 leagues are selected
-        if set(BIG_FIVE_DICT.values()).issubset(self.leagues):
+        if (
+            set(BIG_FIVE_DICT.values()).issubset(self.leagues)
+            and "Big 5 European Leagues Combined" not in self.leagues
+        ):
             warnings.warn(
                 "You are trying to scrape data for all of the Big 5 European leagues. "
                 "This can be done more efficiently by setting "
@@ -101,10 +104,7 @@ class FBref(BaseRequestsReader):
     @property
     def leagues(self) -> List[str]:
         """Return a list of selected leagues."""
-        selected_leagues = set(self._leagues_dict.keys())
-        if "Big 5 European Leagues Combined" in selected_leagues:
-            selected_leagues -= set(BIG_FIVE_DICT.values())
-        return list(selected_leagues)
+        return list(self._leagues_dict.keys())
 
     @classmethod
     def _all_leagues(cls) -> Dict[str, str]:
@@ -120,8 +120,14 @@ class FBref(BaseRequestsReader):
             return date.today() >= season_ends
         return super()._is_complete(league, season)
 
-    def read_leagues(self) -> pd.DataFrame:
+    def read_leagues(self, optimise: bool) -> pd.DataFrame:
         """Retrieve selected leagues from the datasource.
+
+        Parameters
+        ----------
+        optimise: bool
+            If True, it will load the "Big 5 European Leagues Combined" instead of
+            each league individually.
 
         Returns
         -------
@@ -152,17 +158,28 @@ class FBref(BaseRequestsReader):
         df["country"] = df["country"].apply(
             lambda x: x.split(" ")[1] if isinstance(x, str) else None
         )
-        return df[df.index.isin(self.leagues)]
+        leagues = (
+            list(set(self.leagues) - set(BIG_FIVE_DICT.values()))
+            if optimise and "Big 5 European Leagues Combined" in self.leagues
+            else list(set(self.leagues) - {"Big 5 European Leagues Combined"})
+        )
+        return df[df.index.isin(leagues)]
 
-    def read_seasons(self) -> pd.DataFrame:
+    def read_seasons(self, optimise: bool = True) -> pd.DataFrame:
         """Retrieve the selected seasons for the selected leagues.
+
+        Parameters
+        ----------
+        optimise: bool
+            If True, it will load the "Big 5 European Leagues Combined" instead of
+            each league individually.
 
         Returns
         -------
         pd.DataFrame
         """
         filemask = "seasons_{}.html"
-        df_leagues = self.read_leagues()
+        df_leagues = self.read_leagues(optimise)
 
         seasons = []
         for lkey, league in df_leagues.iterrows():
@@ -616,7 +633,7 @@ class FBref(BaseRequestsReader):
         pd.DataFrame
         """
         # get league IDs
-        seasons = self.read_seasons()
+        seasons = self.read_seasons(optimise=False)
 
         # collect teams
         schedule = []
@@ -635,6 +652,8 @@ class FBref(BaseRequestsReader):
             )
             tree = html.parse(reader)
             html_table = tree.xpath("//table[contains(@id, 'sched')]")[0]
+            for elem in html_table.xpath(".//tr[contains(@class, 'thead')]"):
+                elem.getparent().remove(elem)
             (df_table,) = pd.read_html(html.tostring(html_table))
             df_table["Match Report"] = [
                 mlink.xpath("./a/@href")[0]

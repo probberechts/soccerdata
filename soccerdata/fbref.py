@@ -280,9 +280,7 @@ class FBref(BaseRequestsReader):
             big_five = lkey == "Big 5 European Leagues Combined"
             tournament = season["format"] == "elimination"
             # read html page (league overview)
-            filepath = self.data_dir / filemask.format(
-                lkey, skey, stat_type if big_five else "all"
-            )
+            filepath = self.data_dir / filemask.format(lkey, skey, stat_type if big_five else page)
             url = (
                 FBREF_API
                 + "/".join(season.url.split("/")[:-1])

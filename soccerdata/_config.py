@@ -7,7 +7,6 @@ import os
 import sys
 from pathlib import Path
 
-import pretty_errors  # NOQA: F401 (imported but unused)
 from rich.logging import RichHandler
 
 # Configuration

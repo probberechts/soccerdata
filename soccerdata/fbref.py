@@ -1,5 +1,6 @@
 """Scraper for http://fbref.com."""
 import itertools
+import re
 import warnings
 from datetime import date, datetime
 from functools import reduce
@@ -1124,7 +1125,11 @@ def _fix_nation_col(df_table: pd.DataFrame) -> pd.DataFrame:
         df_table.loc[:, (slice(None), "Squad")] = (
             df_table.xs("Squad", axis=1, level=1)
             .squeeze()
-            .apply(lambda x: x.split(" ")[1] if isinstance(x, str) and x != "Squad" else None)
+            .apply(
+                lambda x: re.sub("^[a-z]{2,3} ", "", x)
+                if isinstance(x, str) and x != "Squad"
+                else None
+            )
         )
         df_table.insert(
             2,
@@ -1135,6 +1140,10 @@ def _fix_nation_col(df_table: pd.DataFrame) -> pd.DataFrame:
         df_table.loc[:, (slice(None), "Nation")] = (
             df_table.xs("Nation", axis=1, level=1)
             .squeeze(axis=1)
-            .apply(lambda x: x.split(" ")[1] if isinstance(x, str) and x != "Nation" else None)
+            .apply(
+                lambda x: re.sub("^[a-z]{2,3} ", "", x)
+                if isinstance(x, str) and x != "Nation"
+                else None
+            )
         )
     return df_table

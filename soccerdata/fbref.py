@@ -1091,15 +1091,12 @@ def _concat(dfs: List[pd.DataFrame]) -> pd.DataFrame:
         mask = columns[0].str.startswith("Unnamed:").fillna(False)
         columns.loc[mask, 0] = None
         all_columns.append(columns)
-    columns = reduce(lambda left, right: left.combine_first(right), all_columns)
 
-    # Move the remaining missing columns back to level 1 and replace with empyt string
-    if columns.shape[1] == 2:
-        mask = pd.isnull(columns[0])
-        columns.loc[mask, [0, 1]] = columns.loc[mask, [1, 0]].values
-        columns.loc[mask, 1] = ""
-
-        for df in dfs:
+        # Move the remaining missing columns back to level 1 and replace with empyt string
+        if columns.shape[1] == 2:
+            mask = pd.isnull(columns[0])
+            columns.loc[mask, [0, 1]] = columns.loc[mask, [1, 0]].values
+            columns.loc[mask, 1] = ""
             df.columns = pd.MultiIndex.from_tuples(columns.to_records(index=False).tolist())
 
     return pd.concat(dfs)

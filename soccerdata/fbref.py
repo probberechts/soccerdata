@@ -196,7 +196,7 @@ class FBref(BaseRequestsReader):
         df.drop_duplicates(subset=["league", "season"], keep="first", inplace=True)
         df = df.set_index(["league", "season"]).sort_index()
         return df.loc[
-            df.index.isin(itertools.product(self.leagues, self.seasons)), ["format", "url"]
+            df.index.isin(list(itertools.product(self.leagues, self.seasons))), ["format", "url"]
         ]
 
     def read_team_season_stats(  # noqa: C901

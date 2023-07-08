@@ -1078,7 +1078,6 @@ def _concat(dfs: List[pd.DataFrame]) -> pd.DataFrame:
         Concatenated dataframe with uniform column names.
     """
     # Look for the most complete level 0 columns
-    all_columns = []
     for df in dfs:
         columns = pd.DataFrame(df.columns.tolist())
         # Move missing columns to level 0
@@ -1089,8 +1088,6 @@ def _concat(dfs: List[pd.DataFrame]) -> pd.DataFrame:
         # Rename unnamed columns
         mask = columns[0].str.startswith("Unnamed:").fillna(False)
         columns.loc[mask, 0] = None
-        all_columns.append(columns)
-
         # Move the remaining missing columns back to level 1 and replace with empyt string
         if columns.shape[1] == 2:
             mask = pd.isnull(columns[0])

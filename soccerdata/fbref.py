@@ -398,7 +398,7 @@ class FBref(BaseRequestsReader):
 
         # collect match logs for each team
         stats = []
-        for (lkey, skey, team), team_url in iterator.url.items():
+        for (_, skey, team), team_url in iterator.url.items():
             # read html page
             filepath = self.data_dir / filemask.format(team, skey, stat_type)
             url = (
@@ -421,7 +421,6 @@ class FBref(BaseRequestsReader):
                 elem.getparent().remove(elem)
             # parse table
             df_table = _parse_table(html_table)
-            df_table["league"] = lkey
             df_table["season"] = skey
             df_table["team"] = team
             df_table["Time"] = html_table.xpath(".//td[@data-stat='start_time']/@csk")
@@ -433,11 +432,8 @@ class FBref(BaseRequestsReader):
             ]
             nb_levels = df_table.columns.nlevels
             if nb_levels == 2:
-                df_table = df_table.drop("Comp", axis=1, level=1)
                 df_table = df_table.drop("Match Report", axis=1, level=1)
                 df_table = df_table.drop("Time", axis=1, level=1)
-            else:
-                del df_table["Comp"]
             stats.append(df_table)
 
         # return data frame
@@ -448,6 +444,8 @@ class FBref(BaseRequestsReader):
                     "Opponent": TEAMNAME_REPLACEMENTS,
                 }
             )
+            .rename(columns={"Comp": "league"})
+            .pipe(self._translate_league)
             .pipe(
                 standardize_colnames,
                 cols=[

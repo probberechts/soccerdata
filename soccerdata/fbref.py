@@ -1074,7 +1074,7 @@ def _parse_table(html_table: html.HtmlElement) -> pd.DataFrame:
         elem.getparent().remove(elem)
     # parse HTML to dataframe
     (df_table,) = pd.read_html(html.tostring(html_table), flavor="lxml")
-    return df_table
+    return df_table.convert_dtypes()
 
 
 def _concat(dfs: List[pd.DataFrame]) -> pd.DataFrame:

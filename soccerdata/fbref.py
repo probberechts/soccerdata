@@ -1,6 +1,5 @@
 """Scraper for http://fbref.com."""
 import itertools
-import re
 import warnings
 from datetime import date, datetime
 from functools import reduce
@@ -136,7 +135,7 @@ class FBref(BaseRequestsReader):
         leagues = []
         tree = html.parse(reader)
         for html_table in tree.xpath("//table[contains(@id, 'comps')]"):
-            (df_table,) = pd.read_html(html.tostring(html_table))
+            df_table = _parse_table(html_table)
             df_table["url"] = html_table.xpath(".//th[@data-stat='league_name']/a/@href")
             leagues.append(df_table)
         df = (
@@ -150,9 +149,6 @@ class FBref(BaseRequestsReader):
         )
         df["first_season"] = df["first_season"].apply(season_code)
         df["last_season"] = df["last_season"].apply(season_code)
-        df["country"] = df["country"].apply(
-            lambda x: x.split(" ")[1] if isinstance(x, str) else None
-        )
         return df[df.index.isin(self.leagues)]
 
     def read_seasons(self) -> pd.DataFrame:
@@ -174,7 +170,7 @@ class FBref(BaseRequestsReader):
             # extract season links
             tree = html.parse(reader)
             (html_table,) = tree.xpath("//table[@id='seasons']")
-            (df_table,) = pd.read_html(html.tostring(html_table))
+            df_table = _parse_table(html_table)
             df_table["url"] = html_table.xpath(
                 "//th[@data-stat='year_id' or @data-stat='year']/a/@href"
             )
@@ -295,11 +291,7 @@ class FBref(BaseRequestsReader):
             (html_table,) = tree.xpath(
                 f"//table[@id='stats_teams_{stat_type}' or @id='stats_squads_{stat_type}']"
             )
-            # remove icons
-            for elem in html_table.xpath("//span"):
-                elem.getparent().remove(elem)
-            # parse table
-            (df_table,) = pd.read_html(html.tostring(html_table))
+            df_table = _parse_table(html_table)
             df_table["league"] = lkey
             df_table["season"] = skey
             df_table["url"] = html_table.xpath(".//*[@data-stat='team']/a/@href")
@@ -421,20 +413,14 @@ class FBref(BaseRequestsReader):
             # parse HTML and select table
             tree = html.parse(reader)
             (html_table,) = tree.xpath(f"//table[@id='matchlogs_{opp_type}']")
-            # remove icons
-            for elem in html_table.xpath("//span"):
-                elem.getparent().remove(elem)
             # remove for / against header
             for elem in html_table.xpath("//th[@data-stat='header_for_against']"):
                 elem.text = ""
-            # remove table sections
-            for elem in html_table.xpath("//tr[contains(@class, 'thead')]"):
-                elem.getparent().remove(elem)
             # remove aggregate rows
             for elem in html_table.xpath("//tfoot"):
                 elem.getparent().remove(elem)
             # parse table
-            (df_table,) = pd.read_html(html.tostring(html_table))
+            df_table = _parse_table(html_table)
             df_table["league"] = lkey
             df_table["season"] = skey
             df_table["team"] = team
@@ -574,7 +560,7 @@ class FBref(BaseRequestsReader):
             for elem in tree.xpath("//td[@data-stat='comp_level']//span"):
                 elem.getparent().remove(elem)
             if big_five:
-                (df_table,) = pd.read_html(html.tostring(tree))
+                df_table = _parse_table(tree)
                 df_table[("Unnamed: league", "league")] = (
                     df_table.xs("Comp", axis=1, level=1).squeeze().map(BIG_FIVE_DICT)
                 )
@@ -582,7 +568,11 @@ class FBref(BaseRequestsReader):
                 df_table.drop("Comp", axis=1, level=1, inplace=True)
             else:
                 (el,) = tree.xpath(f"//comment()[contains(.,'div_stats_{stat_type}')]")
-                (df_table,) = pd.read_html(el.text, attrs={"id": f"stats_{stat_type}"})
+                parser = etree.HTMLParser(recover=True)
+                (html_table,) = etree.fromstring(el.text, parser).xpath(
+                    f"//table[contains(@id, 'stats_{stat_type}')]"
+                )
+                df_table = _parse_table(html_table)
                 df_table[("Unnamed: league", "league")] = lkey
                 df_table[("Unnamed: season", "season")] = skey
             df_table = _fix_nation_col(df_table)
@@ -636,7 +626,7 @@ class FBref(BaseRequestsReader):
             )
             tree = html.parse(reader)
             html_table = tree.xpath("//table[contains(@id, 'sched')]")[0]
-            (df_table,) = pd.read_html(html.tostring(html_table))
+            df_table = _parse_table(html_table)
             df_table["Match Report"] = [
                 mlink.xpath("./a/@href")[0]
                 if mlink.xpath("./a") and mlink.xpath("./a")[0].text == "Match Report"
@@ -777,7 +767,7 @@ class FBref(BaseRequestsReader):
                 id_format = "stats_{}_" + stat_type
             html_table = tree.find("//table[@id='" + id_format.format(home_team["id"]) + "']")
             if html_table is not None:
-                (df_table,) = pd.read_html(html.tostring(html_table))
+                df_table = _parse_table(html_table)
                 df_table["team"] = home_team["name"]
                 df_table["game"] = game["game"]
                 df_table["league"] = game["league"]
@@ -789,7 +779,7 @@ class FBref(BaseRequestsReader):
                 logger.warning("No stats found for home team for game with id=%s", game["game_id"])
             html_table = tree.find("//table[@id='" + id_format.format(away_team["id"]) + "']")
             if html_table is not None:
-                (df_table,) = pd.read_html(html.tostring(html_table))
+                df_table = _parse_table(html_table)
                 df_table["team"] = away_team["name"]
                 df_table["game"] = game["game"]
                 df_table["league"] = game["league"]
@@ -864,7 +854,7 @@ class FBref(BaseRequestsReader):
             html_tables = tree.xpath("//div[@class='lineup']")
             for i, html_table in enumerate(html_tables):
                 # parse lineup table
-                (df_table,) = pd.read_html(html.tostring(html_table))
+                df_table = _parse_table(html_table)
                 df_table.columns = ["jersey_number", "player"]
                 df_table["team"] = teams[i]["name"]
                 if "Bench" in df_table.jersey_number.values:
@@ -880,7 +870,7 @@ class FBref(BaseRequestsReader):
                 html_stats_table = tree.find(
                     "//table[@id='" + "stats_{}_summary".format(teams[i]["id"]) + "']"
                 )
-                (df_stats_table,) = pd.read_html(html.tostring(html_stats_table))
+                df_stats_table = _parse_table(html_stats_table)
                 df_stats_table = df_stats_table.droplevel(0, axis=1)[["Player", "Pos", "Min"]]
                 df_stats_table.columns = ["player", "position", "minutes_played"]
                 lineups.append(pd.merge(df_table, df_stats_table, on="player", how="left"))
@@ -1035,7 +1025,7 @@ class FBref(BaseRequestsReader):
             tree = html.parse(reader)
             html_table = tree.find("//table[@id='shots_all']")
             if html_table is not None:
-                (df_table,) = pd.read_html(html.tostring(html_table), flavor="lxml")
+                df_table = _parse_table(html_table)
                 df_table["league"] = game["league"]
                 df_table["season"] = game["season"]
                 df_table["game"] = game["game"]
@@ -1059,6 +1049,32 @@ class FBref(BaseRequestsReader):
             .dropna(how="all")
         )
         return df
+
+
+def _parse_table(html_table: html.HtmlElement) -> pd.DataFrame:
+    """Parse HTML table into a dataframe.
+
+    Parameters
+    ----------
+    html_table : lxml.html.HtmlElement
+        HTML table to clean up.
+
+    Returns
+    -------
+    pd.DataFrame
+    """
+    # remove icons
+    for elem in html_table.xpath("//span[contains(@class, 'f-i')]"):
+        etree.strip_elements(elem.getparent(), "span", with_tail=False)
+    # remove sep rows
+    for elem in html_table.xpath("//tbody/tr[contains(@class, 'spacer')]"):
+        elem.getparent().remove(elem)
+    # remove thead rows in the table body
+    for elem in html_table.xpath("//tbody/tr[contains(@class, 'thead')]"):
+        elem.getparent().remove(elem)
+    # parse HTML to dataframe
+    (df_table,) = pd.read_html(html.tostring(html_table), flavor="lxml")
+    return df_table
 
 
 def _concat(dfs: List[pd.DataFrame]) -> pd.DataFrame:
@@ -1107,8 +1123,7 @@ def _concat(dfs: List[pd.DataFrame]) -> pd.DataFrame:
 def _fix_nation_col(df_table: pd.DataFrame) -> pd.DataFrame:
     """Fix the "Nation" column.
 
-    Removes the flag icon for domestic games and adds a 'nations' column for
-    international games based on the team's name.
+    Adds a 'nations' column for international games based on the team's name.
 
     Parameters
     ----------
@@ -1123,25 +1138,11 @@ def _fix_nation_col(df_table: pd.DataFrame) -> pd.DataFrame:
         df_table.loc[:, (slice(None), "Squad")] = (
             df_table.xs("Squad", axis=1, level=1)
             .squeeze()
-            .apply(
-                lambda x: re.sub("^[a-z]{2,3} ", "", x)
-                if isinstance(x, str) and x != "Squad"
-                else None
-            )
+            .apply(lambda x: x if isinstance(x, str) and x != "Squad" else None)
         )
         df_table.insert(
             2,
             ("Unnamed: nation", "Nation"),
             df_table.xs("Squad", axis=1, level=1).squeeze(),
-        )
-    else:
-        df_table.loc[:, (slice(None), "Nation")] = (
-            df_table.xs("Nation", axis=1, level=1)
-            .squeeze(axis=1)
-            .apply(
-                lambda x: re.sub("^[a-z]{2,3} ", "", x)
-                if isinstance(x, str) and x != "Nation"
-                else None
-            )
         )
     return df_table

@@ -155,13 +155,13 @@ class FBref(BaseRequestsReader):
         )
         df["first_season"] = df["first_season"].apply(season_code)
         df["last_season"] = df["last_season"].apply(season_code)
-        df["country"] = df["country"].apply(
-            lambda x: x.split(" ")[1] if isinstance(x, str) else None
-        )
         leagues = (
             list(set(self.leagues) - set(BIG_FIVE_DICT.values()))
             if optimise and "Big 5 European Leagues Combined" in self.leagues
-            else list(set(self.leagues) - {"Big 5 European Leagues Combined"})
+            else list(
+                (set(self.leagues) - {"Big 5 European Leagues Combined"})
+                | set(BIG_FIVE_DICT.values())
+            )
         )
         return df[df.index.isin(leagues)]
 

@@ -100,7 +100,7 @@ def test_read_lineup(fbref_ligue1: FBref) -> None:
 
 def test_combine_big5() -> None:
     fbref_bigfive = sd.FBref(["Big 5 European Leagues Combined"], 2021)
-    assert len(fbref_bigfive.read_leagues(optimise=True)) == 1
+    assert len(fbref_bigfive.read_leagues(leagues=["Big 5 European Leagues Combined"])) == 1
     assert len(fbref_bigfive.read_seasons(optimise=True)) == 1
     assert len(fbref_bigfive.read_seasons()) == 1  # by default, it should be true
 

@@ -170,14 +170,16 @@ class FBref(BaseRequestsReader):
         pd.DataFrame
         """
         filemask = "seasons_{}.html"
-        leagues = (
-            list(set(self.leagues) - set(BIG_FIVE_DICT.values()))
-            if optimise and "Big 5 European Leagues Combined" in self.leagues
-            else list(
-                (set(self.leagues) - {"Big 5 European Leagues Combined"})
-                | set(BIG_FIVE_DICT.values())
+        leagues = self.leagues
+        if "Big 5 European Leagues Combined" in self.leagues:
+            leagues = (
+                list(set(leagues) - set(BIG_FIVE_DICT.values()))
+                if optimise
+                else list(
+                    (set(self.leagues) - {"Big 5 European Leagues Combined"})
+                    | set(BIG_FIVE_DICT.values())
+                )
             )
-        )
         df_leagues = self.read_leagues(leagues)
 
         seasons = []

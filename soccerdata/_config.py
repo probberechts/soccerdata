@@ -148,6 +148,10 @@ LEAGUE_DICT = {
         "FBref": "FIFA World Cup",
         "WhoScored": "International - FIFA World Cup",
     },
+    "INT-Women's World Cup": {
+        "FBref": "FIFA Women's World Cup",
+        "WhoScored": "International - FIFA Women's World Cup",
+    },
 }
 _f_custom_league_dict = CONFIG_DIR / "league_dict.json"
 if _f_custom_league_dict.is_file():

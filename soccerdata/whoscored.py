@@ -1,6 +1,7 @@
 """Scraper for http://whoscored.com."""
 import itertools
 import json
+import re
 import time
 from datetime import datetime
 from pathlib import Path
@@ -284,7 +285,9 @@ class WhoScored(BaseSeleniumReader):
         node_stages = self._driver.find_elements(By.XPATH, node_stages_selector)
         stages = []
         for stage in node_stages:
-            stages.append({"url": stage.get_attribute("value"), "name": stage.text})
+            if not re.search(r"Grp. ([A-Z])$", stage.text):
+                # there is always a page with all group stage games combined
+                stages.append({"url": stage.get_attribute("value"), "name": stage.text})
         return stages
 
     def _parse_schedule_page(self) -> Tuple[List[Dict], Optional[WebElement]]:
@@ -436,6 +439,9 @@ class WhoScored(BaseSeleniumReader):
 
             all_schedules.append(df_schedule)
 
+        if len(all_schedules) == 0:
+            return pd.DataFrame(index=["league", "season", "game"])
+
         # Construct the output dataframe
         df = (
             pd.concat(all_schedules)
@@ -578,6 +584,10 @@ class WhoScored(BaseSeleniumReader):
                         "status": node.xpath("./td[contains(@class,'confirmed')]")[0].text,
                     }
                 )
+
+        if len(match_sheets) == 0:
+            return pd.DataFrame(index=["league", "season", "game", "team", "player"])
+
         df = (
             pd.DataFrame(match_sheets)
             .set_index(["league", "season", "game", "team", "player"])

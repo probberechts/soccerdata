@@ -357,7 +357,7 @@ class WhoScored(BaseSeleniumReader):
         schedule = [dict(item, stage=stage) for item in schedule]
         return schedule
 
-    def read_schedule(self, force_cache: bool = False) -> pd.DataFrame:
+    def read_schedule(self, force_cache: bool = False) -> pd.DataFrame:  # noqa: C901
         """Retrieve the game schedule for the selected leagues and seasons.
 
         Parameters

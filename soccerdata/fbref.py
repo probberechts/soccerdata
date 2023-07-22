@@ -771,7 +771,6 @@ class FBref(BaseRequestsReader):
                 df_table["league"] = game["league"]
                 df_table["season"] = game["season"]
                 df_table["game_id"] = game["game_id"]
-                df_table = _fix_nation_col(df_table)
                 stats.append(df_table)
             else:
                 logger.warning("No stats found for home team for game with id=%s", game["game_id"])
@@ -783,7 +782,6 @@ class FBref(BaseRequestsReader):
                 df_table["league"] = game["league"]
                 df_table["season"] = game["season"]
                 df_table["game_id"] = game["game_id"]
-                df_table = _fix_nation_col(df_table)
                 stats.append(df_table)
             else:
                 logger.warning("No stats found for away team for game with id=%s", game["game_id"])
@@ -935,7 +933,8 @@ class FBref(BaseRequestsReader):
                     minute = e.xpath("./div[1]")[0].text.replace("&rsquor;", "").strip()
                     score = e.xpath("./div[1]/small/span")[0].text
                     player1 = e.xpath("./div[2]/div[2]/div/a")[0].text
-                    if e.xpath("./div[2]/div[2]/small"):
+                    print(minute, score, player1)
+                    if e.xpath("./div[2]/div[2]/small/a"):
                         player2 = e.xpath("./div[2]/div[2]/small/a")[0].text
                     else:
                         player2 = None

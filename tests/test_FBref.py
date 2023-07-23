@@ -122,9 +122,9 @@ def test_combine_big5() -> None:
 )
 def test_combine_big5_team_season_stats(fbref_ligue1: FBref, stat_type: str) -> None:
     fbref_bigfive = sd.FBref(["Big 5 European Leagues Combined"], 2021)
-    ligue1 = fbref_ligue1.read_team_season_stats(stat_type).loc["FRA-Ligue 1"]
-    bigfive = fbref_bigfive.read_team_season_stats(stat_type).loc["FRA-Ligue 1"]
-    cols = _concat([ligue1, bigfive]).columns
+    ligue1 = fbref_ligue1.read_team_season_stats(stat_type).loc["FRA-Ligue 1"].reset_index()
+    bigfive = fbref_bigfive.read_team_season_stats(stat_type).loc["FRA-Ligue 1"].reset_index()
+    cols = _concat([ligue1, bigfive], key=["season"]).columns
     ligue1.columns = cols
     bigfive.columns = cols
     pd.testing.assert_frame_equal(
@@ -151,9 +151,9 @@ def test_combine_big5_team_season_stats(fbref_ligue1: FBref, stat_type: str) -> 
 )
 def test_combine_big5_player_season_stats(fbref_ligue1: FBref, stat_type: str) -> None:
     fbref_bigfive = sd.FBref(["Big 5 European Leagues Combined"], 2021)
-    ligue1 = fbref_ligue1.read_player_season_stats(stat_type).loc["FRA-Ligue 1"]
-    bigfive = fbref_bigfive.read_player_season_stats(stat_type).loc["FRA-Ligue 1"]
-    cols = _concat([ligue1, bigfive]).columns
+    ligue1 = fbref_ligue1.read_player_season_stats(stat_type).loc["FRA-Ligue 1"].reset_index()
+    bigfive = fbref_bigfive.read_player_season_stats(stat_type).loc["FRA-Ligue 1"].reset_index()
+    cols = _concat([ligue1, bigfive], key=["season"]).columns
     ligue1.columns = cols
     bigfive.columns = cols
     pd.testing.assert_frame_equal(

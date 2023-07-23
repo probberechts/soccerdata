@@ -1111,53 +1111,52 @@ def _concat(dfs: List[pd.DataFrame], key: List[str]) -> pd.DataFrame:
             # Move None column names to level 0
             mask = pd.isnull(columns[1])
             columns.loc[mask, [0, 1]] = columns.loc[mask, [1, 0]].values
-        # We'll try to replace some the None values in step 2
-        all_columns.append(columns)
-        # But for now, we assume that we cannot replace them and move all
-        # missing columns to level 1 and replace them with the empty string
-        if columns.shape[1] == 2:
+            # We'll try to replace some the None values in step 2
+            all_columns.append(columns.copy())
+            # But for now, we assume that we cannot replace them and move all
+            # missing columns to level 1 and replace them with the empty string
             mask = pd.isnull(columns[0])
             columns.loc[mask, [0, 1]] = columns.loc[mask, [1, 0]].values
             columns.loc[mask, 1] = ""
-        df.columns = pd.MultiIndex.from_tuples(columns.to_records(index=False).tolist())
+            df.columns = pd.MultiIndex.from_tuples(columns.to_records(index=False).tolist())
 
     # all dataframes should now have the same length and level 1 columns
-    for i, columns in enumerate(all_columns):
-        if not columns[1].equals(all_columns[0][1]):
-            res = all_columns[0].merge(columns, indicator=True, how='outer')
-            raise RuntimeError(
-                (
-                    "Cannot merge the data for {firs} and {cur}.\n\n"
-                    + "The following columns are missing in {first}: {extra_cols}.\n\n"
-                    + "The following columns are missing in {cur}: {missing_cols}.\n\n"
-                    + "Please try to scrape the data again with caching disabled."
-                ).format(
-                    first=dfs[0].loc[0, key].values,
-                    cur=dfs[i].loc[0, key].values,
-                    extra_cols=", ".join(
-                        map(
-                            str,
-                            res.loc[res['_merge'] == "left_only", [0, 1]]
-                            .to_records(index=False)
-                            .tolist(),
-                        )
+    if len(all_columns) and all_columns[0].shape[1] == 2:
+        for i, columns in enumerate(all_columns):
+            if not columns[1].equals(all_columns[0][1]):
+                res = all_columns[0].merge(columns, indicator=True, how='outer')
+                raise RuntimeError(
+                    (
+                        "Cannot merge the data for {first} and {cur}.\n\n"
+                        + "The following columns are missing in {first}: {extra_cols}.\n\n"
+                        + "The following columns are missing in {cur}: {missing_cols}.\n\n"
+                        + "Please try to scrape the data again with caching disabled."
+                    ).format(
+                        first=dfs[0].loc[0, key].values,
+                        cur=dfs[i].loc[0, key].values,
+                        extra_cols=", ".join(
+                            map(
+                                str,
+                                res.loc[res['_merge'] == "left_only", [0, 1]]
+                                .to_records(index=False)
+                                .tolist(),
+                            )
+                        ),
+                        missing_cols=", ".join(
+                            map(
+                                str,
+                                res.loc[res['_merge'] == "right_only", [0, 1]]
+                                .to_records(index=False)
+                                .tolist(),
+                            )
+                        ),
                     ),
-                    missing_cols=", ".join(
-                        map(
-                            str,
-                            res.loc[res['_merge'] == "right_only", [0, 1]]
-                            .to_records(index=False)
-                            .tolist(),
-                        )
-                    ),
-                ),
-            )
+                )
 
-    # Step 2: Look for the most complete level 0 columns
-    columns = reduce(lambda left, right: left.combine_first(right), all_columns)
+        # Step 2: Look for the most complete level 0 columns
+        columns = reduce(lambda left, right: left.combine_first(right), all_columns)
 
-    # Step 3: Make sure columns are consistent
-    if columns.shape[1] == 2:
+        # Step 3: Make sure columns are consistent
         mask = pd.isnull(columns[0])
         columns.loc[mask, [0, 1]] = columns.loc[mask, [1, 0]].values
         columns.loc[mask, 1] = ""

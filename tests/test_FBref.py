@@ -98,6 +98,51 @@ def test_read_lineup(fbref_ligue1: FBref) -> None:
     assert isinstance(fbref_ligue1.read_lineup(match_id="796787da"), pd.DataFrame)
 
 
+def test_concat() -> None:
+    df1 = pd.DataFrame(
+        columns=pd.MultiIndex.from_tuples(
+            [("Unnamed: a", "player"), ("Performance", "Goals"), ("Performance", "Assists")]
+        )
+    )
+    df2 = pd.DataFrame(
+        columns=pd.MultiIndex.from_tuples(
+            [("Unnamed: a", "player"), ("Unnamed: b", "Goals"), ("Performance", "Assists")]
+        )
+    )
+    df3 = pd.DataFrame(
+        columns=pd.MultiIndex.from_tuples(
+            [("Unnamed: a", "player"), ("Goals", "Unnamed: b"), ("Performance", "Assists")]
+        )
+    )
+    res = _concat([df1, df2, df3], key=["player"])
+    assert res.columns.equals(
+        pd.MultiIndex.from_tuples(
+            [("player", ""), ("Performance", "Goals"), ("Performance", "Assists")]
+        )
+    )
+    res = _concat([df3, df1, df2], key=["player"])
+    assert res.columns.equals(
+        pd.MultiIndex.from_tuples(
+            [("player", ""), ("Performance", "Goals"), ("Performance", "Assists")]
+        )
+    )
+
+
+def test_concat_not_matching_columns() -> None:
+    df1 = pd.DataFrame(
+        columns=pd.MultiIndex.from_tuples(
+            [("Unnamed: a", "player"), ("Performance", "Goals"), ("Performance", "Assists")]
+        )
+    )
+    df2 = pd.DataFrame(
+        columns=pd.MultiIndex.from_tuples(
+            [("Unnamed: a", "player"), ("Unnamed: b", "Goals"), ("Performance", "Fouls")]
+        )
+    )
+    with pytest.raises(RuntimeError):
+        _concat([df1, df2], key=["player"])
+
+
 def test_combine_big5() -> None:
     fbref_bigfive = sd.FBref(["Big 5 European Leagues Combined"], 2021)
     assert len(fbref_bigfive.read_leagues()) == 1

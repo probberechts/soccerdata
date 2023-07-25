@@ -1131,8 +1131,8 @@ def _concat(dfs: List[pd.DataFrame], key: List[str]) -> pd.DataFrame:
                         + "The following columns are missing in {cur}: {missing_cols}.\n\n"
                         + "Please try to scrape the data again with caching disabled."
                     ).format(
-                        first=dfs[0].loc[0, key].values,
-                        cur=dfs[i].loc[0, key].values,
+                        first=dfs[0].iloc[:1][key].values,
+                        cur=dfs[i].iloc[:1][key].values,
                         extra_cols=", ".join(
                             map(
                                 str,

@@ -867,9 +867,13 @@ class FBref(BaseRequestsReader):
                     "//table[@id='" + "stats_{}_summary".format(teams[i]["id"]) + "']"
                 )
                 df_stats_table = _parse_table(html_stats_table)
-                df_stats_table = df_stats_table.droplevel(0, axis=1)[["Player", "Pos", "Min"]]
-                df_stats_table.columns = ["player", "position", "minutes_played"]
-                lineups.append(pd.merge(df_table, df_stats_table, on="player", how="left"))
+                df_stats_table = df_stats_table.droplevel(0, axis=1)[["Player", "#", "Pos", "Min"]]
+                df_stats_table.columns = ["player", "jersey_number", "position", "minutes_played"]
+                df_stats_table["jersey_number"] = df_stats_table["jersey_number"].astype("Int64")
+                df_table["jersey_number"] = df_table["jersey_number"].astype("Int64")
+                df_table = pd.merge(df_table, df_stats_table, on=["player", "jersey_number"], how="left")
+                df_table["minutes_played"] = df_table["minutes_played"].fillna(0)
+                lineups.append(df_table)
         df = pd.concat(lineups).set_index(["league", "season", "game"])
         return df
 

@@ -871,7 +871,9 @@ class FBref(BaseRequestsReader):
                 df_stats_table.columns = ["player", "jersey_number", "position", "minutes_played"]
                 df_stats_table["jersey_number"] = df_stats_table["jersey_number"].astype("Int64")
                 df_table["jersey_number"] = df_table["jersey_number"].astype("Int64")
-                df_table = pd.merge(df_table, df_stats_table, on=["player", "jersey_number"], how="left")
+                df_table = pd.merge(
+                    df_table, df_stats_table, on=["player", "jersey_number"], how="left"
+                )
                 df_table["minutes_played"] = df_table["minutes_played"].fillna(0)
                 lineups.append(df_table)
         df = pd.concat(lineups).set_index(["league", "season", "game"])

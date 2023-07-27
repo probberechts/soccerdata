@@ -329,7 +329,7 @@ class FBref(BaseRequestsReader):
 
         # return data frame
         df = (
-            _concat(teams)
+            _concat(teams, key=['league', 'season'])
             .rename(columns={"Squad": "team", "# Pl": "players_used"})
             .replace({"team": TEAMNAME_REPLACEMENTS})
             # .pipe(standardize_colnames)
@@ -462,7 +462,7 @@ class FBref(BaseRequestsReader):
 
         # return data frame
         df = (
-            _concat(stats)
+            _concat(stats, key=['league', 'season', 'team'])
             .replace(
                 {
                     "Opponent": TEAMNAME_REPLACEMENTS,
@@ -601,7 +601,7 @@ class FBref(BaseRequestsReader):
             players.append(df_table)
 
         # return dataframe
-        df = _concat(players)
+        df = _concat(players, key=["league", "season"])
         df = df[df.Player != "Player"]
         df = (
             df.drop("Matches", axis=1, level=0)
@@ -795,7 +795,6 @@ class FBref(BaseRequestsReader):
                 df_table["league"] = game["league"]
                 df_table["season"] = game["season"]
                 df_table["game_id"] = game["game_id"]
-                df_table = _fix_nation_col(df_table)
                 stats.append(df_table)
             else:
                 logger.warning("No stats found for home team for game with id=%s", game["game_id"])
@@ -807,12 +806,11 @@ class FBref(BaseRequestsReader):
                 df_table["league"] = game["league"]
                 df_table["season"] = game["season"]
                 df_table["game_id"] = game["game_id"]
-                df_table = _fix_nation_col(df_table)
                 stats.append(df_table)
             else:
                 logger.warning("No stats found for away team for game with id=%s", game["game_id"])
 
-        df = _concat(stats)
+        df = _concat(stats, key=['game'])
         df = df[~df.Player.str.contains(r"^\d+\sPlayers$")]
         df = (
             df.rename(columns={"#": "jersey_number"})
@@ -893,9 +891,15 @@ class FBref(BaseRequestsReader):
                     "//table[@id='" + "stats_{}_summary".format(teams[i]["id"]) + "']"
                 )
                 df_stats_table = _parse_table(html_stats_table)
-                df_stats_table = df_stats_table.droplevel(0, axis=1)[["Player", "Pos", "Min"]]
-                df_stats_table.columns = ["player", "position", "minutes_played"]
-                lineups.append(pd.merge(df_table, df_stats_table, on="player", how="left"))
+                df_stats_table = df_stats_table.droplevel(0, axis=1)[["Player", "#", "Pos", "Min"]]
+                df_stats_table.columns = ["player", "jersey_number", "position", "minutes_played"]
+                df_stats_table["jersey_number"] = df_stats_table["jersey_number"].astype("Int64")
+                df_table["jersey_number"] = df_table["jersey_number"].astype("Int64")
+                df_table = pd.merge(
+                    df_table, df_stats_table, on=["player", "jersey_number"], how="left"
+                )
+                df_table["minutes_played"] = df_table["minutes_played"].fillna(0)
+                lineups.append(df_table)
         df = pd.concat(lineups).set_index(["league", "season", "game"])
         return df
 
@@ -959,7 +963,8 @@ class FBref(BaseRequestsReader):
                     minute = e.xpath("./div[1]")[0].text.replace("&rsquor;", "").strip()
                     score = e.xpath("./div[1]/small/span")[0].text
                     player1 = e.xpath("./div[2]/div[2]/div/a")[0].text
-                    if e.xpath("./div[2]/div[2]/small"):
+                    print(minute, score, player1)
+                    if e.xpath("./div[2]/div[2]/small/a"):
                         player2 = e.xpath("./div[2]/div[2]/small/a")[0].text
                     else:
                         player2 = None
@@ -984,7 +989,7 @@ class FBref(BaseRequestsReader):
             return pd.DataFrame()
 
         df = (
-            _concat(events)
+            pd.concat(events)
             .replace({"team": TEAMNAME_REPLACEMENTS})
             .set_index(["league", "season", "game"])
             .sort_index()
@@ -1038,7 +1043,7 @@ class FBref(BaseRequestsReader):
         shots = []
         for i, game in iterator.reset_index().iterrows():
             url = urlmask.format(game["game_id"])
-            # get league and season
+            # get league anigd season
             logger.info(
                 "[%s/%s] Retrieving game with id=%s", i + 1, len(iterator), game["game_id"]
             )
@@ -1059,7 +1064,7 @@ class FBref(BaseRequestsReader):
             return pd.DataFrame()
 
         df = (
-            _concat(shots)
+            _concat(shots, key=['game'])
             .rename(columns={"Squad": "team"})
             .replace({"team": TEAMNAME_REPLACEMENTS})
             .pipe(
@@ -1099,45 +1104,103 @@ def _parse_table(html_table: html.HtmlElement) -> pd.DataFrame:
     return df_table.convert_dtypes()
 
 
-def _concat(dfs: List[pd.DataFrame]) -> pd.DataFrame:
+def _concat(dfs: List[pd.DataFrame], key: List[str]) -> pd.DataFrame:
     """Merge matching tables scraped from different pages.
 
-    The level 0 headers are not consitent across seasons and leagues, this
+    The level 0 headers are not consistent across seasons and leagues, this
     function tries to determine uniform column names.
 
     Parameters
     ----------
     dfs : list(pd.DataFrame)
         Input dataframes.
+    key : list(str)
+        List of columns that uniquely identify each df.
+
+    Raises
+    ------
+    RuntimeError
+        If the dfs cannot be merged due to the columns not matching each other.
 
     Returns
     -------
     pd.DataFrame
         Concatenated dataframe with uniform column names.
     """
-    # Look for the most complete level 0 columns
     all_columns = []
+
+    # Step 1: Clean up the columns of each dataframe that should be merged
     for df in dfs:
         columns = pd.DataFrame(df.columns.tolist())
-        # Move missing columns to level 0
+        # Set "Unnamed: ..." column names to None
+        columns.replace(to_replace=r"^Unnamed:.*", value=None, regex=True, inplace=True)
         if columns.shape[1] == 2:
-            columns.replace({"": None}, inplace=True)
+            # Set "" column names to None
+            columns.replace(to_replace="", value=None, inplace=True)
+            # Move None column names to level 0
             mask = pd.isnull(columns[1])
             columns.loc[mask, [0, 1]] = columns.loc[mask, [1, 0]].values
-        # Rename unnamed columns
-        mask = columns[0].str.startswith("Unnamed:").fillna(False)
-        columns.loc[mask, 0] = None
-        all_columns.append(columns)
-    columns = reduce(lambda left, right: left.combine_first(right), all_columns)
 
-    # Move the remaining missing columns back to level 1 and replace with empty string
-    if columns.shape[1] == 2:
+            # We'll try to replace some the None values in step 2
+            all_columns.append(columns.copy())
+            # But for now, we assume that we cannot replace them and move all
+            # missing columns to level 1 and replace them with the empty string
+            mask = pd.isnull(columns[0])
+            columns.loc[mask, [0, 1]] = columns.loc[mask, [1, 0]].values
+            columns.loc[mask, 1] = ""
+            df.columns = pd.MultiIndex.from_tuples(columns.to_records(index=False).tolist())
+
+    # all dataframes should now have the same length and level 1 columns
+    if len(all_columns) and all_columns[0].shape[1] == 2:
+        for i, columns in enumerate(all_columns):
+            if not columns[1].equals(all_columns[0][1]):
+                res = all_columns[0].merge(columns, indicator=True, how='outer')
+                raise RuntimeError(
+                    (
+                        "Cannot merge the data for {first} and {cur}.\n\n"
+                        + "The following columns are missing in {first}: {extra_cols}.\n\n"
+                        + "The following columns are missing in {cur}: {missing_cols}.\n\n"
+                        + "Please try to scrape the data again with caching disabled."
+                    ).format(
+                        first=dfs[0].iloc[:1][key].values,
+                        cur=dfs[i].iloc[:1][key].values,
+                        extra_cols=", ".join(
+                            map(
+                                str,
+                                res.loc[res['_merge'] == "left_only", [0, 1]]
+                                .to_records(index=False)
+                                .tolist(),
+                            )
+                        ),
+                        missing_cols=", ".join(
+                            map(
+                                str,
+                                res.loc[res['_merge'] == "right_only", [0, 1]]
+                                .to_records(index=False)
+                                .tolist(),
+                            )
+                        ),
+                    ),
+                )
+
+        # Step 2: Look for the most complete level 0 columns
+        columns = reduce(lambda left, right: left.combine_first(right), all_columns)
+
+        # Step 3: Make sure columns are consistent
         mask = pd.isnull(columns[0])
         columns.loc[mask, [0, 1]] = columns.loc[mask, [1, 0]].values
         columns.loc[mask, 1] = ""
+        column_idx = pd.MultiIndex.from_tuples(columns.to_records(index=False).tolist())
 
         for df in dfs:
-            df.columns = pd.MultiIndex.from_tuples(columns.to_records(index=False).tolist())
+            if df.columns.equals(column_idx):
+                # This dataframe already has the uniform column index
+                pass
+            elif len(df.columns) == len(column_idx):
+                # This dataframe has the same number of columns and the same
+                # level 1 columns, we assume that the level 0 columns can be
+                # replaced
+                df.columns = column_idx
 
     return pd.concat(dfs)
 

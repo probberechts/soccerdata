@@ -128,19 +128,14 @@ def test_concat() -> None:
     )
 
 
-def test_concat_not_matching_columns() -> None:
-    df1 = pd.DataFrame(
-        columns=pd.MultiIndex.from_tuples(
-            [("Unnamed: a", "player"), ("Performance", "Goals"), ("Performance", "Assists")]
-        )
-    )
-    df2 = pd.DataFrame(
-        columns=pd.MultiIndex.from_tuples(
-            [("Unnamed: a", "player"), ("Unnamed: b", "Goals"), ("Performance", "Fouls")]
-        )
-    )
-    with pytest.raises(RuntimeError):
-        _concat([df1, df2], key=["player"])
+def test_concat_with_forfeited_game() -> None:
+    fbref_seriea = sd.FBref(["ITA-Serie A"], 2021)
+    df_1 = fbref_seriea.read_player_match_stats(match_id=["e0a20cfe", "34e95e35"])
+    df_2 = fbref_seriea.read_player_match_stats(match_id=["e0a20cfe", "a3e10e13"])
+    assert isinstance(df_1, pd.DataFrame)
+    assert isinstance(df_2, pd.DataFrame)
+    # Regardless of the order in which the matches are read, the result should be the same.
+    assert df_1.columns.equals(df_2.columns)
 
 
 def test_combine_big5() -> None:

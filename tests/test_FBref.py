@@ -143,6 +143,13 @@ def test_concat_not_matching_columns() -> None:
         _concat([df1, df2], key=["player"])
 
 
+def test_concat_forfeited_games() -> None:
+    fbref_seriea = sd.FBref(["ITA-Serie A"], 2021)
+    assert isinstance(
+        fbref_seriea.read_player_match_stats(match_id=["34e95e35", "e0a20cfe"]), pd.DataFrame
+    )
+
+
 def test_combine_big5() -> None:
     fbref_bigfive = sd.FBref(["Big 5 European Leagues Combined"], 2021)
     assert len(fbref_bigfive.read_leagues()) == 1

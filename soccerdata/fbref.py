@@ -119,12 +119,12 @@ class FBref(BaseRequestsReader):
             return date.today() >= season_ends
         return super()._is_complete(league, season)
 
-    def read_leagues(self, optimise_big5: bool = True) -> pd.DataFrame:
+    def read_leagues(self, split_up_big5: bool = False) -> pd.DataFrame:
         """Retrieve selected leagues from the datasource.
 
         Parameters
         ----------
-        optimise_big5: bool
+        split_up_big5: bool
             If True, it will load the "Big 5 European Leagues Combined" instead of
             each league individually.
 
@@ -156,27 +156,19 @@ class FBref(BaseRequestsReader):
         df["last_season"] = df["last_season"].apply(season_code)
 
         leagues = self.leagues
-        if optimise_big5:
-            if "Big 5 European Leagues Combined" in self.leagues:
-                leagues = list(set(leagues) - set(BIG_FIVE_DICT.values()))
-            elif set(BIG_FIVE_DICT.values()).issubset(set(self.leagues)):
-                leagues = list(
-                    (set(self.leagues) - set(BIG_FIVE_DICT.values()))
-                    | {"Big 5 European Leagues Combined"}
-                )
-        elif "Big 5 European Leagues Combined" in self.leagues:
-            list(
+        if "Big 5 European Leagues Combined" in self.leagues and split_up_big5:
+            leagues = list(
                 (set(self.leagues) - {"Big 5 European Leagues Combined"})
                 | set(BIG_FIVE_DICT.values())
             )
         return df[df.index.isin(leagues)]
 
-    def read_seasons(self, optimise_big5: bool = True) -> pd.DataFrame:
+    def read_seasons(self, split_up_big5: bool = False) -> pd.DataFrame:
         """Retrieve the selected seasons for the selected leagues.
 
         Parameters
         ----------
-        optimise_big5: bool
+        split_up_big5: bool
             If True, it will load the "Big 5 European Leagues Combined" instead of
             each league individually.
 
@@ -185,7 +177,7 @@ class FBref(BaseRequestsReader):
         pd.DataFrame
         """
         filemask = "seasons_{}.html"
-        df_leagues = self.read_leagues(optimise_big5)
+        df_leagues = self.read_leagues(split_up_big5)
 
         seasons = []
         for lkey, league in df_leagues.iterrows():
@@ -629,7 +621,7 @@ class FBref(BaseRequestsReader):
         pd.DataFrame
         """
         # get league IDs
-        seasons = self.read_seasons(optimise_big5=False)
+        seasons = self.read_seasons(split_up_big5=True)
 
         # collect teams
         schedule = []

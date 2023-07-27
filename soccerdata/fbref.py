@@ -1125,39 +1125,7 @@ def _concat(dfs: List[pd.DataFrame], key: List[str]) -> pd.DataFrame:
             columns.loc[mask, 1] = ""
             df.columns = pd.MultiIndex.from_tuples(columns.to_records(index=False).tolist())
 
-    # all dataframes should now have the same length and level 1 columns
     if len(all_columns) and all_columns[0].shape[1] == 2:
-        for i, columns in enumerate(all_columns):
-            if not columns[1].equals(all_columns[0][1]):
-                res = all_columns[0].merge(columns, indicator=True, how='outer')
-                raise RuntimeError(
-                    (
-                        "Cannot merge the data for {first} and {cur}.\n\n"
-                        + "The following columns are missing in {first}: {extra_cols}.\n\n"
-                        + "The following columns are missing in {cur}: {missing_cols}.\n\n"
-                        + "Please try to scrape the data again with caching disabled."
-                    ).format(
-                        first=dfs[0].iloc[:1][key].values,
-                        cur=dfs[i].iloc[:1][key].values,
-                        extra_cols=", ".join(
-                            map(
-                                str,
-                                res.loc[res['_merge'] == "left_only", [0, 1]]
-                                .to_records(index=False)
-                                .tolist(),
-                            )
-                        ),
-                        missing_cols=", ".join(
-                            map(
-                                str,
-                                res.loc[res['_merge'] == "right_only", [0, 1]]
-                                .to_records(index=False)
-                                .tolist(),
-                            )
-                        ),
-                    ),
-                )
-
         # Step 2: Look for the most complete level 0 columns
         columns = reduce(lambda left, right: left.combine_first(right), all_columns)
 
@@ -1167,15 +1135,19 @@ def _concat(dfs: List[pd.DataFrame], key: List[str]) -> pd.DataFrame:
         columns.loc[mask, 1] = ""
         column_idx = pd.MultiIndex.from_tuples(columns.to_records(index=False).tolist())
 
-        for df in dfs:
+        for i, df in enumerate(dfs):
             if df.columns.equals(column_idx):
                 # This dataframe already has the uniform column index
                 pass
-            elif len(df.columns) == len(column_idx):
+            if len(df.columns) == len(column_idx):
                 # This dataframe has the same number of columns and the same
                 # level 1 columns, we assume that the level 0 columns can be
                 # replaced
                 df.columns = column_idx
+            else:
+                # This dataframe has a different number of columns, so we want
+                # to make sure its columns match with column_idx
+                dfs[i] = df.reindex(columns=column_idx, fill_value=None)
 
     return pd.concat(dfs)
 

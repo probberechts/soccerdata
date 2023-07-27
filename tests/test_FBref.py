@@ -128,25 +128,10 @@ def test_concat() -> None:
     )
 
 
-def test_concat_not_matching_columns() -> None:
-    df1 = pd.DataFrame(
-        columns=pd.MultiIndex.from_tuples(
-            [("Unnamed: a", "player"), ("Performance", "Goals"), ("Performance", "Assists")]
-        )
-    )
-    df2 = pd.DataFrame(
-        columns=pd.MultiIndex.from_tuples(
-            [("Unnamed: a", "player"), ("Unnamed: b", "Goals"), ("Performance", "Fouls")]
-        )
-    )
-    with pytest.raises(RuntimeError):
-        _concat([df1, df2], key=["player"])
-
-
-def test_concat_forfeited_games() -> None:
+def test_concat_with_forfeited_game() -> None:
     fbref_seriea = sd.FBref(["ITA-Serie A"], 2021)
     assert isinstance(
-        fbref_seriea.read_player_match_stats(match_id=["34e95e35", "e0a20cfe"]), pd.DataFrame
+        fbref_seriea.read_player_match_stats(match_id=["e0a20cfe", "34e95e35"]), pd.DataFrame
     )
 
 

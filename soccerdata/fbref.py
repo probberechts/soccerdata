@@ -1086,6 +1086,9 @@ def _concat(dfs: List[pd.DataFrame], key: List[str]) -> pd.DataFrame:
     The level 0 headers are not consistent across seasons and leagues, this
     function tries to determine uniform column names.
 
+    If there are dataframes with different columns, we will use the ones from
+    the dataframe with the most columns.
+
     Parameters
     ----------
     dfs : list(pd.DataFrame)
@@ -1093,17 +1096,15 @@ def _concat(dfs: List[pd.DataFrame], key: List[str]) -> pd.DataFrame:
     key : list(str)
         List of columns that uniquely identify each df.
 
-    Raises
-    ------
-    RuntimeError
-        If the dfs cannot be merged due to the columns not matching each other.
-
     Returns
     -------
     pd.DataFrame
         Concatenated dataframe with uniform column names.
     """
     all_columns = []
+
+    # Step 0: Sort dfs by the number of columns
+    dfs = sorted(dfs, key=lambda x: len(x.columns), reverse=True)
 
     # Step 1: Clean up the columns of each dataframe that should be merged
     for df in dfs:
@@ -1124,6 +1125,39 @@ def _concat(dfs: List[pd.DataFrame], key: List[str]) -> pd.DataFrame:
             columns.loc[mask, [0, 1]] = columns.loc[mask, [1, 0]].values
             columns.loc[mask, 1] = ""
             df.columns = pd.MultiIndex.from_tuples(columns.to_records(index=False).tolist())
+
+    # throw a warning if not all dataframes have the same length and level 1 columns
+    for i, columns in enumerate(all_columns):
+        if not columns[1].equals(all_columns[0][1]):
+            res = all_columns[0].merge(columns, indicator=True, how='outer')
+            warnings.warn(
+                (
+                    "Different columns found for {first} and {cur}.\n\n"
+                    + "The following columns are missing in {first}: {extra_cols}.\n\n"
+                    + "The following columns are missing in {cur}: {missing_cols}.\n\n"
+                    + "The columns of the dataframe with the most columns will be used."
+                ).format(
+                    first=dfs[0].iloc[:1][key].values,
+                    cur=dfs[i].iloc[:1][key].values,
+                    extra_cols=", ".join(
+                        map(
+                            str,
+                            res.loc[res['_merge'] == "left_only", [0, 1]]
+                            .to_records(index=False)
+                            .tolist(),
+                        )
+                    ),
+                    missing_cols=", ".join(
+                        map(
+                            str,
+                            res.loc[res['_merge'] == "right_only", [0, 1]]
+                            .to_records(index=False)
+                            .tolist(),
+                        )
+                    ),
+                ),
+                stacklevel=1,
+            )
 
     if len(all_columns) and all_columns[0].shape[1] == 2:
         # Step 2: Look for the most complete level 0 columns

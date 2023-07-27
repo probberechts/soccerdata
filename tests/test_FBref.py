@@ -132,12 +132,8 @@ def test_concat_with_forfeited_game() -> None:
     fbref_seriea = sd.FBref(["ITA-Serie A"], 2021)
     df_1 = fbref_seriea.read_player_match_stats(match_id=["e0a20cfe", "34e95e35"])
     df_2 = fbref_seriea.read_player_match_stats(match_id=["34e95e35", "e0a20cfe"])
-    assert isinstance(
-        df_1, pd.DataFrame
-    )
-    assert isinstance(
-        df_2, pd.DataFrame
-    )
+    assert isinstance(df_1, pd.DataFrame)
+    assert isinstance(df_2, pd.DataFrame)
     # Regardless of the order in which the matches are read, the result should be the same.
     assert df_1.equals(df_2)
 

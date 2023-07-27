@@ -2,6 +2,7 @@
 import itertools
 import warnings
 from datetime import date, datetime
+from functools import reduce
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Union
 

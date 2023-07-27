@@ -1,5 +1,4 @@
 """Scraper for http://fbref.com."""
-import itertools
 import warnings
 from datetime import date, datetime
 from functools import reduce
@@ -157,14 +156,18 @@ class FBref(BaseRequestsReader):
         df["last_season"] = df["last_season"].apply(season_code)
 
         leagues = self.leagues
-        if "Big 5 European Leagues Combined" in self.leagues:
-            leagues = (
-                list(set(leagues) - set(BIG_FIVE_DICT.values()))
-                if optimise_big5
-                else list(
-                    (set(self.leagues) - {"Big 5 European Leagues Combined"})
-                    | set(BIG_FIVE_DICT.values())
+        if optimise_big5:
+            if "Big 5 European Leagues Combined" in self.leagues:
+                leagues = list(set(leagues) - set(BIG_FIVE_DICT.values()))
+            elif set(BIG_FIVE_DICT.values()).issubset(set(self.leagues)):
+                leagues = list(
+                    (set(self.leagues) - set(BIG_FIVE_DICT.values()))
+                    | {"Big 5 European Leagues Combined"}
                 )
+        elif "Big 5 European Leagues Combined" in self.leagues:
+            list(
+                (set(self.leagues) - {"Big 5 European Leagues Combined"})
+                | set(BIG_FIVE_DICT.values())
             )
         return df[df.index.isin(leagues)]
 
@@ -215,10 +218,7 @@ class FBref(BaseRequestsReader):
         # if both a 20xx and 19xx season are available, drop the 19xx season
         df.drop_duplicates(subset=["league", "season"], keep="first", inplace=True)
         df = df.set_index(["league", "season"]).sort_index()
-        return df.loc[
-            df.index.isin(list(itertools.product(df_leagues.index.unique(), self.seasons))),
-            ["format", "url"],
-        ]
+        return df.loc[(slice(None), self.seasons), ["format", "url"]]
 
     def read_team_season_stats(  # noqa: C901
         self, stat_type: str = "standard", opponent_stats: bool = False

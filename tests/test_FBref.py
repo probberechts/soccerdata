@@ -150,6 +150,10 @@ def test_combine_big5() -> None:
     # by default, optimise_big5 should be True
     assert len(fbref_bigfive.read_leagues()) == 1
     assert len(fbref_bigfive.read_seasons()) == 1
+    fbref_bigfive = sd.FBref(
+        ["ENG-Premier League", "FRA-Ligue 1", "ITA-Serie A", "ESP-La Liga", "GER-Bundesliga"], 2021
+    )
+    assert len(fbref_bigfive.read_leagues(optimise_big5=True)) == 1
 
 
 @pytest.mark.parametrize(

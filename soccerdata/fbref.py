@@ -120,13 +120,14 @@ class FBref(BaseRequestsReader):
             return date.today() >= season_ends
         return super()._is_complete(league, season)
 
-    def read_leagues(self, leagues: list) -> pd.DataFrame:
+    def read_leagues(self, optimise_big5: bool = True) -> pd.DataFrame:
         """Retrieve selected leagues from the datasource.
 
         Parameters
         ----------
-        leagues: list
-            List of leagues to retrieve from the datasource.
+        optimise_big5: bool
+            If True, it will load the "Big 5 European Leagues Combined" instead of
+            each league individually.
 
         Returns
         -------
@@ -154,14 +155,25 @@ class FBref(BaseRequestsReader):
         )
         df["first_season"] = df["first_season"].apply(season_code)
         df["last_season"] = df["last_season"].apply(season_code)
+
+        leagues = self.leagues
+        if "Big 5 European Leagues Combined" in self.leagues:
+            leagues = (
+                list(set(leagues) - set(BIG_FIVE_DICT.values()))
+                if optimise_big5
+                else list(
+                    (set(self.leagues) - {"Big 5 European Leagues Combined"})
+                    | set(BIG_FIVE_DICT.values())
+                )
+            )
         return df[df.index.isin(leagues)]
 
-    def read_seasons(self, optimise: bool = True) -> pd.DataFrame:
+    def read_seasons(self, optimise_big5: bool = True) -> pd.DataFrame:
         """Retrieve the selected seasons for the selected leagues.
 
         Parameters
         ----------
-        optimise: bool
+        optimise_big5: bool
             If True, it will load the "Big 5 European Leagues Combined" instead of
             each league individually.
 
@@ -170,17 +182,7 @@ class FBref(BaseRequestsReader):
         pd.DataFrame
         """
         filemask = "seasons_{}.html"
-        leagues = self.leagues
-        if "Big 5 European Leagues Combined" in self.leagues:
-            leagues = (
-                list(set(leagues) - set(BIG_FIVE_DICT.values()))
-                if optimise
-                else list(
-                    (set(self.leagues) - {"Big 5 European Leagues Combined"})
-                    | set(BIG_FIVE_DICT.values())
-                )
-            )
-        df_leagues = self.read_leagues(leagues)
+        df_leagues = self.read_leagues(optimise_big5)
 
         seasons = []
         for lkey, league in df_leagues.iterrows():
@@ -214,7 +216,8 @@ class FBref(BaseRequestsReader):
         df.drop_duplicates(subset=["league", "season"], keep="first", inplace=True)
         df = df.set_index(["league", "season"]).sort_index()
         return df.loc[
-            df.index.isin(list(itertools.product(leagues, self.seasons))), ["format", "url"]
+            df.index.isin(list(itertools.product(df_leagues.index.unique(), self.seasons))),
+            ["format", "url"],
         ]
 
     def read_team_season_stats(  # noqa: C901
@@ -626,7 +629,7 @@ class FBref(BaseRequestsReader):
         pd.DataFrame
         """
         # get league IDs
-        seasons = self.read_seasons(optimise=False)
+        seasons = self.read_seasons(optimise_big5=False)
 
         # collect teams
         schedule = []
@@ -1127,7 +1130,7 @@ def _concat(dfs: List[pd.DataFrame]) -> pd.DataFrame:
         all_columns.append(columns)
     columns = reduce(lambda left, right: left.combine_first(right), all_columns)
 
-    # Move the remaining missing columns back to level 1 and replace with empyt string
+    # Move the remaining missing columns back to level 1 and replace with empty string
     if columns.shape[1] == 2:
         mask = pd.isnull(columns[0])
         columns.loc[mask, [0, 1]] = columns.loc[mask, [1, 0]].values

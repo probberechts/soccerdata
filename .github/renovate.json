@@ -1,6 +1,7 @@
 {
   "extends": ["config:base", ":automergePatch"],
   "stabilityDays": 7,
+  "addLabels": ["dependencies"],
   "pip_requirements": {
     "fileMatch": ["constraints.txt"]
   }

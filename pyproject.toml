@@ -20,12 +20,11 @@ pandas = "^2.0.0"
 requests = "^2.23"
 unicode = "^2.7"
 lxml = "^4.6"
-selenium = "^4.0.0"
 Unidecode = "^1.2.0"
 rich = "^13.0.0"
 PySocks = "^1.7.1"
 html5lib = "^1.1"
-undetected-chromedriver = "^3.1.3"
+undetected-chromedriver = "^3.5.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.3"

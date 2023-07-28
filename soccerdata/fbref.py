@@ -1,5 +1,4 @@
 """Scraper for http://fbref.com."""
-import itertools
 import warnings
 from datetime import date, datetime
 from functools import reduce
@@ -90,7 +89,10 @@ class FBref(BaseRequestsReader):
         self.rate_limit = 3
         self.seasons = seasons  # type: ignore
         # check if all top 5 leagues are selected
-        if set(BIG_FIVE_DICT.values()).issubset(self.leagues):
+        if (
+            set(BIG_FIVE_DICT.values()).issubset(self.leagues)
+            and "Big 5 European Leagues Combined" not in self.leagues
+        ):
             warnings.warn(
                 "You are trying to scrape data for all of the Big 5 European leagues. "
                 "This can be done more efficiently by setting "
@@ -101,10 +103,7 @@ class FBref(BaseRequestsReader):
     @property
     def leagues(self) -> List[str]:
         """Return a list of selected leagues."""
-        selected_leagues = set(self._leagues_dict.keys())
-        if "Big 5 European Leagues Combined" in selected_leagues:
-            selected_leagues -= set(BIG_FIVE_DICT.values())
-        return list(selected_leagues)
+        return list(self._leagues_dict.keys())
 
     @classmethod
     def _all_leagues(cls) -> Dict[str, str]:
@@ -120,8 +119,14 @@ class FBref(BaseRequestsReader):
             return date.today() >= season_ends
         return super()._is_complete(league, season)
 
-    def read_leagues(self) -> pd.DataFrame:
+    def read_leagues(self, split_up_big5: bool = False) -> pd.DataFrame:
         """Retrieve selected leagues from the datasource.
+
+        Parameters
+        ----------
+        split_up_big5: bool
+            If True, it will load the "Big 5 European Leagues Combined" instead of
+            each league individually.
 
         Returns
         -------
@@ -132,14 +137,14 @@ class FBref(BaseRequestsReader):
         reader = self.get(url, filepath)
 
         # extract league links
-        leagues = []
+        dfs = []
         tree = html.parse(reader)
         for html_table in tree.xpath("//table[contains(@id, 'comps')]"):
             df_table = _parse_table(html_table)
             df_table["url"] = html_table.xpath(".//th[@data-stat='league_name']/a/@href")
-            leagues.append(df_table)
+            dfs.append(df_table)
         df = (
-            pd.concat(leagues)
+            pd.concat(dfs)
             .pipe(standardize_colnames)
             .rename(columns={"competition_name": "league"})
             .pipe(self._translate_league)
@@ -149,17 +154,30 @@ class FBref(BaseRequestsReader):
         )
         df["first_season"] = df["first_season"].apply(season_code)
         df["last_season"] = df["last_season"].apply(season_code)
-        return df[df.index.isin(self.leagues)]
 
-    def read_seasons(self) -> pd.DataFrame:
+        leagues = self.leagues
+        if "Big 5 European Leagues Combined" in self.leagues and split_up_big5:
+            leagues = list(
+                (set(self.leagues) - {"Big 5 European Leagues Combined"})
+                | set(BIG_FIVE_DICT.values())
+            )
+        return df[df.index.isin(leagues)]
+
+    def read_seasons(self, split_up_big5: bool = False) -> pd.DataFrame:
         """Retrieve the selected seasons for the selected leagues.
+
+        Parameters
+        ----------
+        split_up_big5: bool
+            If True, it will load the "Big 5 European Leagues Combined" instead of
+            each league individually.
 
         Returns
         -------
         pd.DataFrame
         """
         filemask = "seasons_{}.html"
-        df_leagues = self.read_leagues()
+        df_leagues = self.read_leagues(split_up_big5)
 
         seasons = []
         for lkey, league in df_leagues.iterrows():
@@ -192,9 +210,7 @@ class FBref(BaseRequestsReader):
         # if both a 20xx and 19xx season are available, drop the 19xx season
         df.drop_duplicates(subset=["league", "season"], keep="first", inplace=True)
         df = df.set_index(["league", "season"]).sort_index()
-        return df.loc[
-            df.index.isin(list(itertools.product(self.leagues, self.seasons))), ["format", "url"]
-        ]
+        return df.loc[(slice(None), self.seasons), ["format", "url"]]
 
     def read_team_season_stats(  # noqa: C901
         self, stat_type: str = "standard", opponent_stats: bool = False
@@ -605,7 +621,7 @@ class FBref(BaseRequestsReader):
         pd.DataFrame
         """
         # get league IDs
-        seasons = self.read_seasons()
+        seasons = self.read_seasons(split_up_big5=True)
 
         # collect teams
         schedule = []
@@ -1117,6 +1133,7 @@ def _concat(dfs: List[pd.DataFrame], key: List[str]) -> pd.DataFrame:
             # Move None column names to level 0
             mask = pd.isnull(columns[1])
             columns.loc[mask, [0, 1]] = columns.loc[mask, [1, 0]].values
+
             # We'll try to replace some the None values in step 2
             all_columns.append(columns.copy())
             # But for now, we assume that we cannot replace them and move all

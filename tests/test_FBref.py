@@ -140,6 +140,11 @@ def test_concat_with_forfeited_game() -> None:
 
 def test_combine_big5() -> None:
     fbref_bigfive = sd.FBref(["Big 5 European Leagues Combined"], 2021)
+    assert len(fbref_bigfive.read_leagues(split_up_big5=False)) == 1
+    assert len(fbref_bigfive.read_seasons(split_up_big5=False)) == 1
+    assert len(fbref_bigfive.read_leagues(split_up_big5=True)) == 5
+    assert len(fbref_bigfive.read_seasons(split_up_big5=True)) == 5
+    # by default, split_up_big5 should be False
     assert len(fbref_bigfive.read_leagues()) == 1
     assert len(fbref_bigfive.read_seasons()) == 1
 

@@ -3,29 +3,13 @@
 
 .. currentmodule:: soccerdata
 
-API
-===
+API Reference
+=============
 
-.. list-table::
-   :widths: 30 70
-
-   * - :ref:`Club Elo <api-clubelo>`
-     - ClubElo reader.
-   * - :ref:`ESPN <api-espn>`
-     - ESPN reader.
-   * - :ref:`FBref <api-fbref>`
-     - FBref reader.
-   * - :ref:`FiveThirtyEight <api-fivethirtyeight>`
-     - FiveThirtyEight reader.
-   * - :ref:`MatchHistory <api-matchhistory>`
-     - Football-data.co.uk reader.
-   * - :ref:`SoFIFA <api-sofifa>`
-     - SoFIFA reader.
-   * - :ref:`WhoScored <api-whoscored>`
-     - WhoScored reader.
+This part of the documentation covers all the interfaces of the implemented
+data scrapers.
 
 .. toctree::
-   :hidden:
 
    clubelo
    espn
@@ -34,3 +18,11 @@ API
    matchhistory
    sofifa
    whoscored
+
+If you would like to extend the functionality of soccerdata, you might also be
+interested in the following modules:
+
+.. toctree::
+
+   base
+   utils

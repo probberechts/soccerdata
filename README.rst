@@ -5,8 +5,11 @@
 
 .. badges-begin
 
-|PyPI| |Python Version| |License| |Read the Docs| |Tests| |Codecov| |pre-commit| |Black|
+|Downloads| |PyPI| |Python Version| |License| |Read the Docs| |Tests| |Codecov| |pre-commit| |Black|
 
+.. |Downloads| image:: https://pepy.tech/badge/soccerdata/month
+   :target: https://pepy.tech/project/soccerdata
+   :alt: Downloads Per Month
 .. |PyPI| image:: https://img.shields.io/pypi/v/soccerdata.svg
    :target: https://pypi.org/project/soccerdata/
    :alt: PyPI
@@ -34,25 +37,28 @@
 
 .. badges-end
 
-SoccerData is a collection of wrappers over soccer data from `Club Elo`_,
-`ESPN`_, `FBref`_, `FiveThirtyEight`_, `Football-Data.co.uk`_, `SoFIFA`_ and
-`WhoScored`_. You get Pandas DataFrames with sensible, matching column names
-and identifiers across datasets. Data is downloaded when needed and cached
-locally.
+SoccerData is a collection of scrapers to gather soccer data from popular
+websites, including `Club Elo`_, `ESPN`_, `FBref`_, `FiveThirtyEight`_,
+`Football-Data.co.uk`_, `SoFIFA`_ and `WhoScored`_. You get Pandas DataFrames
+with sensible, matching column names and identifiers across datasets. Data is
+downloaded when needed and cached locally.
 
 .. code:: python
 
    import soccerdata as sd
 
-   # Create scraper class instance for the Premier League
+   # Create a scraper class instance for the 2018/19 Premier League
    five38 = sd.FiveThirtyEight('ENG-Premier League', '1819')
 
-   # Fetch dataframes
+   # Fetch data
    games = five38.read_games()
+   forecasts = five38.read_forecasts()
+   clinches = five38.read_clinches()
 
 To learn how to install, configure and use SoccerData, see the
-`Quickstart guide <https://soccerdata.readthedocs.io/en/latest/usage.html>`__. For documentation on each of the
-supported data sources, see the `example notebooks <https://soccerdata.readthedocs.io/en/latest/datasources/>`__ and `API reference <https://soccerdata.readthedocs.io/en/latest/reference/>`__.
+`Quickstart guide <https://soccerdata.readthedocs.io/en/latest/intro.html>`__. For documentation on each of the
+supported data sources, see the `example notebooks <https://soccerdata.readthedocs.io/en/latest/datasources/>`__
+and `API reference <https://soccerdata.readthedocs.io/en/latest/reference/>`__.
 
 .. _Club Elo: https://www.clubelo.com/
 .. _ESPN: https://www.espn.com/soccer/

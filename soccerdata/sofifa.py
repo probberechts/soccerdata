@@ -1,4 +1,5 @@
 """Scraper for http://sofifa.com."""
+import json
 import re
 from datetime import timedelta
 from itertools import product
@@ -74,6 +75,7 @@ class SoFIFA(BaseRequestsReader):
             no_store=no_store,
             data_dir=data_dir,
         )
+        self.rate_limit = 1
         if versions == "latest":
             self.versions = self.read_versions().tail(n=1)
         elif versions == "all":
@@ -93,19 +95,22 @@ class SoFIFA(BaseRequestsReader):
         pd.DataFrame
         """
         # read home page (overview)
-        filepath = self.data_dir / "index.html"
-        reader = self.get(SO_FIFA_API, filepath)
+        filepath = self.data_dir / "leagues.json"
+        urlmask = SO_FIFA_API + "/api/league"
+        reader = self.get(urlmask, filepath)
+        response = json.load(reader)
 
         # extract league links
         leagues = []
-        tree = html.parse(reader)
-        for node in tree.xpath("//select[@id='choices-lg']/optgroup/option"):
-            leagues.append(
-                {
-                    "league_id": int(node.get("value")),
-                    "league": node.text,
-                }
-            )
+        for node in response["data"]:
+            for child in node["childs"]:
+                leagues.append(
+                    {
+                        "league_id": child["id"],
+                        "league": f'[{child["nationName"]}] {child["value"]}',
+                    }
+                )
+        print(pd.DataFrame(leagues))
         return (
             pd.DataFrame(leagues)
             .pipe(self._translate_league)

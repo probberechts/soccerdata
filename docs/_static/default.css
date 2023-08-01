@@ -38,3 +38,7 @@ article .align-center,
 article .align-default {
   text-align: left;
 }
+
+dt {
+  font-weight: bold !important;
+}

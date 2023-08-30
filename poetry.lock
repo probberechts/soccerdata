@@ -1294,13 +1294,13 @@ test = ["pep440", "pre-commit", "pytest", "testpath"]
 
 [[package]]
 name = "nbsphinx"
-version = "0.9.2"
+version = "0.9.3"
 description = "Jupyter Notebook Tools for Sphinx"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "nbsphinx-0.9.2-py3-none-any.whl", hash = "sha256:2746680ece5ad3b0e980639d717a5041a1c1aafb416846b72dfaeecc306bc351"},
-    {file = "nbsphinx-0.9.2.tar.gz", hash = "sha256:540db7f4066347f23d0650c4ae8e7d85334c69adf749e030af64c12e996ff88e"},
+    {file = "nbsphinx-0.9.3-py3-none-any.whl", hash = "sha256:6e805e9627f4a358bd5720d5cbf8bf48853989c79af557afd91a5f22e163029f"},
+    {file = "nbsphinx-0.9.3.tar.gz", hash = "sha256:ec339c8691b688f8676104a367a4b8cf3ea01fd089dc28d24dec22d563b11562"},
 ]
 
 [package.dependencies]

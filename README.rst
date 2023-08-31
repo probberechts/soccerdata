@@ -7,7 +7,7 @@
 
 |Downloads| |PyPI| |Python Version| |License| |Read the Docs| |Tests| |Codecov| |pre-commit| |Black|
 
-.. |Downloads| image:: https://pepy.tech/badge/soccerdata/month
+.. |Downloads| image:: https://static.pepy.tech/badge/soccerdata/month
    :target: https://pepy.tech/project/soccerdata
    :alt: Downloads Per Month
 .. |PyPI| image:: https://img.shields.io/pypi/v/soccerdata.svg

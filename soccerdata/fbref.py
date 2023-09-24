@@ -384,6 +384,9 @@ class FBref(BaseRequestsReader):
         if stat_type not in team_stats:
             raise ValueError(f"Invalid argument: stat_type should be in {team_stats}")
 
+        if stat_type == "schedule" and opponent_stats:
+            raise ValueError("Opponent stats are not available for the 'schedule' stat type")
+
         if stat_type == "goal_shot_creation":
             stat_type = "gca"
 

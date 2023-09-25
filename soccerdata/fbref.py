@@ -434,6 +434,7 @@ class FBref(BaseRequestsReader):
                     + "/all_comps"
                     + f"/{stat_type}"
                 )
+            print(url)
             reader = self.get(url, filepath)
 
             # parse HTML and select table

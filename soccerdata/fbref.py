@@ -417,13 +417,23 @@ class FBref(BaseRequestsReader):
         for (_, skey, team), team_url in iterator.url.items():
             # read html page
             filepath = self.data_dir / filemask.format(team, skey, stat_type)
-            url = (
-                FBREF_API
-                + team_url.rsplit("/", 1)[0]
-                + "/matchlogs"
-                + "/all_comps"
-                + f"/{stat_type}"
-            )
+            if len(team_url.split('/')) == 6: ## already have season in the url
+                url = (
+                    FBREF_API
+                    + team_url.rsplit("/", 1)[0]
+                    + "/matchlogs"
+                    + "/all_comps"
+                    + f"/{stat_type}"
+                )
+            else: ## special case: latest season
+                url = (
+                    FBREF_API
+                    + team_url.rsplit("/", 1)[0]
+                    + skey
+                    + "/matchlogs"
+                    + "/all_comps"
+                    + f"/{stat_type}"
+                )
             reader = self.get(url, filepath)
 
             # parse HTML and select table

@@ -394,6 +394,7 @@ class FBref(BaseRequestsReader):
 
         # get list of teams
         df_teams = self.read_team_season_stats()
+        print(df_teams)
 
         if team is not None:
             # get alternative names of the specified team(s)
@@ -417,13 +418,27 @@ class FBref(BaseRequestsReader):
         for (_, skey, team), team_url in iterator.url.items():
             # read html page
             filepath = self.data_dir / filemask.format(team, skey, stat_type)
-            url = (
-                FBREF_API
-                + team_url.rsplit("/", 1)[0]
-                + "/matchlogs"
-                + "/all_comps"
-                + f"/{stat_type}"
-            )
+            if len(team_url.split('/')) == 6:  # already have season in the url
+                url = (
+                    FBREF_API
+                    + team_url.rsplit("/", 1)[0]
+                    + "/matchlogs"
+                    + "/all_comps"
+                    + f"/{stat_type}"
+                )
+            else:  # special case: latest season
+                season_format = "{}-{}".format(
+                    datetime.strptime(skey[:2], "%y").year,
+                    datetime.strptime(skey[2:], "%y").year,
+                )
+                url = (
+                    FBREF_API
+                    + team_url.rsplit("/", 1)[0]
+                    + f"/{season_format}"
+                    + "/matchlogs"
+                    + "/all_comps"
+                    + f"/{stat_type}"
+                )
             reader = self.get(url, filepath)
 
             # parse HTML and select table

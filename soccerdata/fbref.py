@@ -457,7 +457,9 @@ class FBref(BaseRequestsReader):
             df_table = _parse_table(html_table)
             df_table["season"] = skey
             df_table["team"] = team
-            df_table["Time"] = html_table.xpath(".//td[@data-stat='start_time']/@csk")
+            df_table["Time"] = [
+                x.get('csk', None) for x in html_table.xpath(".//td[@data-stat='start_time']")
+            ]
             df_table["Match Report"] = [
                 mlink.xpath("./a/@href")[0]
                 if mlink.xpath("./a") and mlink.xpath("./a")[0].text == "Match Report"

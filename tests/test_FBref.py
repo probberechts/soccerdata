@@ -154,7 +154,7 @@ def test_combine_big5() -> None:
     [
         "standard",
         "keeper",
-        "keeper_adv",
+        # "keeper_adv",  disabled because of inconsistent data on FBref
         "shooting",
         "passing",
         "passing_types",

@@ -110,7 +110,6 @@ class SoFIFA(BaseRequestsReader):
                         "league": f'[{child["nationName"]}] {child["value"]}',
                     }
                 )
-        print(pd.DataFrame(leagues))
         return (
             pd.DataFrame(leagues)
             .pipe(self._translate_league)

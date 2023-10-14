@@ -397,7 +397,6 @@ class FBref(BaseRequestsReader):
 
         # get list of teams
         df_teams = self.read_team_season_stats()
-        print(df_teams)
 
         if team is not None:
             # get alternative names of the specified team(s)
@@ -975,7 +974,6 @@ class FBref(BaseRequestsReader):
                     minute = e.xpath("./div[1]")[0].text.replace("&rsquor;", "").strip()
                     score = e.xpath("./div[1]/small/span")[0].text
                     player1 = e.xpath("./div[2]/div[2]/div/a")[0].text
-                    print(minute, score, player1)
                     if e.xpath("./div[2]/div[2]/small/a"):
                         player2 = e.xpath("./div[2]/div[2]/small/a")[0].text
                     else:

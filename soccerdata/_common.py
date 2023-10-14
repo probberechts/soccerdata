@@ -13,8 +13,10 @@ from typing import IO, Callable, Dict, Iterable, List, Optional, Union
 import numpy as np
 import pandas as pd
 import requests
+import selenium
 import undetected_chromedriver as uc
 from dateutil.relativedelta import relativedelta
+from packaging import version
 from selenium.common.exceptions import WebDriverException
 
 from ._config import DATA_DIR, LEAGUE_DICT, logger
@@ -403,7 +405,16 @@ class BaseSeleniumReader(BaseReader):
         # Start a new driver
         chrome_options = uc.ChromeOptions()
         if self.headless:
+            print("Starting ChromeDriver in headless mode.", selenium.__version__)
+            if version.parse(selenium.__version__) >= version.parse("4.13.0"):
+                raise ValueError(
+                    "Headless mode is not supported for Selenium 4.13.0 and above. "
+                    "Please downgrade to a lower version of Selenium or set "
+                    "'headless=False'."
+                )
             chrome_options.add_argument("--headless")
+        else:
+            chrome_options.headless = False
         if self.path_to_browser is not None:
             chrome_options.add_argument("--binary-location=" + str(self.path_to_browser))
         proxy = self.proxy()

@@ -166,7 +166,7 @@ class WhoScored(BaseSeleniumReader):
         Path to the Chrome executable.
     headless : bool, default: True
         If True, will run Chrome in headless mode. Setting this to False might
-        help to avoid getting blocked.
+        help to avoid getting blocked. Only supported for Selenium <4.13.
     """
 
     def __init__(

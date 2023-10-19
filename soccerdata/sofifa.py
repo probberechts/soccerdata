@@ -199,13 +199,13 @@ class SoFIFA(BaseRequestsReader):
             pat_team = re.compile(r"\/team\/(\d+)\/[\w-]+\/")
             for node in tree.xpath("//table/tbody/tr"):
                 # extract team IDs from links
-                team_link = node.xpath(".//td[@class='col-name-wide']/a")[0]
+                team_link = node.xpath(".//td[@class='col-name-wide']//a")[0]
                 teams.append(
                     {
                         "team_id": int(
                             re.search(pat_team, team_link.get("href")).group(1)  # type: ignore
                         ),
-                        "team": team_link.xpath("./div")[0].text,
+                        "team": team_link.text,
                         "league": lkey,
                         **version.to_dict(),
                     }
@@ -335,7 +335,7 @@ class SoFIFA(BaseRequestsReader):
                 teams.append(
                     {
                         "league": lkey,
-                        "team": node.xpath(".//td[@class='col-name-wide']/a/div")[0].text,
+                        "team": node.xpath(".//td[@class='col-name-wide']//a")[0].text,
                         "overall": node.xpath(".//td[@class='col col-oa']/span")[0].text,
                         "attack": node.xpath(".//td[@class='col col-at']/span")[0].text,
                         "midfield": node.xpath(".//td[@class='col col-md']/span")[0].text,

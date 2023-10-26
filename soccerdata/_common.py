@@ -129,7 +129,8 @@ class BaseReader(ABC):
             File-like object of downloaded data.
         """
         is_cached = self._is_cached(filepath, max_age)
-        if no_cache or self.no_cache or not is_cached:
+        is_size = self._size_file(filepath)
+        if no_cache or self.no_cache or not is_cached or not is_size:
             logger.debug("Scraping %s", url)
             return self._download_and_save(url, filepath, var)
         logger.debug("Retrieving %s from cache", url)
@@ -180,6 +181,39 @@ class BaseReader(ABC):
                 cache_invalid = True
 
         return not cache_invalid and filepath is not None and filepath.exists()
+
+    def _size_file(
+        self,
+        filepath: Optional[Path] = None,
+        filter_size: int = 60
+    ) -> bool:
+        """Check if `filepath` contains data valid size.
+
+        Parameters
+        ----------
+        filepath : Path, optional
+            Path where file should be cached. If None, return False.
+        filter_size : int file size threshold. If file is smaller, return False
+
+        Raises
+        ------
+        TypeError
+            If filter_size is not an integer.
+
+        Returns
+        -------
+        bool
+            True in case of a cache hit, otherwise False.
+        """
+        if filepath is None:
+            return False
+        if not isinstance(filter_size, int):
+            raise TypeError("filter_size must be of type int")
+        try:
+            file_size = filepath.stat().st_size
+        except FileNotFoundError:
+            return False
+        return file_size > filter_size and filepath.exists()
 
     @abstractmethod
     def _download_and_save(

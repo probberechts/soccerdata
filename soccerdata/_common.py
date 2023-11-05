@@ -182,18 +182,15 @@ class BaseReader(ABC):
 
         return not cache_invalid and filepath is not None and filepath.exists()
 
-    def _size_file(
-        self,
-        filepath: Optional[Path] = None,
-        filter_size: int = 60
-    ) -> bool:
+    def _size_file(self, filepath: Optional[Path] = None, filter_size: int = 60) -> bool:
         """Check if `filepath` contains data valid size.
 
         Parameters
         ----------
         filepath : Path, optional
             Path where file should be cached. If None, return False.
-        filter_size : int file size threshold. If file is smaller, return False
+        filter_size : int
+            file size threshold. If file is smaller, return False
 
         Raises
         ------

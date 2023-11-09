@@ -703,6 +703,14 @@ class WhoScored(BaseSeleniumReader):
                 var="requirejs.s.contexts._.config.config.params.args.matchCentreData",
                 no_cache=live,
             )
+            if reader.read(4) == b'null':
+                reader = self.get(
+                    url,
+                    filepath,
+                    var="requirejs.s.contexts._.config.config.params.args.matchCentreData",
+                    no_cache=True,
+                )
+            reader.seek(0)
             json_data = json.load(reader)
             if json_data is not None:
                 player_names.update(

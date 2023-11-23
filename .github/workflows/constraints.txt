@@ -1,5 +1,5 @@
 pip==23.3.1
 nox==2023.4.22
 nox-poetry==1.0.3
-poetry==1.7.0
+poetry==1.7.1
 virtualenv==20.24.6

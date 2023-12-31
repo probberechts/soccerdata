@@ -143,16 +143,16 @@ class SoFIFA(BaseRequestsReader):
         # extract FIFA releases
         versions = []
         tree = html.parse(reader)
-        for i, node_fifa_edition in enumerate(tree.xpath("//header/div[2]/div/h2/div[1]/div/a")):
+        for i, node_fifa_edition in enumerate(tree.xpath("//header/section/p/select[1]/option")):
             fifa_edition = node_fifa_edition.text
             filepath = self.data_dir / f"updates_{fifa_edition}.html"
-            url = SO_FIFA_API + node_fifa_edition.get("href")
+            url = SO_FIFA_API + node_fifa_edition.get("value")
             # check for updates on latest FIFA edition only
             reader = self.get(url, filepath, max_age=max_age if i == 0 else None)
             tree = html.parse(reader)
 
-            for node_fifa_update in tree.xpath("//header/div[2]/div/h2/div[2]/div/a"):
-                href = node_fifa_update.get("href")
+            for node_fifa_update in tree.xpath("//header/section/p/select[2]/option"):
+                href = node_fifa_update.get("value")
                 version_id = re.search(r"r=(\d+)", href).group(1)  # type: ignore
                 versions.append(
                     {
@@ -199,7 +199,7 @@ class SoFIFA(BaseRequestsReader):
             pat_team = re.compile(r"\/team\/(\d+)\/[\w-]+\/")
             for node in tree.xpath("//table/tbody/tr"):
                 # extract team IDs from links
-                team_link = node.xpath(".//td[@class='col-name-wide']//a")[0]
+                team_link = node.xpath(".//td[2]//a")[0]
                 teams.append(
                     {
                         "team_id": int(
@@ -276,10 +276,8 @@ class SoFIFA(BaseRequestsReader):
             # extract player links
             tree = html.parse(reader)
             pat_player = re.compile(r"\/player\/(\d+)\/[\w-]+\/")
-            table_squad = tree.xpath("//div[@class='card']/table")
-            for node in table_squad[0].xpath(
-                ".//td[@class='col-name']/a[contains(@href,'/player/')]"
-            ):
+            table_squad = tree.xpath("//article/table")
+            for node in table_squad[0].xpath(".//td[2]/a[contains(@href,'/player/')]"):
                 # extract player IDs from links
                 # extract player names from links
                 players.append(
@@ -287,7 +285,7 @@ class SoFIFA(BaseRequestsReader):
                         "player_id": int(
                             re.search(pat_player, node.get("href")).group(1)  # type: ignore
                         ),
-                        "player": node.get("aria-label"),
+                        "player": node.get("data-tippy-content"),
                         "team": df_team["team"],
                         "league": df_team['league'],
                         **version.to_dict(),
@@ -304,8 +302,37 @@ class SoFIFA(BaseRequestsReader):
         -------
         pd.DataFrame
         """
+        # define id and description of ratings to retrieve
+        ratings = {
+            "oa": "overall",
+            "at": "attack",
+            "md": "midfield",
+            "df": "defence",
+            "tb": "transfer_budget",
+            "cw": "club_worth",
+            "bs": "build_up_speed",
+            "bd": "build_up_dribbling",
+            "bp": "build_up_passing",
+            "bps": "build_up_positioning",
+            "cc": "chance_creation_crossing",
+            "cp": "chance_creation_passing",
+            "cs": "chance_creation_shooting",
+            "cps": "chance_creation_positioning",
+            "da": "defence_aggression",
+            "dm": "defence_pressure",
+            "dw": "defence_team_width",
+            "dd": "defence_defender_line",
+            "dp": "defence_domestic_prestige",
+            "ip": "international_prestige",
+            "ps": "players",
+            "sa": "starting_xi_average_age",
+            "ta": "whole_team_average_age",
+        }
+
         # build url
         urlmask = SO_FIFA_API + "/teams?lg={}&r={}&set=true"
+        for rating_id in ratings.keys():
+            urlmask += f"&showCol[]={rating_id}"
         filemask = "teams_{}_{}.html"
 
         # get league IDs
@@ -335,13 +362,11 @@ class SoFIFA(BaseRequestsReader):
                 teams.append(
                     {
                         "league": lkey,
-                        "team": node.xpath(".//td[@class='col-name-wide']//a")[0].text,
-                        "overall": node.xpath(".//td[@class='col col-oa']/span")[0].text,
-                        "attack": node.xpath(".//td[@class='col col-at']/span")[0].text,
-                        "midfield": node.xpath(".//td[@class='col col-md']/span")[0].text,
-                        "defence": node.xpath(".//td[@class='col col-df']/span")[0].text,
-                        "transfer_budget": node.xpath(".//td[@class='col col-tb']")[0].text,
-                        "players": node.xpath(".//td[@class='col col-ps']")[0].text,
+                        "team": node.xpath(".//td[2]//a")[0].text,
+                        **{
+                            desc: node.xpath(f".//td[@data-col='{id}']//text()")[0]
+                            for id, desc in ratings.items()
+                        },
                         **version.to_dict(),
                     }
                 )
@@ -446,14 +471,14 @@ class SoFIFA(BaseRequestsReader):
             # extract scores one-by-one
             tree = html.parse(reader, parser=html.HTMLParser(encoding='utf8'))
             scores = {
-                "player": tree.xpath("//div[@class='info']/h1")[0].text.strip(),
+                "player": tree.xpath("//div[contains(@class, 'profile')]/h1")[0].text.strip(),
                 **version.to_dict(),
             }
             for s in score_labels:
                 nodes = tree.xpath(
-                    "(//li[not(self::script)] | //div)"
+                    "(//li[not(self::script)] | //div | //p)"
                     f"[.//text()[contains(.,'{s}')]]"
-                    "/span[contains(@class, 'tag')]"
+                    "/em"
                 )
                 # for multiple matches, only accept first match
                 if len(nodes) >= 1:

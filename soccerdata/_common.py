@@ -71,9 +71,9 @@ class BaseReader(ABC):
                 "https": "socks5://127.0.0.1:9050",
             }
         elif isinstance(proxy, dict):
-            self.proxy = lambda: proxy  # type: ignore
+            self.proxy = lambda: proxy
         elif isinstance(proxy, list):
-            self.proxy = lambda: random.choice(proxy)  # type: ignore
+            self.proxy = lambda: random.choice(proxy)
         elif callable(proxy):
             self.proxy = proxy
         else:

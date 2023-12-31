@@ -19,7 +19,7 @@ from dateutil.relativedelta import relativedelta
 from packaging import version
 from selenium.common.exceptions import WebDriverException
 
-from ._config import DATA_DIR, LEAGUE_DICT, logger
+from ._config import DATA_DIR, LEAGUE_DICT, MAXAGE, logger
 
 
 class BaseReader(ABC):
@@ -95,7 +95,7 @@ class BaseReader(ABC):
         self,
         url: str,
         filepath: Optional[Path] = None,
-        max_age: Optional[Union[int, timedelta]] = None,
+        max_age: Optional[Union[int, timedelta]] = MAXAGE,
         no_cache: bool = False,
         var: Optional[str] = None,
     ) -> IO[bytes]:
@@ -167,7 +167,7 @@ class BaseReader(ABC):
             elif isinstance(max_age, timedelta):
                 _max_age = max_age
             else:
-                raise TypeError("max_age must be of type int or datetime.timedelta")
+                raise TypeError("'max_age' must be of type int or datetime.timedelta")
         else:
             _max_age = None
 

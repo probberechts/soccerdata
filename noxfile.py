@@ -142,7 +142,18 @@ def tests(session: Session) -> None:
     session.install(".")
     session.install("coverage[toml]", "pytest", "pytest-mock", "time-machine", "pygments")
     try:
-        session.run("coverage", "run", "--parallel", "-m", "pytest", *args)
+        session.run(
+            "coverage",
+            "run",
+            "--parallel",
+            "-m",
+            "pytest",
+            *args,
+            env={
+                'SOCCERDATA_DIR': str(Path(__file__).parent / "tests" / "appdata"),
+                'MAXAGE': '604800',
+            },
+        )
     finally:
         if session.interactive:
             session.notify("coverage", posargs=[])

@@ -10,7 +10,6 @@ from ._common import (
     BaseRequestsReader,
     make_game_id,
     season_code,
-    standardize_colnames,
 )
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
 
@@ -100,7 +99,6 @@ class Fotmob(BaseRequestsReader):
         res = super()._all_leagues()
         return res
 
-
     def read_leagues(self) -> pd.DataFrame:
         '''Retrieve the selected leagues from the datasource.
 
@@ -141,13 +139,14 @@ class Fotmob(BaseRequestsReader):
         df = (
             pd.DataFrame(leagues)
             .assign(league=lambda x: x.region + '-' + x.league)
-            .pipe(self._translate_league) 
+            # .pipe(self._translate_league) 
             .set_index('league')
             .loc[self._selected_leagues.keys()]
             .sort_index()
         )
         return df[df.index.isin(self.leagues)]
 
+   
     def read_seasons(self) -> pd.DataFrame:
         '''Retrieve the selected seasons for the selected leagues.
 
@@ -206,7 +205,10 @@ class Fotmob(BaseRequestsReader):
             print(url)
             reader = self.get(url, filepath)
             data = json.load(reader)
-            df_table = pd.json_normalize(data['table'][0]['data']['tables'][2]['table']['all'])
+            if 'tables' in data['table'][0]['data']:
+                df_table = pd.json_normalize(data['table'][0]['data']['tables'][2]['table']['all'])
+            else:  
+                df_table = pd.json_normalize(data['table'][0]['data']['table']['all'])
             cols = [
                 'name',
                 'id',
@@ -224,13 +226,13 @@ class Fotmob(BaseRequestsReader):
             df_table.drop(columns=['scoresStr'], inplace=True)
             df_table['league'] = lkey
             df_table['season'] = skey
-            df_table['playoff'] = None
-            # Get cup game finalists (for leagues with playoffs)
-            if ('stats' in data['tabs']) & (not cup_finals):
-                cup_finals = data['stats']['trophies']
 
             # If league has a playoff, add final playoff standing as a column
             if 'playoff' in data['tabs']:
+                df_table['playoff'] = None
+                # Get cup game finalists (for leagues with playoffs)
+                if ('stats' in data['tabs']) & (not cup_finals):
+                    cup_finals = data['stats']['trophies']
                 playoff_rounds = data['playoff']['rounds']
                 for i in range(len(playoff_rounds)):
                     stage_teams = []
@@ -243,7 +245,7 @@ class Fotmob(BaseRequestsReader):
                         df_table.loc[df_table['id'].isin(stage_teams), 'playoff'] = stage
                         if stage == 'final':
                             winner = game['winner']
-                            df_table.loc[df_table['id'] == winner, 'playoff'] = 'mls_cup'
+                            df_table.loc[df_table['id'] == winner, 'playoff'] = 'cup_final'
             mult_tables.append(df_table)
         df = pd.concat(mult_tables, axis=0)
         # Add cup finalists to table

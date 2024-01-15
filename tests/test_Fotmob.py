@@ -9,8 +9,8 @@ from soccerdata.fotmob import Fotmob
 # Unittests -------------------------------------------------------------------
 
 
-# def test_read_league_table(fotmob_laliga: Fotmob) -> None:
-    # assert isinstance(fotmob_laliga.read_league_table(), pd.DataFrame)
+def test_read_league_table(fotmob_laliga: Fotmob) -> None:
+    assert isinstance(fotmob_laliga.read_league_table(), pd.DataFrame)
 
 
 def test_read_schedule(fotmob_laliga: Fotmob) -> None:

@@ -6,11 +6,7 @@ from typing import Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 
-from ._common import (
-    BaseRequestsReader,
-    make_game_id,
-    season_code,
-)
+from ._common import BaseRequestsReader, make_game_id, season_code
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
 
 FOTMOB_DATADIR = DATA_DIR / 'Fotmob'
@@ -18,7 +14,7 @@ FOTMOB_API = 'https://www.fotmob.com/api/'
 
 
 class Fotmob(BaseRequestsReader):
-    '''Provides pd.DataFrames from data available at http://www.fotmob.com.
+    """Provides pd.DataFrames from data available at http://www.fotmob.com.
 
     Data will be downloaded as necessary and cached locally in
     ``~/soccerdata/data/Fotmob``.
@@ -58,7 +54,7 @@ class Fotmob(BaseRequestsReader):
     headless : bool, default: True
         If True, will run Chrome in headless mode. Setting this to False might
         help to avoid getting blocked.
-    '''
+    """
 
     def __init__(
         self,
@@ -87,7 +83,7 @@ class Fotmob(BaseRequestsReader):
             (self.data_dir / 'matches').mkdir(parents=True, exist_ok=True)
             (self.data_dir / 'previews').mkdir(parents=True, exist_ok=True)
             (self.data_dir / 'events').mkdir(parents=True, exist_ok=True)
-    
+
     @property
     def leagues(self) -> List[str]:
         """Return a list of selected leagues."""
@@ -100,12 +96,12 @@ class Fotmob(BaseRequestsReader):
         return res
 
     def read_leagues(self) -> pd.DataFrame:
-        '''Retrieve the selected leagues from the datasource.
+        """Retrieve the selected leagues from the datasource.
 
         Returns
         -------
         pd.DataFrame
-        '''
+        """
         filemask = 'allLeagues'
         url = FOTMOB_API + filemask
         filepath = self.data_dir / 'allLeagues.json'
@@ -139,21 +135,20 @@ class Fotmob(BaseRequestsReader):
         df = (
             pd.DataFrame(leagues)
             .assign(league=lambda x: x.region + '-' + x.league)
-            # .pipe(self._translate_league) 
+            .pipe(self._translate_league)
             .set_index('league')
             .loc[self._selected_leagues.keys()]
             .sort_index()
         )
         return df[df.index.isin(self.leagues)]
 
-   
     def read_seasons(self) -> pd.DataFrame:
-        '''Retrieve the selected seasons for the selected leagues.
+        """Retrieve the selected seasons for the selected leagues.
 
         Returns
         -------
         pd.DataFrame
-        '''
+        """
         df_leagues = self.read_leagues()
         seasons = []
         for lkey, league in df_leagues.iterrows():
@@ -175,19 +170,16 @@ class Fotmob(BaseRequestsReader):
                     }
                 )
             # Change season id for 2122 season manually (gross)
-        df = (
-            pd.DataFrame(seasons)
-            .set_index(['league', 'season']).sort_index()
-        )
+        df = pd.DataFrame(seasons).set_index(['league', 'season']).sort_index()
         return df.loc[df.index.isin(list(itertools.product(self.leagues, self.seasons)))]
 
     def read_league_table(self) -> pd.DataFrame:
-        '''Retrieve the league table for the selected leagues
+        """Retrieve the league table for the selected leagues
 
         Returns
         -------
         pd.DataFrame
-        '''
+        """
         filemask = 'table_{}_{}_{}.html'
 
         # get league IDs
@@ -202,12 +194,11 @@ class Fotmob(BaseRequestsReader):
             # read html page (league overview)
             filepath = self.data_dir / filemask.format(lkey, skey, 'table')
             url = FOTMOB_API + season.url
-            print(url)
             reader = self.get(url, filepath)
             data = json.load(reader)
             if 'tables' in data['table'][0]['data']:
                 df_table = pd.json_normalize(data['table'][0]['data']['tables'][2]['table']['all'])
-            else:  
+            else:
                 df_table = pd.json_normalize(data['table'][0]['data']['table']['all'])
             cols = [
                 'name',
@@ -231,7 +222,7 @@ class Fotmob(BaseRequestsReader):
             if 'playoff' in data['tabs']:
                 df_table['playoff'] = None
                 # Get cup game finalists (for leagues with playoffs)
-                if ('stats' in data['tabs']) & (not cup_finals):
+                if 'stats' in data['tabs']:
                     cup_finals = data['stats']['trophies']
                 playoff_rounds = data['playoff']['rounds']
                 for i in range(len(playoff_rounds)):
@@ -271,7 +262,7 @@ class Fotmob(BaseRequestsReader):
         return df
 
     def read_schedule(self, force_cache: bool = False) -> pd.DataFrame:
-        '''Retrieve the game schedule for the selected leagues and seasons.
+        """Retrieve the game schedule for the selected leagues and seasons.
 
         Parameters
         ----------
@@ -282,9 +273,8 @@ class Fotmob(BaseRequestsReader):
         Returns
         -------
         pd.DataFrame
-        '''
+        """
         df_seasons = self.read_seasons()
-        filemask = 'matches/{}_{}.csv'
         all_schedules = []
         url_fixtures = []
         for (lkey, skey), season in df_seasons.iterrows():
@@ -294,18 +284,10 @@ class Fotmob(BaseRequestsReader):
             data = json.load(reader)
 
             df = pd.json_normalize(data['matches']['allMatches'])
-            url_fixtures = ['/matchDetails?matchId=' + id for id in df.id] + url_fixtures
-            filepath_fixtures = self.data_dir / f'schedule_{lkey}_{skey}.json'
-            # current_season = not self._is_complete(lkey, skey)
-            # reader = self.get(
-            # url_fixtures, filepath_fixtures, no_cache=current_season and not force_cache
-            # )
+            url_fixtures = ['/matchDetails?matchId=' + id for id in df.id]
             df['league'] = lkey
             df['season'] = skey
-            # df_table = df_table.dropna(how='all')
             all_schedules.append(df)
-            # no_cache = (not filepath.exists()) or self.no_cache
-            # stages = data['playoff']
 
         # Construct the output dataframe
         df = (
@@ -336,7 +318,7 @@ class Fotmob(BaseRequestsReader):
         match_id: Optional[Union[str, List[str]]] = None,
         force_cache: bool = False,
     ) -> pd.DataFrame:
-        '''Retrieve the match stats for the selected leagues and seasons.
+        """Retrieve the match stats for the selected leagues and seasons.
 
         The following stat types are available:
             * 'Top stats'
@@ -368,7 +350,7 @@ class Fotmob(BaseRequestsReader):
         Returns
         -------
         pd.DataFrame
-        '''
+        """
         # Retrieve games for which a match report is available
         df_matches = self.read_schedule(force_cache).reset_index()
 

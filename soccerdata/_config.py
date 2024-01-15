@@ -109,7 +109,7 @@ LEAGUE_DICT = {
         "MatchHistory": "SP1",
         "FiveThirtyEight": "la-liga",
         "FBref": "La Liga",
-        "Fotmob": "LaLiga",
+        "Fotmob": "ESP-LaLiga",
         "ESPN": "esp.1",
         "SoFIFA": "[Spain] La Liga",
         "WhoScored": "Spain - LaLiga",
@@ -154,12 +154,12 @@ LEAGUE_DICT = {
     },
     "INT-World Cup": {
         "FBref": "FIFA World Cup",
-        "Fotmob": "World Cup",
+        "Fotmob": "INT-World Cup",
         "WhoScored": "International - FIFA World Cup",
     },
     "INT-Women's World Cup": {
         "FBref": "FIFA Women's World Cup",
-        "Fotmob": "Women's World Cup",
+        "Fotmob": "INT-Women's World Cup",
         "WhoScored": "International - FIFA Women's World Cup",
     },
 }

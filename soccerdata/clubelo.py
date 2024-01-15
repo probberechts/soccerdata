@@ -15,9 +15,7 @@ CLUB_ELO_API = "http://api.clubelo.com"
 
 
 def _parse_csv(data: IO[bytes]) -> pd.DataFrame:
-    return pd.read_csv(
-        data, parse_dates=["From", "To"], infer_datetime_format=True, dayfirst=False
-    )
+    return pd.read_csv(data, parse_dates=["From", "To"], date_format="%Y-%m-%d")
 
 
 class ClubElo(BaseRequestsReader):

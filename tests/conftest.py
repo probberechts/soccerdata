@@ -1,38 +1,37 @@
 """Pytest fixtures for soccerdata package."""
-
 import pytest
 
-import soccerdata as foo
+import soccerdata as sd
 
 
 @pytest.fixture
-def five38():
+def five38() -> sd.FiveThirtyEight:
     """Return a correctly initialized instance of FiveThirtyEight."""
-    return foo.FiveThirtyEight(seasons="20-21")
+    return sd.FiveThirtyEight(seasons="20-21")
 
 
 @pytest.fixture
-def five38_laliga():
+def five38_laliga() -> sd.FiveThirtyEight:
     """Return a correctly initialized instance of FiveThirtyEight filtered by league: La Liga."""
-    return foo.FiveThirtyEight("ESP-La Liga", "20-21")
+    return sd.FiveThirtyEight("ESP-La Liga", "20-21")
 
 
 @pytest.fixture
-def espn_seriea():
+def espn_seriea() -> sd.ESPN:
     """Return a correctly initialized instance of ESPN filtered by league: Serie A."""
-    return foo.ESPN("ITA-Serie A", "20-21")
+    return sd.ESPN("ITA-Serie A", "20-21")
 
 
 @pytest.fixture
-def sofifa_bundesliga():
+def sofifa_bundesliga() -> sd.SoFIFA:
     """Return a correctly initialized instance of SoFIFA filtered by league: Bundesliga."""
-    return foo.SoFIFA("GER-Bundesliga", versions=[230012])
+    return sd.SoFIFA("GER-Bundesliga", versions=[230012])
 
 
 @pytest.fixture
-def fbref_ligue1():
+def fbref_ligue1() -> sd.FBref:
     """Return a correctly initialized instance of FBref filtered by league: Ligue 1."""
-    return foo.FBref("FRA-Ligue 1", "20-21")
+    return sd.FBref("FRA-Ligue 1", "20-21")
 
 @pytest.fixture
 def fotmob_laliga():
@@ -41,18 +40,18 @@ def fotmob_laliga():
 
 
 @pytest.fixture
-def elo():
+def elo() -> sd.ClubElo:
     """Return a correctly initialized ClubElo instance."""
-    return foo.ClubElo()
+    return sd.ClubElo()
 
 
 @pytest.fixture
-def match_epl_2y():
+def match_epl_2y() -> sd.MatchHistory:
     """Return a MatchHistory instance for the last 2 years of the EPL."""
-    return foo.MatchHistory("ENG-Premier League", list(range(2018, 2020)))
+    return sd.MatchHistory("ENG-Premier League", list(range(2018, 2020)))
 
 
 @pytest.fixture
-def whoscored():
+def whoscored() -> sd.WhoScored:
     """Return a correctly initialized instance of WhoScored."""
-    return foo.WhoScored("ENG-Premier League", "20-21")
+    return sd.WhoScored("ENG-Premier League", "20-21", headless=True)

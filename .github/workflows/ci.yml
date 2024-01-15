@@ -30,8 +30,16 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v4.1.1
 
+      - name: Restore data cache
+        if: matrix.session == 'tests'
+        id: cache-data
+        uses: actions/cache@v3
+        with:
+          path: tests/appdata/data
+          key: cache-data-${{ runner.os }}-${{ matrix.python }}
+
       - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v4.7.1
+        uses: actions/setup-python@v5.0.0
         with:
           python-version: ${{ matrix.python }}
 
@@ -114,7 +122,7 @@ jobs:
         uses: actions/checkout@v4.1.1
 
       - name: Set up Python
-        uses: actions/setup-python@v4.7.1
+        uses: actions/setup-python@v5.0.0
         with:
           python-version: "3.11"
 

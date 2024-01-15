@@ -151,6 +151,9 @@ variables:
     default, data is retrieved from the cache.
 ``SOCCERDATA_NOSTORE``
     If set to "true", no data is stored. By default, data is cached.
+``SOCCERDATA_MAXAGE``
+    The maximum age of cached data in seconds. If the cached data is older
+    than this, it will be re-downloaded. By default, this is set to infinity.
 ``SOCCERDATA_LOGLEVEL``
     The level of logging to use. By default, this is set to "INFO".
 

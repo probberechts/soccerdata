@@ -1,4 +1,4 @@
-'''Scraper for http://fotmob.com.'''
+"""Scraper for http://fotmob.com."""
 import itertools
 import json
 from pathlib import Path
@@ -67,7 +67,7 @@ class Fotmob(BaseRequestsReader):
         no_store: bool = NOSTORE,
         data_dir: Path = FOTMOB_DATADIR,
     ):
-        '''Initialize the Fotmob reader.'''
+        """Initialize the Fotmob reader."""
         super().__init__(
             leagues=leagues,
             proxy=proxy,
@@ -174,7 +174,7 @@ class Fotmob(BaseRequestsReader):
         return df.loc[df.index.isin(list(itertools.product(self.leagues, self.seasons)))]
 
     def read_league_table(self) -> pd.DataFrame:
-        """Retrieve the league table for the selected leagues
+        """Retrieve the league table for the selected leagues.
 
         Returns
         -------

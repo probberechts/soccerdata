@@ -51,6 +51,9 @@ pytest-mock = "^3.10.0"
 bumpversion = "^0.6.0"
 nbsphinx = "^0.9.0"
 
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.0"
+
 [tool.isort]
 profile = "black"
 src_paths = ["soccerdata", "tests"]

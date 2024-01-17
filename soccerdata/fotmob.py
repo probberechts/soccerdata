@@ -154,6 +154,7 @@ class Fotmob(BaseRequestsReader):
         for lkey, league in df_leagues.iterrows():
             url_append = 'leagues?id=' + str(league.league_id)
             url = FOTMOB_API + url_append
+            print(url)
             filemask = 'seasons/{}.json'
             filepath = self.data_dir / filemask.format(lkey)
             reader = self.get(url, filepath)
@@ -186,7 +187,6 @@ class Fotmob(BaseRequestsReader):
         seasons = self.read_seasons()
         # collect teams
         mult_tables = []
-        cup_finals = []
         seasons_list = []
         for (lkey, skey), season in seasons.iterrows():
             # Keep list of seasons for later iterating (cup finals)
@@ -222,8 +222,6 @@ class Fotmob(BaseRequestsReader):
             if 'playoff' in data['tabs']:
                 df_table['playoff'] = None
                 # Get cup game finalists (for leagues with playoffs)
-                if 'stats' in data['tabs']:
-                    cup_finals = data['stats']['trophies']
                 playoff_rounds = data['playoff']['rounds']
                 for i in range(len(playoff_rounds)):
                     stage_teams = []
@@ -236,23 +234,9 @@ class Fotmob(BaseRequestsReader):
                         df_table.loc[df_table['id'].isin(stage_teams), 'playoff'] = stage
                         if stage == 'final':
                             winner = game['winner']
-                            df_table.loc[df_table['id'] == winner, 'playoff'] = 'cup_final'
+                            df_table.loc[df_table['id'] == winner, 'playoff'] = 'cup_winner'
             mult_tables.append(df_table)
         df = pd.concat(mult_tables, axis=0)
-        # Add cup finalists to table
-        if bool(cup_finals):
-            skey = [season[:2] for season in seasons_list]
-            for final in cup_finals:
-                if final['seasonName'][-2:] in skey:
-                    winner = final['winner']['id']
-                    finalist = final['loser']['id']
-                    # Re-map season name from Fotmob so it matches soccerdata format
-                    finals_season = final['seasonName'][-2:] + str(
-                        int(final['seasonName'][-2:]) + 1
-                    )
-                    season_map = df.season == finals_season
-                    df.loc[(df['id'] == winner) & season_map, 'playoff'] = 'cup_winner'
-                    df.loc[(df['id'] == finalist) & season_map, 'playoff'] = 'final'
         df = (
             df.rename(columns={'Squad': 'team'})
             .replace({'team': TEAMNAME_REPLACEMENTS})
@@ -312,7 +296,7 @@ class Fotmob(BaseRequestsReader):
         df = df.set_index(['league', 'season', 'game']).sort_index()
         return df
 
-    def read_game_match_stats(
+    def read_match_stats(
         self,
         stat_type: str = 'Top stats',
         match_id: Optional[Union[str, List[str]]] = None,

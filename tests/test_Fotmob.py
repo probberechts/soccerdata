@@ -21,7 +21,5 @@ def test_read_schedule(fotmob_laliga: Fotmob) -> None:
     "stat_type",
     ['Top stats', 'Shots', 'Expected goals (xG)', 'Passes', 'Defence', 'Duels', 'Discipline'],
 )
-def test_read_game_match_stats(fotmob_laliga: Fotmob, stat_type: str) -> None:
-    assert isinstance(
-        fotmob_laliga.read_game_match_stats(stat_type, match_id="3424405"), pd.DataFrame
-    )
+def test_read_match_stats(fotmob_laliga: Fotmob, stat_type: str) -> None:
+    assert isinstance(fotmob_laliga.read_match_stats(stat_type, match_id="3424405"), pd.DataFrame)

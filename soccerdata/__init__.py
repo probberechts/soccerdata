@@ -17,7 +17,7 @@ from .clubelo import ClubElo
 from .espn import ESPN
 from .fbref import FBref
 from .fivethirtyeight import FiveThirtyEight
-from .fotmob import Fotmob
+from .fotmob import FotMob
 from .match_history import MatchHistory
 from .sofifa import SoFIFA
 from .whoscored import WhoScored

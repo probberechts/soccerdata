@@ -39,7 +39,7 @@ furo = "^2023.0.0"
 coverage = {version = "^7.0", extras = ["toml"]}
 pre-commit = "^3.0.0"
 flake8 = "^7.0.0"
-flake8-bugbear = "^23.0.0"
+flake8-bugbear = "^24.0.0"
 flake8-docstrings = "^1.6.0"
 flake8-rst-docstrings = "^0.3.0"
 pep8-naming = "^0.13.2"

@@ -33,7 +33,7 @@ jobs:
       - name: Restore data cache
         if: matrix.session == 'tests'
         id: cache-data
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: tests/appdata/data
           key: cache-data-${{ runner.os }}-${{ matrix.python }}
@@ -84,7 +84,7 @@ jobs:
           print("::set-output name=result::{}".format(result))
 
       - name: Restore pre-commit cache
-        uses: actions/cache@v3.3.3
+        uses: actions/cache@v4.0.0
         if: matrix.session == 'pre-commit'
         with:
           path: ~/.cache/pre-commit

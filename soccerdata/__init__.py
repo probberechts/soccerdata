@@ -7,7 +7,7 @@ __all__ = [
     'ClubElo',
     'MatchHistory',
     'FBref',
-    'Fotmob',
+    'FotMob',
     'ESPN',
     'WhoScored',
     'SoFIFA',

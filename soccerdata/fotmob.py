@@ -3,21 +3,21 @@ import itertools
 import json
 from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Optional, Union
-
+from functools import reduce
 import pandas as pd
 
 from ._common import BaseRequestsReader, make_game_id, season_code
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
 
-FOTMOB_DATADIR = DATA_DIR / 'Fotmob'
+FOTMOB_DATADIR = DATA_DIR / 'FotMob'
 FOTMOB_API = 'https://www.fotmob.com/api/'
 
 
-class Fotmob(BaseRequestsReader):
+class FotMob(BaseRequestsReader):
     """Provides pd.DataFrames from data available at http://www.fotmob.com.
 
     Data will be downloaded as necessary and cached locally in
-    ``~/soccerdata/data/Fotmob``.
+    ``~/soccerdata/data/FotMob``.
 
     Parameters
     ----------
@@ -49,11 +49,6 @@ class Fotmob(BaseRequestsReader):
         If True, will not store downloaded data.
     data_dir : Path
         Path to directory where data will be cached.
-    path_to_browser : Path, optional
-        Path to the Chrome executable.
-    headless : bool, default: True
-        If True, will run Chrome in headless mode. Setting this to False might
-        help to avoid getting blocked.
     """
 
     def __init__(
@@ -67,7 +62,7 @@ class Fotmob(BaseRequestsReader):
         no_store: bool = NOSTORE,
         data_dir: Path = FOTMOB_DATADIR,
     ):
-        """Initialize the Fotmob reader."""
+        """Initialize the FotMob reader."""
         super().__init__(
             leagues=leagues,
             proxy=proxy,
@@ -76,13 +71,10 @@ class Fotmob(BaseRequestsReader):
             data_dir=data_dir,
         )
         self.seasons = seasons  # type: ignore
-        self.rate_limit = 3
-        self.max_delay = 3
         if not self.no_store:
-            (self.data_dir / 'seasons').mkdir(parents=True, exist_ok=True)
-            (self.data_dir / 'matches').mkdir(parents=True, exist_ok=True)
-            (self.data_dir / 'previews').mkdir(parents=True, exist_ok=True)
-            (self.data_dir / 'events').mkdir(parents=True, exist_ok=True)
+            (self.data_dir / "seasons").mkdir(parents=True, exist_ok=True)
+            (self.data_dir / "matches").mkdir(parents=True, exist_ok=True)
+
 
     @property
     def leagues(self) -> List[str]:
@@ -102,14 +94,14 @@ class Fotmob(BaseRequestsReader):
         -------
         pd.DataFrame
         """
-        filemask = 'allLeagues'
-        url = FOTMOB_API + filemask
+        urlmask = 'allLeagues'
+        url = FOTMOB_API + urlmask
         filepath = self.data_dir / 'allLeagues.json'
         reader = self.get(url, filepath)
         data = json.load(reader)
         leagues = []
         for k, v in data.items():
-            if (k == 'favourite') | (k == 'popular') | (k == 'userSettings'):
+            if k in ('favourite', 'popular', 'userSettings'):
                 continue
             elif k == 'international':
                 for int_league in v[0]['leagues']:
@@ -154,7 +146,6 @@ class Fotmob(BaseRequestsReader):
         for lkey, league in df_leagues.iterrows():
             url_append = 'leagues?id=' + str(league.league_id)
             url = FOTMOB_API + url_append
-            print(url)
             filemask = 'seasons/{}.json'
             filepath = self.data_dir / filemask.format(lkey)
             reader = self.get(url, filepath)
@@ -295,11 +286,82 @@ class Fotmob(BaseRequestsReader):
         df['game'] = df.apply(make_game_id, axis=1)
         df = df.set_index(['league', 'season', 'game']).sort_index()
         return df
+    
 
-    def read_match_stats(
+    def read_team_season_stats(  # noqa: C901
+           self 
+    ) -> pd.DataFrame:
+        """Retrieve aggregated season stats for all teams in the selected leagues and seasons.
+
+        Returns
+        -------
+        pd.DataFrame
+        """
+
+        filemask = "teams_{}_{}.html"
+
+        # get league IDs
+        seasons = self.read_seasons()
+        # collect teams
+        teams = []
+        for (lkey, skey), season_url in seasons.iterrows():
+            filepath = self.data_dir / filemask.format(lkey, skey)
+            url = FOTMOB_API + season_url.url
+            reader = self.get(url, filepath)
+            season_data = json.load(reader)
+            team_stats = season_data['stats']['teams']
+            ind_stat_urls = [ind_stat['fetchAllUrl'] for ind_stat in team_stats]
+            dfs = [] 
+            for ind_stat in ind_stat_urls:
+                reader = self.get(ind_stat)
+                stat_read = json.load(reader)
+                stat_name = stat_read['TopLists'][0]['Title']
+                # Bypass duplicate data
+                if stat_name == 'Red cards':
+                    continue
+                substat_name = stat_read['TopLists'][0]['Subtitle']
+                df_info = pd.json_normalize(stat_read['TopLists'][0]['StatList'])
+                df_info = df_info.rename(columns={'ParticipantName': 'team', 
+                                                  'StatValue': '', 
+                                                  'SubStatValue': substat_name,
+                                                  'MatchesPlayed': 'Matches played'})
+                stat = df_info[['', substat_name]]
+                team_info = df_info[['team', 'Matches played']]
+                df_stat = pd.concat([team_info, stat], axis=1)
+                cols = [('team', ''), ('Matches played', ''), (stat_name, ''),
+                         (stat_name, substat_name)]
+                
+                if substat_name is None:
+                    df_stat = df_stat.drop(columns=[substat_name])
+                    cols = [('team', ''), ('Matches played', ''), (stat_name, '')]
+
+                # Clarify number of bookings
+                elif substat_name == 'Yellow cards':
+                    cols = [('team', ''), ('Matches played', ''), ('Bookings', 'Yellow cards'),
+                            ('Bookings', 'Red cards')]
+
+                df_stat.columns = pd.MultiIndex.from_tuples(cols)
+                dfs.append(df_stat)
+            df_table = reduce(lambda left, right: pd.merge(left, right, on=['team', 'Matches played'],
+                                                     how='left'), dfs)
+            df_table.insert(0, 'league', lkey)
+            df_table.insert(1, 'season', skey)
+            teams.append(df_table)
+        
+        df = (
+            pd.concat(teams, ignore_index=True)
+            .replace({"team": TEAMNAME_REPLACEMENTS})
+            .set_index(["league", "season", "team"])
+            .sort_index()
+        )
+        return df
+
+
+    def read_team_match_stats( # noqa: C901
         self,
         stat_type: str = 'Top stats',
-        match_id: Optional[Union[str, List[str]]] = None,
+        opponent_stats: bool = True,
+        team: Optional[Union[str, List[str]]] = None,
         force_cache: bool = False,
     ) -> pd.DataFrame:
         """Retrieve the match stats for the selected leagues and seasons.
@@ -317,8 +379,10 @@ class Fotmob(BaseRequestsReader):
         ----------
         stat_type : str
             Type of stats to retrieve.
-        match_id : int or list of int, optional
-            Retrieve the event stream for a specific game.
+        opponent_stats: bool
+            If True, will retrieve opponent stats.
+        team: str or list of str, optional
+            Team(s) to retrieve. If None, will retrieve all teams.
         force_cache : bool
             By default no cached data is used to scrape the list of available
             games for the current season. If True, will force the use of
@@ -326,8 +390,6 @@ class Fotmob(BaseRequestsReader):
 
         Raises
         ------
-        ValueError
-            If no games with the given IDs were found for the selected seasons and leagues.
         TypeError
             If ``stat_type`` is not valid.
 
@@ -339,22 +401,31 @@ class Fotmob(BaseRequestsReader):
         df_matches = self.read_schedule(force_cache).reset_index()
 
         df_complete = df_matches[df_matches['status.finished'] & ~df_matches['status.cancelled']]
-        # Select requested games if available
-        if match_id is not None:
-            iterator = df_complete[
-                df_complete.id.isin([match_id] if isinstance(match_id, str) else match_id)
-            ]
+        
+        if team is not None:
+            # get alternative names of the specified team(s)
+            teams = [team] if isinstance(team, str) else team
+            teams_to_check = []
+            for team in teams:
+                for alt_name, norm_name in TEAMNAME_REPLACEMENTS.items():
+                    if norm_name == team:
+                        teams_to_check.append(alt_name)
+                teams_to_check.append(team)
+            # select requested teams
+            iterator = (df_complete.loc[(df_complete.home_team.isin(teams_to_check)) 
+                                       | (df_complete.away_team.isin(teams_to_check)), :]
+                                    .set_index(['league', 'season', 'game'])
+            )
             if len(iterator) == 0:
-                raise ValueError('No games found with the given IDs in the selected seasons.')
+                raise ValueError("No data found for the given teams in the selected seasons.")
         else:
             iterator = df_complete
         games = []
-        for i, game in iterator.iterrows():
+        for (lkey, skey, game), game_url in iterator.gameUrl.items():
             # Get data for specific game
-            url = FOTMOB_API + game.gameUrl
+            url = FOTMOB_API + game_url
             filemask = 'matches/{}.json'
-            logger.info('[%s/%s] Retrieving game with id=%s', i + 1, len(iterator), game.id)
-            filepath = self.data_dir / filemask.format(game.id)
+            filepath = self.data_dir / filemask.format(skey, stat_type)
             reader = self.get(url, filepath)
             game_data = json.load(reader)
 
@@ -364,9 +435,12 @@ class Fotmob(BaseRequestsReader):
             df_home = pd.json_normalize(game_data['general']['homeTeam'])
             df_home['Matchweek'] = matchweek
             df_home['Date'] = match_time
-            df_home.rename(columns={'name': 'Home Team', 'id': 'Home id'}, inplace=True)
+            df_home.rename(columns={'name': 'Home team'}, inplace=True)
+            df_home.drop(columns=['id'], inplace=True)
             df_away = pd.json_normalize(game_data['general']['awayTeam'])
-            df_away.rename(columns={'name': 'Away Team', 'id': 'Away id'}, inplace=True)
+            df_away.drop(columns=['id'], inplace=True)
+            df_away.rename(columns={'name': 'Away team'}, inplace=True)
+            # Determine team(s) of interest
             df_teams = pd.concat([df_home, df_away], axis=1)
             stats = []
             stats.append(df_teams)
@@ -380,7 +454,6 @@ class Fotmob(BaseRequestsReader):
             all_stats = game_data['content']['stats']['Periods']['All']['stats']
             stats_dict = {i: all_stats[i]['title'] for i in range(len(all_stats))}
 
-            # if stat_type in stats_dict.values():
             df_stats = pd.json_normalize(
                 all_stats, record_path='stats', meta=['title', 'key'], meta_prefix='cat_'
             )
@@ -398,37 +471,61 @@ class Fotmob(BaseRequestsReader):
             )
             df_stat_type = df_stat_type.iloc[:, 2:]
             for col in df_stat_type.columns:
-                df_single_stat = pd.DataFrame(df_stat_type[col])
-                df_stat_split = df_single_stat[col].apply(pd.Series)
-                df_single_stat = pd.concat([df_single_stat, df_stat_split], axis=1)
-                df_single_stat.drop(col, axis=1, inplace=True)
-                df_single_stat.rename(columns={0: 'Home ' + col, 1: 'Away ' + col}, inplace=True)
-                # Split percentage values into their own column
+                df_single_stat = (pd.DataFrame(df_stat_type[col])[col]
+                                  .apply(pd.Series)
+                                  .rename(columns={0: 'Home ' + col, 1: 'Away ' + col})
+                )
+                # Split percentage values and multi-index
                 if df_single_stat['Home ' + col].dtypes == object:
                     if (df_single_stat['Home ' + col].str.contains('%')).any():
                         home_split_stats = df_single_stat['Home ' + col].str.split(
                             r'[\(%]', expand=True
                         )
-                        df_single_stat['Home ' + col] = int(home_split_stats[0].iloc[0])
-                        df_single_stat['Home ' + col + ' %'] = int(home_split_stats[1].iloc[0])
+                        home_split_stats = home_split_stats.rename(columns={0: 'Home ' + col, 1: 'Home ' + col + ' %'})
+                        home_split_stats = home_split_stats.drop(columns=[2])
+
                         away_split_stats = df_single_stat['Away ' + col].str.split(
                             r'[\(%]', expand=True
                         )
-                        df_single_stat['Away ' + col] = int(away_split_stats[0].iloc[0])
-                        df_single_stat['Away ' + col + ' %'] = int(away_split_stats[1].iloc[0])
-                stats.append(df_single_stat.reset_index())
-            # dfs = pd.concat(tmp_dfs, axis=1)
-            # dfs = dfs.T.drop_duplicates().T
-            # stats.append(tmp_dfs)
+                        away_split_stats = away_split_stats.rename(columns={0: 'Away ' + col, 1: 'Away ' + col + ' %'})
+                        away_split_stats = away_split_stats.drop(columns=[2])
+                        df_single_stat = pd.concat([home_split_stats, away_split_stats], axis=1)
+                stats.append(df_single_stat.reset_index(drop=True))
             df_game = (
                 pd.concat(stats, axis=1).replace({'team': TEAMNAME_REPLACEMENTS}).sort_index()
             )
-            # df_game = df_game.T.drop_duplicates().T
+            # Determine teams and opponents
+
+            ##Add a thing for the venue: if they're home or away...
+
+            if (df_game['Home team'].isin(teams).any()) & (df_game['Away team'].isin(teams).any()):  
+                stats_copy = df_game.copy()
+                df_game.columns = [col.removeprefix('Home ') if col.startswith('Home')
+                                else col.replace('Away', 'Opp') for col in df_game.columns]
+                df_game.insert(0, 'Venue', 'Home')
+                stats_copy.columns = [col.removeprefix('Away ') if col.startswith('Away') 
+                                    else col.replace('Home', 'Opp') for col in stats_copy.columns]
+                stats_copy.insert(0, 'Venue', 'Away')
+                df_game = pd.concat([df_game, stats_copy], ignore_index=True)
+            elif df_game['Home team'].isin(teams).any():
+                df_game.columns = [col.removeprefix('Home ') if col.startswith('Home')
+                                else col.replace('Away', 'Opp') for col in df_game.columns]
+                df_game.insert(0, 'Venue', 'Home')
+            elif (df_game['Away team'].isin(teams).any()): 
+                df_game.columns = [col.removeprefix('Away ') if col.startswith('Away') 
+                                else col.replace('Home', 'Opp') for col in df_game.columns]
+                df_game.insert(0, 'Venue', 'Away')
+                
+            if opponent_stats is False:
+                df_game = df_game.loc[:, ~df_game.columns.str.startswith('Opp')]
+            df_game.insert(0, 'league', lkey)
+            df_game.insert(1, 'season', skey)
+            df_game.insert(2, 'game', game)
             games.append(df_game)
         df = (
             pd.concat(games, ignore_index=True)
             .replace({'team': TEAMNAME_REPLACEMENTS})
-            .set_index(['Matchweek', 'Date', 'Home Team', 'Home id', 'Away Team', 'Away id'])
+            .set_index(['league', 'season', 'team', 'game'])
             .sort_index()
         )
         return df

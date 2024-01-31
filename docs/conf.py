@@ -52,7 +52,6 @@ nbsphinx_thumbnails = {
     'examples/datasources/WhoScored': '_static/WhoScored-logo.png',
     'examples/datasources/FBref': '_static/FBref-logo.png',
     'examples/datasources/FiveThirtyEight': '_static/FiveThirtyEight-logo.png',
-    'examples/datasources/FotMob': '_static/FotMob.png',
     'examples/datasources/MatchHistory': '_static/FootballData-logo.jpg',
     'examples/datasources/SoFIFA': '_static/SoFIFA-logo.png',
 }

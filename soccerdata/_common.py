@@ -217,7 +217,7 @@ class BaseReader(ABC):
             cls._all_leagues_dict = {  # type: ignore
                 k: v[cls.__name__] for k, v in LEAGUE_DICT.items() if cls.__name__ in v
             }
-        return cls._all_leagues_dict  # type: ignore
+        return cls._all_leagues_dict  # type: ignoMe
 
     @classmethod
     def _translate_league(cls, df: pd.DataFrame, col: str = "league") -> pd.DataFrame:

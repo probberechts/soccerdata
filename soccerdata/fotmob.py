@@ -1,9 +1,10 @@
 """Scraper for http://fotmob.com."""
 import itertools
 import json
+from functools import reduce
 from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Optional, Union
-from functools import reduce
+
 import pandas as pd
 
 from ._common import BaseRequestsReader, make_game_id, season_code
@@ -74,7 +75,6 @@ class FotMob(BaseRequestsReader):
         if not self.no_store:
             (self.data_dir / "seasons").mkdir(parents=True, exist_ok=True)
             (self.data_dir / "matches").mkdir(parents=True, exist_ok=True)
-
 
     @property
     def leagues(self) -> List[str]:
@@ -286,8 +286,8 @@ class FotMob(BaseRequestsReader):
         df['game'] = df.apply(make_game_id, axis=1)
         df = df.set_index(['league', 'season', 'game']).sort_index()
         return df
-    
-    def read_team_match_stats( # noqa: C901
+
+    def read_team_match_stats(  # noqa: C901
         self,
         stat_type: str = 'Top stats',
         opponent_stats: bool = True,
@@ -331,7 +331,7 @@ class FotMob(BaseRequestsReader):
         df_matches = self.read_schedule(force_cache).reset_index()
 
         df_complete = df_matches[df_matches['status.finished'] & ~df_matches['status.cancelled']]
-        
+
         if team is not None:
             # get alternative names of the specified team(s)
             teams = [team] if isinstance(team, str) else team
@@ -342,10 +342,11 @@ class FotMob(BaseRequestsReader):
                         teams_to_check.append(alt_name)
                 teams_to_check.append(team)
             # select requested teams
-            iterator = (df_complete.loc[(df_complete.home_team.isin(teams_to_check)) 
-                                       | (df_complete.away_team.isin(teams_to_check)), :]
-                                    .set_index(['league', 'season', 'game'])
-            )
+            iterator = df_complete.loc[
+                (df_complete.home_team.isin(teams_to_check))
+                | (df_complete.away_team.isin(teams_to_check)),
+                :,
+            ].set_index(['league', 'season', 'game'])
             if len(iterator) == 0:
                 raise ValueError("No data found for the given teams in the selected seasons.")
         else:
@@ -401,9 +402,10 @@ class FotMob(BaseRequestsReader):
             )
             df_stat_type = df_stat_type.iloc[:, 2:]
             for col in df_stat_type.columns:
-                df_single_stat = (pd.DataFrame(df_stat_type[col])[col]
-                                  .apply(pd.Series)
-                                  .rename(columns={0: 'Home ' + col, 1: 'Away ' + col})
+                df_single_stat = (
+                    pd.DataFrame(df_stat_type[col])[col]
+                    .apply(pd.Series)
+                    .rename(columns={0: 'Home ' + col, 1: 'Away ' + col})
                 )
                 # Split percentage values and multi-index
                 if df_single_stat['Home ' + col].dtypes == object:
@@ -411,13 +413,17 @@ class FotMob(BaseRequestsReader):
                         home_split_stats = df_single_stat['Home ' + col].str.split(
                             r'[\(%]', expand=True
                         )
-                        home_split_stats = home_split_stats.rename(columns={0: 'Home ' + col, 1: 'Home ' + col + ' %'})
+                        home_split_stats = home_split_stats.rename(
+                            columns={0: 'Home ' + col, 1: 'Home ' + col + ' %'}
+                        )
                         home_split_stats = home_split_stats.drop(columns=[2])
 
                         away_split_stats = df_single_stat['Away ' + col].str.split(
                             r'[\(%]', expand=True
                         )
-                        away_split_stats = away_split_stats.rename(columns={0: 'Away ' + col, 1: 'Away ' + col + ' %'})
+                        away_split_stats = away_split_stats.rename(
+                            columns={0: 'Away ' + col, 1: 'Away ' + col + ' %'}
+                        )
                         away_split_stats = away_split_stats.drop(columns=[2])
                         df_single_stat = pd.concat([home_split_stats, away_split_stats], axis=1)
                 stats.append(df_single_stat.reset_index(drop=True))
@@ -425,27 +431,40 @@ class FotMob(BaseRequestsReader):
                 pd.concat(stats, axis=1).replace({'team': TEAMNAME_REPLACEMENTS}).sort_index()
             )
             # Determine teams and opponents
-
-            ##Add a thing for the venue: if they're home or away...
-
-            if (df_game['Home team'].isin(teams).any()) & (df_game['Away team'].isin(teams).any()):  
+            if (df_game['Home team'].isin(teams).any()) & (df_game['Away team'].isin(teams).any()):
                 stats_copy = df_game.copy()
-                df_game.columns = [col.removeprefix('Home ') if col.startswith('Home')
-                                else col.replace('Away', 'Opp') for col in df_game.columns]
+                df_game.columns = [
+                    col.removeprefix('Home ')
+                    if col.startswith('Home')
+                    else col.replace('Away', 'Opp')
+                    for col in df_game.columns
+                ]
                 df_game.insert(0, 'Venue', 'Home')
-                stats_copy.columns = [col.removeprefix('Away ') if col.startswith('Away') 
-                                    else col.replace('Home', 'Opp') for col in stats_copy.columns]
+                stats_copy.columns = [
+                    col.removeprefix('Away ')
+                    if col.startswith('Away')
+                    else col.replace('Home', 'Opp')
+                    for col in stats_copy.columns
+                ]
                 stats_copy.insert(0, 'Venue', 'Away')
                 df_game = pd.concat([df_game, stats_copy], ignore_index=True)
             elif df_game['Home team'].isin(teams).any():
-                df_game.columns = [col.removeprefix('Home ') if col.startswith('Home')
-                                else col.replace('Away', 'Opp') for col in df_game.columns]
+                df_game.columns = [
+                    col.removeprefix('Home ')
+                    if col.startswith('Home')
+                    else col.replace('Away', 'Opp')
+                    for col in df_game.columns
+                ]
                 df_game.insert(0, 'Venue', 'Home')
-            elif (df_game['Away team'].isin(teams).any()): 
-                df_game.columns = [col.removeprefix('Away ') if col.startswith('Away') 
-                                else col.replace('Home', 'Opp') for col in df_game.columns]
+            elif df_game['Away team'].isin(teams).any():
+                df_game.columns = [
+                    col.removeprefix('Away ')
+                    if col.startswith('Away')
+                    else col.replace('Home', 'Opp')
+                    for col in df_game.columns
+                ]
                 df_game.insert(0, 'Venue', 'Away')
-                
+
             if opponent_stats is False:
                 df_game = df_game.loc[:, ~df_game.columns.str.startswith('Opp')]
             df_game.insert(0, 'league', lkey)

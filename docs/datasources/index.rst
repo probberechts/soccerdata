@@ -110,6 +110,7 @@ WhoScored
    ESPN
    FBref
    FiveThirtyEight
+   FotMob
    MatchHistory
    SoFIFA
    WhoScored

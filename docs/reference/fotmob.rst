@@ -1,7 +1,7 @@
 .. _api-fotmob:
 
 FotMob
-=====
+======
 
 .. autoclass:: soccerdata.FotMob
    :members: available_leagues, read_leagues, read_seasons,

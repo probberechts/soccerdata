@@ -1,14 +1,13 @@
 """Scraper for http://fotmob.com."""
 import itertools
 import json
-from functools import reduce
 from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 
 from ._common import BaseRequestsReader, make_game_id, season_code
-from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
+from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS
 
 FOTMOB_DATADIR = DATA_DIR / 'FotMob'
 FOTMOB_API = 'https://www.fotmob.com/api/'
@@ -322,6 +321,8 @@ class FotMob(BaseRequestsReader):
         ------
         TypeError
             If ``stat_type`` is not valid.
+        ValueError
+            If no games with the given IDs were found for the selected seasons and leagues.
 
         Returns
         -------
@@ -430,9 +431,6 @@ class FotMob(BaseRequestsReader):
             df_game = (
                 pd.concat(stats, axis=1).replace({'team': TEAMNAME_REPLACEMENTS}).sort_index()
             )
-            # Determine teams and opponents
-
-            ##Add a thing for the venue: if they're home or away...
 
             if (df_game['Home team'].isin(teams).any()) & (df_game['Away team'].isin(teams).any()):
                 stats_copy = df_game.copy()
@@ -468,12 +466,12 @@ class FotMob(BaseRequestsReader):
                 ]
                 df_game.insert(0, 'Venue', 'Away')
 
-            opp_filter = df_game.columns.str.startswith('Opp')
+            opp_mask = df_game.columns.str.startswith('Opp')
             if opponent_stats is False:
-                df_game = df_game.loc[:, ~opp_filter]
+                df_game = df_game.loc[:, ~opp_mask]
             else:
-                df_no_opp = df_game.loc[:, ~opp_filter]
-                df_opp = df_game.loc[:, opp_filter]
+                df_no_opp = df_game.loc[:, ~opp_mask]
+                df_opp = df_game.loc[:, opp_mask]
                 df_game = pd.concat([df_no_opp, df_opp], axis=1)
             df_game.insert(0, 'league', lkey)
             df_game.insert(1, 'season', skey)
@@ -482,7 +480,7 @@ class FotMob(BaseRequestsReader):
         df = (
             pd.concat(games, ignore_index=True)
             .replace({'team': TEAMNAME_REPLACEMENTS})
-            .set_index(['league', 'season', 'team', 'game'])
+            .set_index(['league', 'season', 'game', 'team'])
             .sort_index()
         )
         return df

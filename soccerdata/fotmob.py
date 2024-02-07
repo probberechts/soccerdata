@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 from typing import Callable, Dict, Iterable, List, Optional, Union
 
-import numpy as np
 import pandas as pd
 
 from ._common import BaseRequestsReader, make_game_id, season_code
@@ -82,12 +81,6 @@ class FotMob(BaseRequestsReader):
         """Return a list of selected leagues."""
         return list(self._leagues_dict.keys())
 
-    @classmethod
-    def _all_leagues(cls) -> Dict[str, str]:
-        """Return a dict mapping all canonical league IDs to source league IDs."""
-        res = super()._all_leagues()
-        return res
-
     def read_leagues(self) -> pd.DataFrame:
         """Retrieve the selected leagues from the datasource.
 
@@ -119,8 +112,8 @@ class FotMob(BaseRequestsReader):
                         leagues.append(
                             {
                                 'region': country['ccode'],
-                                'league_id': dom_league['id'],
                                 'league': dom_league['name'],
+                                'league_id': dom_league['id'],
                                 'url': 'https://fotmob.com' + dom_league['pageUrl'],
                             }
                         )
@@ -159,14 +152,21 @@ class FotMob(BaseRequestsReader):
                         'season': season_code(season),
                         'league_id': league.league_id,
                         'season_id': season,
+                        'url': league.url + '?season=' + season,
                     }
                 )
             # Change season id for 2122 season manually (gross)
         df = pd.DataFrame(seasons).set_index(['league', 'season']).sort_index()
         return df.loc[df.index.isin(list(itertools.product(self.leagues, self.seasons)))]
 
-    def read_league_table(self) -> pd.DataFrame:
+    def read_league_table(self, force_cache: bool = False) -> pd.DataFrame:  # noqa: C901
         """Retrieve the league table for the selected leagues.
+
+        Parameters
+        ----------
+        force_cache : bool
+             By default no cached data is used for the current season.
+             If True, will force the use of cached data anyway.
 
         Returns
         -------
@@ -175,7 +175,8 @@ class FotMob(BaseRequestsReader):
         filemask = 'seasons/{}_{}.html'
         urlmask = FOTMOB_API + 'leagues?id={}&season={}'
 
-        cols = ['group', 'team', 'MP', 'W', 'D', 'L', 'GF', 'GA', 'GD', 'Pts']
+        idx = ['league', 'season']
+        cols = ['team', 'MP', 'W', 'D', 'L', 'GF', 'GA', 'GD', 'Pts']
 
         # get league and season IDs
         seasons = self.read_seasons()
@@ -185,20 +186,22 @@ class FotMob(BaseRequestsReader):
             # read html page (league overview)
             filepath = self.data_dir / filemask.format(lkey, skey)
             url = urlmask.format(season.league_id, season.season_id)
-            reader = self.get(url, filepath)
+            current_season = not self._is_complete(lkey, skey)
+            reader = self.get(url, filepath, no_cache=current_season and not force_cache)
             season_data = json.load(reader)
             table_data = season_data['table'][0]['data']
             if 'tables' in table_data:
+                if 'stage' not in idx:
+                    idx.append('stage')
                 groups_data = table_data['tables']
                 all_groups = []
                 for i in range(len(groups_data)):
                     group_table = pd.json_normalize(groups_data[i]['table']['all'])
-                    group_table['group'] = groups_data[i]['leagueName'].split(' ')[1]
+                    group_table['stage'] = groups_data[i]['leagueName']
                     all_groups.append(group_table)
                 df_table = pd.concat(all_groups, axis=0)
             else:
                 df_table = pd.json_normalize(table_data['table']['all'])
-                df_table['group'] = np.nan
             df_table[['GF', 'GA']] = df_table['scoresStr'].str.split('-', expand=True)
             df_table = df_table.rename(
                 columns={
@@ -216,7 +219,8 @@ class FotMob(BaseRequestsReader):
 
             # If league has a playoff, add final playoff standing as a column
             if 'playoff' in season_data['tabs']:
-                cols.append('playoff')
+                if 'playoff' not in cols:
+                    cols.append('playoff')
                 df_table['playoff'] = None
                 # Get cup game finalists (for leagues with playoffs)
                 playoff_rounds = season_data['playoff']['rounds']
@@ -237,7 +241,7 @@ class FotMob(BaseRequestsReader):
             pd.concat(mult_tables, axis=0)
             .rename(columns={'Squad': 'team'})
             .replace({'team': TEAMNAME_REPLACEMENTS})
-            .set_index(['league', 'season'])
+            .set_index(idx)
             .sort_index()[cols]
         )
         return df
@@ -276,7 +280,8 @@ class FotMob(BaseRequestsReader):
         for (lkey, skey), season in df_seasons.iterrows():
             filepath = self.data_dir / filemask.format(lkey, skey)
             url = urlmask.format(season.league_id, season.season_id)
-            reader = self.get(url, filepath)
+            current_season = not self._is_complete(lkey, skey)
+            reader = self.get(url, filepath, no_cache=current_season and not force_cache)
             season_data = json.load(reader)
 
             df = pd.json_normalize(season_data['matches']['allMatches'])
@@ -407,7 +412,7 @@ class FotMob(BaseRequestsReader):
                 game_teams = [game.away_team, game.home_team]
             for i, team in enumerate(game_teams):
                 df_team_stats = df_raw_stats.copy()
-                df_team_stats['stat'] = df_team_stats['stats'].apply(lambda x: x[i])
+                df_team_stats['stat'] = df_team_stats['stats'].apply(lambda x: x[i])  # noqa: B023
                 df_team_stats["league"] = lkey
                 df_team_stats["season"] = skey
                 df_team_stats["game"] = gkey

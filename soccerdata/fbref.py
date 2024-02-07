@@ -143,6 +143,7 @@ class FBref(BaseRequestsReader):
             df_table = _parse_table(html_table)
             df_table["url"] = html_table.xpath(".//th[@data-stat='league_name']/a/@href")
             dfs.append(df_table)
+
         df = (
             pd.concat(dfs)
             .pipe(standardize_colnames)

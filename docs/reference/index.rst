@@ -15,6 +15,7 @@ data scrapers.
    espn
    fbref
    fivethirtyeight
+   fotmob
    matchhistory
    sofifa
    whoscored

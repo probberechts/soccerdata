@@ -73,6 +73,9 @@
 - name: FiveThirtyEight
   description: Issue or pull request related to the FiveThirtyEight scraper
   color: E67E22
+- name: FotMob
+  description: Issue or pull request related to the FotMob scraper
+  color: 228B22
 - name: MatchHistory
   description: Issue or pull request related to the MatchHistory scraper
   color: 1A5276

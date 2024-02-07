@@ -174,7 +174,7 @@ class FotMob(BaseRequestsReader):
         filemask = 'seasons/{}_{}.html'
         urlmask = FOTMOB_API + 'leagues?id={}&season={}'
 
-        cols = ['team', 'MP', 'W', 'D', 'L', 'GF', 'GA', 'GD', 'Pts']
+        cols = ['group', 'team', 'MP', 'W', 'D', 'L', 'GF', 'GA', 'GD', 'Pts']
 
         # get league and season IDs
         seasons = self.read_seasons()
@@ -188,7 +188,13 @@ class FotMob(BaseRequestsReader):
             season_data = json.load(reader)
             table_data = season_data['table'][0]['data']
             if 'tables' in table_data:
-                df_table = pd.json_normalize(table_data['tables'][2]['table']['all'])
+                groups_data = table_data['tables']
+                all_groups = []
+                for i in range(len(groups_data)):
+                    group_table = pd.json_normalize(groups_data[i]['table']['all'])
+                    group_table['group'] = groups_data[i]['leagueName'].split(' ')[1]
+                    all_groups.append(group_table)
+                df_table = pd.concat(all_groups, axis=0)
             else:
                 df_table = pd.json_normalize(table_data['table']['all'])
             df_table[['GF', 'GA']] = df_table['scoresStr'].str.split('-', expand=True)

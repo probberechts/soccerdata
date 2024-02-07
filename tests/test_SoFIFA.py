@@ -1,4 +1,5 @@
 """Unittests for class soccerdata.SoFIFA."""
+
 import pandas as pd
 
 from soccerdata.sofifa import SoFIFA

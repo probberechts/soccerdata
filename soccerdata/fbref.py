@@ -1,4 +1,5 @@
 """Scraper for http://fbref.com."""
+
 import warnings
 from datetime import date, datetime
 from functools import reduce
@@ -461,9 +462,11 @@ class FBref(BaseRequestsReader):
                 x.get('csk', None) for x in html_table.xpath(".//td[@data-stat='start_time']")
             ]
             df_table["Match Report"] = [
-                mlink.xpath("./a/@href")[0]
-                if mlink.xpath("./a") and mlink.xpath("./a")[0].text == "Match Report"
-                else None
+                (
+                    mlink.xpath("./a/@href")[0]
+                    if mlink.xpath("./a") and mlink.xpath("./a")[0].text == "Match Report"
+                    else None
+                )
                 for mlink in html_table.xpath(".//td[@data-stat='match_report']")
             ]
             nb_levels = df_table.columns.nlevels
@@ -662,9 +665,11 @@ class FBref(BaseRequestsReader):
             html_table = tree.xpath("//table[contains(@id, 'sched')]")[0]
             df_table = _parse_table(html_table)
             df_table["Match Report"] = [
-                mlink.xpath("./a/@href")[0]
-                if mlink.xpath("./a") and mlink.xpath("./a")[0].text == "Match Report"
-                else None
+                (
+                    mlink.xpath("./a/@href")[0]
+                    if mlink.xpath("./a") and mlink.xpath("./a")[0].text == "Match Report"
+                    else None
+                )
                 for mlink in html_table.xpath(".//td[@data-stat='match_report']")
             ]
             df_table["league"] = lkey

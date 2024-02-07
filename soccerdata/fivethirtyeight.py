@@ -1,4 +1,5 @@
 """Scraper for https://projects.fivethirtyeight.com/soccer-predictions."""
+
 import itertools
 import json
 from pathlib import Path

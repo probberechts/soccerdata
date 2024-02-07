@@ -69,9 +69,9 @@ and `API reference <https://soccerdata.readthedocs.io/en/latest/reference/>`__.
 .. _SoFIFA: https://sofifa.com/
 .. _WhoScored: https://www.whoscored.com/
 
-**Usage Notice:** Please use this web scraping tool responsibly and in compliance with the terms of service of the 
-websites you intend to scrape. The software is provided as-is, without any warranty or guarantees of any kind. The 
-developers disclaim any responsibility for misuse, legal consequences, or damages resulting from its use. It is 
+**Usage Notice:** Please use this web scraping tool responsibly and in compliance with the terms of service of the
+websites you intend to scrape. The software is provided as-is, without any warranty or guarantees of any kind. The
+developers disclaim any responsibility for misuse, legal consequences, or damages resulting from its use. It is
 your responsibility to use the software in accordance with the laws and regulations of your jurisdiction.
 
 **Contribution and Issues:** As soccerdata relies on web scraping, any changes to the

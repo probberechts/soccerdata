@@ -1,4 +1,5 @@
 """Scraper for http://sofifa.com."""
+
 import json
 import re
 from datetime import timedelta

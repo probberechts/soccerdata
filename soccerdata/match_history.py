@@ -1,4 +1,5 @@
 """Scraper for http://www.football-data.co.uk/data.php."""
+
 import itertools
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Union

@@ -1,4 +1,5 @@
 """Unittests for soccerdata._config."""
+
 import json
 import logging
 from importlib import reload

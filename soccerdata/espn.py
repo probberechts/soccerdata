@@ -1,4 +1,5 @@
 """Scraper for http://site.api.espn.com/apis/site/v2/sports/soccer."""
+
 import datetime
 import itertools
 import json
@@ -192,16 +193,20 @@ class ESPN(BaseRequestsReader):
                     "season": match["season"],
                     "team": data["boxscore"]["form"][i]["team"]["displayName"],
                     "is_home": (i == 0),
-                    "venue": data["gameInfo"]["venue"]["fullName"]
-                    if "venue" in data["gameInfo"]
-                    else None,
+                    "venue": (
+                        data["gameInfo"]["venue"]["fullName"]
+                        if "venue" in data["gameInfo"]
+                        else None
+                    ),
                     "attendance": data["gameInfo"].get("attendance"),
-                    "capacity": data["gameInfo"]["venue"]["capacity"]
-                    if "venue" in data["gameInfo"]
-                    else None,
-                    "roster": data["rosters"][i]["roster"]
-                    if "roster" in data["rosters"][i]
-                    else None,
+                    "capacity": (
+                        data["gameInfo"]["venue"]["capacity"]
+                        if "venue" in data["gameInfo"]
+                        else None
+                    ),
+                    "roster": (
+                        data["rosters"][i]["roster"] if "roster" in data["rosters"][i] else None
+                    ),
                 }
                 if "statistics" in data["boxscore"]["teams"][i]:
                     for stat in data["boxscore"]["teams"][i]["statistics"]:

@@ -39,9 +39,9 @@
 
 SoccerData is a collection of scrapers to gather soccer data from popular
 websites, including `Club Elo`_, `ESPN`_, `FBref`_, `FiveThirtyEight`_,
-`Football-Data.co.uk`_, `SoFIFA`_ and `WhoScored`_. You get Pandas DataFrames
-with sensible, matching column names and identifiers across datasets. Data is
-downloaded when needed and cached locally.
+`Football-Data.co.uk`_, `FotMob`_, `SoFIFA`_ and `WhoScored`_. You get Pandas
+DataFrames with sensible, matching column names and identifiers across
+datasets. Data is downloaded when needed and cached locally.
 
 .. code:: python
 
@@ -65,6 +65,7 @@ and `API reference <https://soccerdata.readthedocs.io/en/latest/reference/>`__.
 .. _FBref: https://www.fbref.com/en/
 .. _FiveThirtyEight: https://fivethirtyeight.com/soccer-predictions/
 .. _Football-Data.co.uk: https://www.football-data.co.uk/
+.. _FotMob: https://fotmob.com/
 .. _SoFIFA: https://sofifa.com/
 .. _WhoScored: https://www.whoscored.com/
 

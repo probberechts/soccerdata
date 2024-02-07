@@ -1,4 +1,5 @@
 """Unittests for class soccerdata.ClubElo."""
+
 import os
 import time
 from datetime import datetime, timedelta

@@ -1,4 +1,5 @@
 """Scraper for api.clubelo.com."""
+
 import re
 from datetime import datetime, timedelta
 from pathlib import Path

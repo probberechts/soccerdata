@@ -1,4 +1,5 @@
 """Pytest fixtures for soccerdata package."""
+
 import pytest
 
 import soccerdata as sd

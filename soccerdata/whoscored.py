@@ -1,4 +1,5 @@
 """Scraper for http://whoscored.com."""
+
 import itertools
 import json
 import re

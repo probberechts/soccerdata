@@ -1,4 +1,5 @@
 """Unittests for class soccerdata.FBref."""
+
 import pandas as pd
 import pytest
 

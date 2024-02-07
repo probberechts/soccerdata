@@ -419,7 +419,9 @@ class FotMob(BaseRequestsReader):
                 df_team_stats['team'] = team
                 df_team_stats.set_index(['league', 'season', 'game', 'team'], inplace=True)
                 df_team_stats = df_team_stats[df_team_stats['type'] != 'title']
-                stats.append(df_team_stats.pivot(columns='title', values='stat').reset_index())
+                df_team_stats = df_team_stats.pivot(columns='title', values='stat').reset_index()
+                df_team_stats.columns.name = None
+                stats.append(df_team_stats)
 
         df = pd.concat(stats, axis=0)
         df = (

@@ -3,14 +3,15 @@
 __version__ = '1.5.3'
 
 __all__ = [
-    'FiveThirtyEight',
     'ClubElo',
-    'MatchHistory',
-    'FBref',
-    'FotMob',
     'ESPN',
-    'WhoScored',
+    'FBref',
+    'FiveThirtyEight',
+    'FotMob',
+    'MatchHistory',
     'SoFIFA',
+    'Understat',
+    'WhoScored',
 ]
 
 from .clubelo import ClubElo
@@ -20,4 +21,5 @@ from .fivethirtyeight import FiveThirtyEight
 from .fotmob import FotMob
 from .match_history import MatchHistory
 from .sofifa import SoFIFA
+from .understat import Understat
 from .whoscored import WhoScored

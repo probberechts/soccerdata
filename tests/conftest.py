@@ -57,3 +57,15 @@ def match_epl_2y() -> sd.MatchHistory:
 def whoscored() -> sd.WhoScored:
     """Return a correctly initialized instance of WhoScored."""
     return sd.WhoScored("ENG-Premier League", "20-21", headless=True)
+
+
+@pytest.fixture
+def understat_epl_1516() -> sd.Understat:
+    """Return a correctly initialized instance of Understat filtered by league: Premier League."""
+    return sd.Understat("ENG-Premier League", "15-16")
+
+
+@pytest.fixture
+def understat_epl_9091() -> sd.Understat:
+    """Return a correctly initialized instance of Understat filtered by league: Premier League."""
+    return sd.Understat("ENG-Premier League", "90-91")

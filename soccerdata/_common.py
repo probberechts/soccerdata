@@ -97,7 +97,7 @@ class BaseReader(ABC):
         filepath: Optional[Path] = None,
         max_age: Optional[Union[int, timedelta]] = MAXAGE,
         no_cache: bool = False,
-        var: Optional[str] = None,
+        var: Optional[Union[str, Iterable[str]]] = None,
     ) -> IO[bytes]:
         """Load data from `url`.
 
@@ -115,8 +115,8 @@ class BaseReader(ABC):
             The max. age of locally cached file before re-download.
         no_cache : bool
             If True, will not use cached data. Overrides the class property.
-        var : str, optional
-            Return a javascript variable instead of the page source.
+        var : str or list of str, optional
+            Return a JavaScript variable instead of the page source.
 
         Raises
         ------
@@ -186,7 +186,7 @@ class BaseReader(ABC):
         self,
         url: str,
         filepath: Optional[Path] = None,
-        var: Optional[str] = None,
+        var: Optional[Union[str, Iterable[str]]] = None,
     ) -> IO[bytes]:
         """Download data at `url` to `filepath`.
 
@@ -196,8 +196,8 @@ class BaseReader(ABC):
             URL to download.
         filepath : Path, optional
             Path to save downloaded file. If None, downloaded data is not cached.
-        var : str, optional
-            Return a javascript variable instead of the page source.
+        var : str or list of str, optional
+            Return a JavaScript variable instead of the page source.
 
         Returns
         -------
@@ -337,7 +337,7 @@ class BaseRequestsReader(BaseReader):
         self,
         url: str,
         filepath: Optional[Path] = None,
-        var: Optional[str] = None,
+        var: Optional[Union[str, Iterable[str]]] = None,
     ) -> IO[bytes]:
         """Download file at url to filepath. Overwrites if filepath exists."""
         for i in range(5):
@@ -345,10 +345,24 @@ class BaseRequestsReader(BaseReader):
                 response = self._session.get(url, stream=True)
                 time.sleep(self.rate_limit + random.random() * self.max_delay)
                 response.raise_for_status()
+                if var is not None:
+                    if isinstance(var, str):
+                        var = [var]
+                    var_names = "|".join(var)
+                    template_understat = br"(%b)+[\s\t]*=[\s\t]*JSON\.parse\('(.*)'\)"
+                    pattern_understat = template_understat % bytes(var_names, encoding="utf-8")
+                    results = re.findall(pattern_understat, response.content)
+                    data = {
+                        key.decode("unicode_escape"): json.loads(value.decode("unicode_escape"))
+                        for key, value in results
+                    }
+                    payload = json.dumps(data).encode("utf-8")
+                else:
+                    payload = response.content
                 if not self.no_store and filepath is not None:
                     with filepath.open(mode="wb") as fh:
-                        fh.write(response.content)
-                return io.BytesIO(response.content)
+                        fh.write(payload)
+                return io.BytesIO(payload)
             except Exception:
                 logger.exception(
                     "Error while scraping %s. Retrying... (attempt %d of 5).", url, i + 1
@@ -429,7 +443,7 @@ class BaseSeleniumReader(BaseReader):
         self,
         url: str,
         filepath: Optional[Path] = None,
-        var: Optional[str] = None,
+        var: Optional[Union[str, Iterable[str]]] = None,
     ) -> IO[bytes]:
         """Download file at url to filepath. Overwrites if filepath exists."""
         for i in range(5):
@@ -445,6 +459,8 @@ class BaseSeleniumReader(BaseReader):
                         "return document.body.innerHTML;"
                     ).encode("utf-8")
                 else:
+                    if not isinstance(var, str):
+                        raise NotImplementedError("Only implemented for single variables.")
                     response = json.dumps(self._driver.execute_script("return " + var)).encode(
                         "utf-8"
                     )

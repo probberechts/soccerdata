@@ -187,7 +187,7 @@ def docs_build(session: Session) -> None:
     if build_dir.exists():
         shutil.rmtree(build_dir)
 
-    session.run("sphinx-build", *args, env={'SOCCERDATA_DIR': Path.home() / 'soccerdata'})
+    session.run("sphinx-build", *args, env={'SOCCERDATA_DIR': str(Path.home() / 'soccerdata')})
 
 
 @session(python=python_versions[0])
@@ -201,4 +201,4 @@ def docs(session: Session) -> None:
     if build_dir.exists():
         shutil.rmtree(build_dir)
 
-    session.run("sphinx-autobuild", *args, env={'SOCCERDATA_DIR': Path.home() / 'soccerdata'})
+    session.run("sphinx-autobuild", *args, env={'SOCCERDATA_DIR': str(Path.home() / 'soccerdata')})

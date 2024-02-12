@@ -434,7 +434,7 @@ class Understat(BaseRequestsReader):
                     }
                 )
 
-        index = ["league", "season", "player"]
+        index = ["league", "season", "team", "player"]
         if len(stats) == 0:
             return pd.DataFrame(index=index)
 

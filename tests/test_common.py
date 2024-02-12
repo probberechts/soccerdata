@@ -1,6 +1,7 @@
 """Unittests for soccerdata._common."""
 
 import datetime
+import json
 
 import pandas as pd
 import pytest
@@ -57,6 +58,15 @@ def test_download_and_save_no_cache_filepath(tmp_path):
     data = reader._download_and_save(url, filepath)
     assert isinstance(pd.read_csv(data), pd.DataFrame)
     assert not filepath.exists()
+
+
+def test_download_and_save_variable_no_store_no_filepath():
+    reader = BaseRequestsReader(no_store=True)
+    url = "https://understat.com/"
+    data = reader._download_and_save(url, filepath=None, var="statData")
+    stats = json.load(data)
+    assert isinstance(stats, dict)
+    assert "statData" in stats
 
 
 # def test_download_and_save_requests_tor(tmp_path):

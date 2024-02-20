@@ -281,34 +281,54 @@ class ESPN(BaseRequestsReader):
                         "position": p["position"]["name"] if "position" in p else None,
                         "formation_place": p["formationPlace"] if "formationPlace" in p else None,
                     }
+                    subbed_in = (
+                        p["subbedIn"]
+                        if isinstance(p["subbedIn"], bool)
+                        else p["subbedIn"]["didSub"]
+                    )
+                    subbed_out = (
+                        p["subbedOut"]
+                        if isinstance(p["subbedOut"], bool)
+                        else p["subbedOut"]["didSub"]
+                    )
+                    subbed_events = []
+                    if isinstance(p["subbedIn"], bool) and (subbed_in or subbed_out):
+                        subbed_events = (
+                            [e for e in p["plays"] if e["substitution"]]
+                            if isinstance(p["subbedIn"], bool)
+                            else [p["subbedIn"], p["subbedOut"]]
+                        )
+                    else:
+                        if subbed_in:
+                            subbed_events.append(p["subbedIn"])
+                        if subbed_out:
+                            subbed_events.append(p["subbedOut"])
 
                     if p["starter"]:
                         match_sheet["sub_in"] = "start"
-                    elif p["subbedIn"]:
-                        ii = [i for i, x in enumerate(p["plays"]) if x["substitution"]][0]
+                    elif subbed_in:
                         match_sheet["sub_in"] = sum(
                             map(
                                 int,
                                 re.findall(
                                     r"(\d{1,3})",
-                                    p["plays"][ii]["clock"]["displayValue"],
+                                    subbed_events[0]["clock"]["displayValue"],
                                 ),
                             )
                         )
                     else:
                         match_sheet["sub_in"] = None
 
-                    if (p["starter"] or p["subbedIn"]) and not p["subbedOut"]:
+                    if (p["starter"] or subbed_in) and not subbed_out:
                         match_sheet["sub_out"] = "end"
-                    elif p["subbedOut"]:
-                        j = 0 if not p["subbedIn"] else 1
-                        ii = [i for i, x in enumerate(p["plays"]) if x["substitution"]][j]
+                    elif subbed_out:
+                        j = 0 if not subbed_in else 1
                         match_sheet["sub_out"] = sum(
                             map(
                                 int,
                                 re.findall(
                                     r"(\d{1,3})",
-                                    p["plays"][ii]["clock"]["displayValue"],
+                                    subbed_events[j]["clock"]["displayValue"],
                                 ),
                             )
                         )

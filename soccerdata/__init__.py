@@ -23,3 +23,4 @@ from .match_history import MatchHistory
 from .sofifa import SoFIFA
 from .understat import Understat
 from .whoscored import WhoScored
+from .sofascore import Sofascore

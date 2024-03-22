@@ -10,6 +10,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import IO, Callable, Dict, Iterable, List, Optional, Union
 
+import cloudscraper
 import numpy as np
 import pandas as pd
 import requests
@@ -320,16 +321,7 @@ class BaseRequestsReader(BaseReader):
         self._session = self._init_session()
 
     def _init_session(self) -> requests.Session:
-        session = requests.Session()
-        session.headers.update(
-            {
-                "User-Agent": (
-                    "Mozilla/5.0 (Windows NT 6.1; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/59.0.3071.86 Safari/537.36"
-                )
-            }
-        )
+        session = cloudscraper.create_scraper()
         session.proxies.update(self.proxy())
         return session
 

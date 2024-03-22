@@ -88,7 +88,7 @@ SoFIFA
 
       from soccerdata import SoFIFA
 
-    Detailed scores on all player's abilities from EA Sports FIFA.
+    Detailed scores on all player's abilities from EA Sports FC.
 
 -----
 

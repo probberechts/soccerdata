@@ -25,6 +25,7 @@ rich = "^13.0.0"
 PySocks = "^1.7.1"
 html5lib = "^1.1"
 undetected-chromedriver = "^3.5.0"
+cloudscraper = "^1.2.71"
 
 [tool.poetry.dev-dependencies]
 pytest = "^8.0.0"

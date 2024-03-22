@@ -321,7 +321,9 @@ class BaseRequestsReader(BaseReader):
         self._session = self._init_session()
 
     def _init_session(self) -> requests.Session:
-        session = cloudscraper.create_scraper()
+        session = cloudscraper.create_scraper(
+            browser={'browser': 'chrome', 'platform': 'linux', 'mobile': False}
+        )
         session.proxies.update(self.proxy())
         return session
 

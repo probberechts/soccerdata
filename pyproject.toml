@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "soccerdata"
-version = "1.6.0"
+version = "1.6.1"
 description = "A collection of wrappers over soccer data from various websites / APIs."
 authors = ["Pieter Robberechts <pieter.robberechts@kuleuven.be>"]
 license = "Apache-2.0"
@@ -25,6 +25,7 @@ rich = "^13.0.0"
 PySocks = "^1.7.1"
 html5lib = "^1.1"
 undetected-chromedriver = "^3.5.0"
+cloudscraper = "^1.2.71"
 
 [tool.poetry.dev-dependencies]
 pytest = "^8.0.0"

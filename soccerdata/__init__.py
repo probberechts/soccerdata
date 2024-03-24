@@ -9,6 +9,7 @@ __all__ = [
     'FiveThirtyEight',
     'FotMob',
     'MatchHistory',
+    'Sofascore',
     'SoFIFA',
     'Understat',
     'WhoScored',
@@ -20,6 +21,7 @@ from .fbref import FBref
 from .fivethirtyeight import FiveThirtyEight
 from .fotmob import FotMob
 from .match_history import MatchHistory
+from .sofascore import Sofascore
 from .sofifa import SoFIFA
 from .understat import Understat
 from .whoscored import WhoScored

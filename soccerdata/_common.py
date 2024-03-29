@@ -494,7 +494,7 @@ def season_code(season: Union[str, int]) -> str:  # noqa: C901
         elif season[2:] == "99":
             return "".join([season[2:], "00"])  # 1999
         else:
-            return "".join([season[-2:], f"{int(season[-2:]) + 1:02d}"])  # 1994
+            return "".join([f"{int(season[-2:]) - 1:02d}", season[-2:]])  # 1994
     elif re.match(pat2, season):
         if season == "99":
             return "".join([season, "00"])  # 99

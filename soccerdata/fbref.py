@@ -288,9 +288,9 @@ class FBref(BaseRequestsReader):
 
         # get league IDs
         seasons = self.read_seasons()
-
         # collect teams
         teams = []
+
         for (lkey, skey), season in seasons.iterrows():
             big_five = lkey == "Big 5 European Leagues Combined"
             tournament = season["format"] == "elimination"
@@ -337,6 +337,7 @@ class FBref(BaseRequestsReader):
         stat_type: str = "schedule",
         opponent_stats: bool = False,
         team: Optional[Union[str, List[str]]] = None,
+        force_cache: bool = False,
     ) -> pd.DataFrame:
         """Retrieve the match logs for all teams in the selected leagues and seasons.
 
@@ -359,6 +360,9 @@ class FBref(BaseRequestsReader):
             If True, will retrieve opponent stats.
         team: str or list of str, optional
             Team(s) to retrieve. If None, will retrieve all teams.
+        force_cache: bool
+            By default no cached data is used for the current season.
+            If True, will force the use of cached data anyway.
 
         Raises
         ------
@@ -397,8 +401,99 @@ class FBref(BaseRequestsReader):
         else:
             opp_type = "for"
 
+        # Read data from csv if it exists
+        try:
+            # Only stat type that returns non-multindexed columns
+            if stat_type == "schedule":
+                csv_df = pd.read_csv(
+                    self.data_dir / f"{stat_type}_{opp_type}.csv",
+                    index_col=["league", "season", "team", "game"],
+                )
+
+            else:
+                csv_df = pd.read_csv(
+                    self.data_dir / f"{stat_type}_{opp_type}.csv",
+                    index_col=list(range(4)),
+                    header=list(range(2)),
+                )
+                csv_df.columns = [
+                    csv_df.columns.get_level_values(level).map(
+                        lambda x: "" if x.startswith("Unnamed") else x
+                    )
+                    for level in range(len(csv_df.columns.names))
+                ]
+
+            # Should only return selected teams
+            # Should raise warning if a selected league/season is not in csv
+            # Expects index level names 'league' and 'season'
+            if force_cache:
+                for league in self.leagues:
+                    if league not in csv_df.index.get_level_values("league").unique():
+                        warnings.warn(
+                            f"Could not find {league} in \
+                                      index of {stat_type}_{opp_type}.csv."
+                        )
+                        continue
+
+                    for season in self.seasons:
+                        if season not in csv_df.xs(
+                            "league", level="league"
+                        ).index.get_level_values("season"):
+                            warnings.warn(
+                                f"Could not find \
+                                           {league}_{season} \
+                                           in index of \
+                                           {stat_type}_{opp_type}.csv."
+                            )
+
+                return csv_df.loc[
+                    pd.IndexSlice[
+                        [
+                            league
+                            for league in self.leagues
+                            if league in csv_df.index.get_level_values("league").unique()
+                        ]
+                    ],
+                    :,
+                ].loc[
+                    pd.IndexSlice[
+                        :,
+                        [
+                            int(season)
+                            for season in self.seasons
+                            if int(season) in csv_df.index.get_level_values("season").unique()
+                        ],
+                    ],
+                    :,
+                ]
+
+        except FileNotFoundError:
+            if force_cache:
+                warnings.warn(
+                    f"'{stat_type}_{opp_type}.csv' \
+                                        not found in {self.data_dir}. \
+                                        Download latest data with force_cache=False"
+                )
+            else:
+                warnings.warn(
+                    f"'{stat_type}_{opp_type}.csv' \
+                               not found in {self.data_dir}."
+                )
+
         # get list of teams
         df_teams = self.read_team_season_stats()
+
+        if "csv_df" in locals():
+            # Dropping 2324 is a placeholder for dropping the latest season for each league
+            df_teams = df_teams.loc[
+                pd.IndexSlice[
+                    :,
+                    df_teams.index.get_level_values("season").difference(
+                        csv_df.index.get_level_values("season").astype(str).drop("2324")
+                    ),
+                    :,
+                ]
+            ]
 
         if team is not None:
             # get alternative names of the specified team(s)
@@ -411,7 +506,7 @@ class FBref(BaseRequestsReader):
             teams_to_check.append(team)
 
             # select requested teams
-            iterator = df_teams.loc[df_teams.index.isin(teams_to_check, level=2), :]
+            iterator = df_teams.loc[df_teams.index.isin(teams_to_check, level="team"), :]
             if len(iterator) == 0:
                 raise ValueError("No data found for the given teams in the selected seasons.")
         else:
@@ -419,7 +514,7 @@ class FBref(BaseRequestsReader):
 
         # collect match logs for each team
         stats = []
-        for (_, skey, team), team_url in iterator.url.items():
+        for (lkey, skey, team), team_url in iterator.url.items():
             # read html page
             filepath = self.data_dir / filemask.format(team, skey, stat_type)
             if len(team_url.split('/')) == 6:  # already have season in the url
@@ -443,7 +538,9 @@ class FBref(BaseRequestsReader):
                     + "/all_comps"
                     + f"/{stat_type}"
                 )
-            reader = self.get(url, filepath)
+
+            current_season = not self._is_complete(lkey, skey)
+            reader = self.get(url, filepath, no_cache=current_season and not force_cache)
 
             # parse HTML and select table
             tree = html.parse(reader)
@@ -471,8 +568,7 @@ class FBref(BaseRequestsReader):
             ]
             nb_levels = df_table.columns.nlevels
             if nb_levels == 2:
-                df_table = df_table.drop("Match Report", axis=1, level=1)
-                df_table = df_table.drop("Time", axis=1, level=1)
+                df_table = df_table.drop(["Match Report", "Time"], axis=1, level=1)
             stats.append(df_table)
 
         # return data frame
@@ -511,7 +607,13 @@ class FBref(BaseRequestsReader):
             lambda x: x["team"] if x["venue"] == "Away" else x["opponent"], axis=1
         )
         df["game"] = df_tmp.apply(make_game_id, axis=1)
-        return df.set_index(["league", "season", "team", "game"]).sort_index().loc[self.leagues]
+        df = df.set_index(["league", "season", "team", "game"]).sort_index().loc[self.leagues]
+        # Use CSV since parquet installation is not guaranteed
+        if "csv_df" in locals():
+            df = pd.concat([csv_df, df]).drop_duplicates().sort_index()
+            del csv_df
+        df.to_csv(self.data_dir / f"{stat_type}_{opp_type}.csv")
+        return df
 
     def read_player_season_stats(self, stat_type: str = "standard") -> pd.DataFrame:  # noqa: C901
         """Retrieve players from the datasource for the selected leagues and seasons.

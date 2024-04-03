@@ -20,7 +20,7 @@ Release v\ |release|. (``pip install soccerdata``)
 
 **SoccerData** is a collection of scrapers to gather soccer data from popular
 websites, including `Club Elo`_, `ESPN`_, `FBref`_, `FiveThirtyEight`_,
-`Football-Data.co.uk`_, `FotMob`_, `SoFIFA`_, `Understat`_  and `WhoScored`_.
+`Football-Data.co.uk`_, `FotMob`_, `Sofascore`_, `SoFIFA`_, `Understat`_  and `WhoScored`_.
 
 .. code:: python
 
@@ -72,6 +72,7 @@ Do you like it? :doc:`Let's dive in! <intro>`
 .. _FiveThirtyEight: https://fivethirtyeight.com/soccer-predictions/
 .. _Football-Data.co.uk: https://www.football-data.co.uk/
 .. _FotMob: https://fotmob.com/
+.. _Sofascore: https://www.sofascore.com/
 .. _SoFIFA: https://sofifa.com/
 .. _Understat: https://understat.com/
 .. _WhoScored: https://www.whoscored.com/

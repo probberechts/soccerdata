@@ -249,7 +249,7 @@ class BaseReader(ABC):
                     raise ValueError(
                         f"""
                         Invalid league '{i}'. Valid leagues are:
-                        { pprint.pformat(self.available_leagues()) }
+                        {pprint.pformat(self.available_leagues())}
                         """
                     )
                 tmp_league_dict[i] = self._all_leagues()[i]
@@ -290,7 +290,7 @@ class BaseReader(ABC):
         if seasons is None:
             logger.info("No seasons provided. Will retrieve data for the last 5 seasons.")
             year = datetime.today().year
-            seasons = [f"{y-1}-{y}" for y in range(year, year - 6, -1)]
+            seasons = [f"{y - 1}-{y}" for y in range(year, year - 6, -1)]
         if isinstance(seasons, str) or isinstance(seasons, int):
             seasons = [seasons]
         self._season_ids = [season_code(s) for s in seasons]
@@ -482,6 +482,7 @@ def season_code(season: Union[str, int]) -> str:  # noqa: C901
     pat4 = re.compile(r"^[0-9]{4}/[0-9]{4}$")  # 1994/1995
     pat5 = re.compile(r"^[0-9]{4}-[0-9]{2}$")  # 1994-95
     pat6 = re.compile(r"^[0-9]{2}-[0-9]{2}$")  # 94-95
+    pat7 = re.compile(r"^[0-9]{2}/[0-9]{2}$")  # 94/95
 
     if re.match(pat1, season):
         if int(season[2:]) == int(season[:2]) + 1:
@@ -508,6 +509,8 @@ def season_code(season: Union[str, int]) -> str:  # noqa: C901
         return "".join([season[2:4], season[-2:]])  # 1994-95
     elif re.match(pat6, season):
         return "".join([season[:2], season[-2:]])  # 94-95
+    elif re.match(pat7, season):
+        return "".join([season[:2], season[-2:]])  # 94/95
     else:
         return season
 

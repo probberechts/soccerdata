@@ -99,8 +99,8 @@ class Sofascore(BaseRequestsReader):
             )
         df = (
             pd.DataFrame(leagues)
-            .assign(region=lambda x: x['league'].str.split('-').str[0])
             .pipe(self._translate_league)
+            .assign(region=lambda x: x['league'].str.split('-').str[0])
             .set_index('league')
             .loc[self._selected_leagues.keys()]
             .sort_index()

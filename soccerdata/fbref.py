@@ -447,7 +447,7 @@ class FBref(BaseRequestsReader):
                     + "/all_comps"
                     + f"/{stat_type}"
                 )
-                
+
             current_season = not self._is_complete(lkey, skey)
             reader = self.get(url, filepath, no_cache=current_season and not force_cache)
 

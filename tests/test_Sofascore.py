@@ -17,7 +17,7 @@ def test_read_seasons(sofascore_epl_1516: Sofascore) -> None:
     assert len(seasons) == 1
 
 
-def test_read_seasons_empty(sofascore_epl_9091: Sofascore) -> None:
+def test_read_seasons_empty() -> None:
     sofascore_instance = Sofascore("ENG-Premier League", "90-91")
     seasons = sofascore_instance.read_seasons()
     assert isinstance(seasons, pd.DataFrame)

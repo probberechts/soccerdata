@@ -120,8 +120,8 @@ source.
 
 **Sofascore**
   Go to https://api.sofascore.com/api/v1/config/unique-tournaments/EN/football
-  to get the list of major leagues and tournaments. Access ``uniqueTournaments`` 
-  in the JSON response, and the ``{league name}`` corresponds to the ``name`` 
+  to get the list of major leagues and tournaments. Access ``uniqueTournaments``
+  in the JSON response, and the ``{league name}`` corresponds to the ``name``
   field.
 
 Troubleshooting

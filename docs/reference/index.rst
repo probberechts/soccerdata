@@ -17,6 +17,7 @@ data scrapers.
    fivethirtyeight
    fotmob
    matchhistory
+   sofascore
    sofifa
    understat
    whoscored

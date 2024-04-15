@@ -43,6 +43,7 @@ to support. For example, for the Dutch Eredivisie this would be:
       "ESPN": "ned.1",
       "FiveThirtyEight": "eredivisie",
       "WhoScored": "Netherlands - Eredivisie",
+      "Sofascore": "Eredivisie",
       "season_start": "Aug",
       "season_end": "May"
     }
@@ -116,6 +117,12 @@ source.
   to get the list of available leagues. The ``{region}`` corresponds to the
   ``ccode`` field in the JSON response. The ``{league name}`` corresponds to
   the ``name`` field.
+
+**Sofascore**
+  Go to https://api.sofascore.com/api/v1/config/unique-tournaments/EN/football
+  to get the list of major leagues and tournaments. Access ``uniqueTournaments``
+  in the JSON response, and the ``{league name}`` corresponds to the ``name``
+  field.
 
 Troubleshooting
 ---------------

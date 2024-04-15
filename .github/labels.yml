@@ -79,6 +79,9 @@
 - name: MatchHistory
   description: Issue or pull request related to the MatchHistory scraper
   color: 1A5276
+- name: Sofascore
+  description: Issue or pull request related to the Sofascore scraper
+  color: 3740F5
 - name: SoFIFA
   description: Issue or pull request related to the SoFIFA scraper
   color: 138D75

@@ -79,6 +79,19 @@ Football-Data.co.uk
 
 -----
 
+Sofascore
+    `URL <https://sofascore.com/>`__ |
+    :doc:`Example usage <Sofascore>` |
+    :doc:`API reference </reference/sofascore>`
+
+    .. code::
+
+      from soccerdata import Sofascore
+
+    Results, schedules, lineups, and detailed statistics for teams and individual players.
+
+-----
+
 SoFIFA
     `URL <https://sofifa.com/>`__ |
     :doc:`Example usage <SoFIFA>` |

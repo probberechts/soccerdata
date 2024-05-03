@@ -34,10 +34,12 @@ def fbref_ligue1() -> sd.FBref:
     """Return a correctly initialized instance of FBref filtered by league: Ligue 1."""
     return sd.FBref("FRA-Ligue 1", "20-21")
 
+
 @pytest.fixture
 def fbref_laliga() -> sd.FBref:
     """Return a correctly initialized instance of FBref filtered by league: La Liga"""
     return sd.FBref("ESP-La Liga", "23-24")
+
 
 @pytest.fixture
 def fotmob_laliga():

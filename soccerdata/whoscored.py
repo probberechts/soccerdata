@@ -263,15 +263,14 @@ class WhoScored(BaseSeleniumReader):
                         "url": node.get("value"),
                         "league": lkey,
                         "league_id": league.league_id,
-                        "season": season_code(node.text),
+                        "season": season_code(node.text, lkey),
                     }
                 )
-
         df = (
             pd.DataFrame(seasons)
             .set_index(["league", "season"])
             .sort_index()
-            .loc[itertools.product(self.leagues, self.seasons)]
+            .loc[(self.leagues, self.seasons), ["url", "league_id"]]
         )
         return df
 
@@ -473,7 +472,7 @@ class WhoScored(BaseSeleniumReader):
         country = breadcrumb[0].text
         league, season = breadcrumb[1].text.split(" - ")
         data["league"] = {v: k for k, v in self._all_leagues().items()}[f"{country} - {league}"]
-        data["season"] = season_code(season)
+        data["season"] = data.apply(lambda x: season_code(x["season"], x["league"]), axis=1)
         # match header
         match_header = self._driver.find_element(By.XPATH, "//div[@id='match-header']")
         score_info = match_header.find_element(By.XPATH, ".//div[@class='teams-score-info']")

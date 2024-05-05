@@ -150,7 +150,7 @@ class FotMob(BaseRequestsReader):
                 seasons.append(
                     {
                         'league': lkey,
-                        'season': season_code(season),
+                        'season': season_code(season, lkey),
                         'league_id': league.league_id,
                         'season_id': season,
                         'url': league.url + '?season=' + season,
@@ -409,8 +409,6 @@ class FotMob(BaseRequestsReader):
 
             df_raw_stats = pd.DataFrame(selected_stats['stats'])
             game_teams = [game.home_team, game.away_team]
-            if opponent_stats:
-                game_teams = [game.away_team, game.home_team]
             for i, team in enumerate(game_teams):
                 df_team_stats = df_raw_stats.copy()
                 df_team_stats['stat'] = df_team_stats['stats'].apply(lambda x: x[i])  # noqa: B023
@@ -418,6 +416,8 @@ class FotMob(BaseRequestsReader):
                 df_team_stats["season"] = skey
                 df_team_stats["game"] = gkey
                 df_team_stats['team'] = team
+                if not opponent_stats:
+                    df_team_stats = df_team_stats[df_team_stats.team.isin(teams_to_check)]
                 df_team_stats.set_index(['league', 'season', 'game', 'team'], inplace=True)
                 df_team_stats = df_team_stats[df_team_stats['type'] != 'title']
                 df_team_stats = df_team_stats.pivot(columns='title', values='stat').reset_index()
@@ -425,11 +425,7 @@ class FotMob(BaseRequestsReader):
                 stats.append(df_team_stats)
 
         df = pd.concat(stats, axis=0)
-        df = (
-            df[df.team.isin(teams_to_check)]
-            .set_index(['league', 'season', 'game', 'team'])
-            .sort_index()
-        )
+        df = df.set_index(['league', 'season', 'game', 'team']).sort_index()
         # Split percentage values
         pct_cols = [col for col in df.columns if df[col].astype(str).str.contains('%').any()]
         for col in pct_cols:

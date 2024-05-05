@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "soccerdata"
-version = "1.6.0"
+version = "1.6.1"
 description = "A collection of wrappers over soccer data from various websites / APIs."
 authors = ["Pieter Robberechts <pieter.robberechts@kuleuven.be>"]
 license = "Apache-2.0"
@@ -74,6 +74,7 @@ source = ["soccerdata", "*/site-packages"]
 [tool.coverage.run]
 branch = true
 source = ["soccerdata"]
+relative_files = true
 
 [tool.coverage.report]
 show_missing = true

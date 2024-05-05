@@ -154,8 +154,6 @@ class FBref(BaseRequestsReader):
             .set_index("league")
             .sort_index()
         )
-        df["first_season"] = df["first_season"].apply(season_code)
-        df["last_season"] = df["last_season"].apply(season_code)
 
         leagues = self.leagues
         if "Big 5 European Leagues Combined" in self.leagues and split_up_big5:
@@ -163,6 +161,11 @@ class FBref(BaseRequestsReader):
                 (set(self.leagues) - {"Big 5 European Leagues Combined"})
                 | set(BIG_FIVE_DICT.values())
             )
+        for league in leagues:
+            if league == "Big 5 European Leagues Combined":
+                league = None
+            df["first_season"] = df["first_season"].apply(season_code, league=league)
+            df["last_season"] = df["last_season"].apply(season_code, league=league)
         return df[df.index.isin(leagues)]
 
     def read_seasons(self, split_up_big5: bool = False) -> pd.DataFrame:
@@ -208,7 +211,7 @@ class FBref(BaseRequestsReader):
 
         df = pd.concat(seasons).pipe(standardize_colnames)
         df = df.rename(columns={"competition_name": "league"})
-        df["season"] = df["season"].apply(season_code)
+        df["season"] = df.apply(lambda x: season_code(x["season"], x["league"]), axis=1)
         # if both a 20xx and 19xx season are available, drop the 19xx season
         df.drop_duplicates(subset=["league", "season"], keep="first", inplace=True)
         df = df.set_index(["league", "season"]).sort_index()
@@ -337,6 +340,7 @@ class FBref(BaseRequestsReader):
         stat_type: str = "schedule",
         opponent_stats: bool = False,
         team: Optional[Union[str, List[str]]] = None,
+        force_cache: bool = False,
     ) -> pd.DataFrame:
         """Retrieve the match logs for all teams in the selected leagues and seasons.
 
@@ -359,6 +363,9 @@ class FBref(BaseRequestsReader):
             If True, will retrieve opponent stats.
         team: str or list of str, optional
             Team(s) to retrieve. If None, will retrieve all teams.
+        force_cache: bool
+            By default no cached data is used for the current season.
+            If True, will force the use of cached data anyway.
 
         Raises
         ------
@@ -419,7 +426,7 @@ class FBref(BaseRequestsReader):
 
         # collect match logs for each team
         stats = []
-        for (_, skey, team), team_url in iterator.url.items():
+        for (lkey, skey, team), team_url in iterator.url.items():
             # read html page
             filepath = self.data_dir / filemask.format(team, skey, stat_type)
             if len(team_url.split('/')) == 6:  # already have season in the url
@@ -443,7 +450,9 @@ class FBref(BaseRequestsReader):
                     + "/all_comps"
                     + f"/{stat_type}"
                 )
-            reader = self.get(url, filepath)
+
+            current_season = not self._is_complete(lkey, skey)
+            reader = self.get(url, filepath, no_cache=current_season and not force_cache)
 
             # parse HTML and select table
             tree = html.parse(reader)
@@ -471,8 +480,7 @@ class FBref(BaseRequestsReader):
             ]
             nb_levels = df_table.columns.nlevels
             if nb_levels == 2:
-                df_table = df_table.drop("Match Report", axis=1, level=1)
-                df_table = df_table.drop("Time", axis=1, level=1)
+                df_table = df_table.drop(["Match Report", "Time"], axis=1, level=1)
             stats.append(df_table)
 
         # return data frame

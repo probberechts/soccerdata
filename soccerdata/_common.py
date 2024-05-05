@@ -249,7 +249,7 @@ class BaseReader(ABC):
                     raise ValueError(
                         f"""
                         Invalid league '{i}'. Valid leagues are:
-                        { pprint.pformat(self.available_leagues()) }
+                        {pprint.pformat(self.available_leagues())}
                         """
                     )
                 tmp_league_dict[i] = self._all_leagues()[i]
@@ -286,14 +286,17 @@ class BaseReader(ABC):
         return self._season_ids
 
     @seasons.setter
-    def seasons(self, seasons: Optional[Union[str, int, Iterable[Union[str, int]]]]) -> None:
+    def seasons(
+        self,
+        seasons: Optional[Union[str, int, Iterable[Union[str, int]]]],
+    ) -> None:
         if seasons is None:
             logger.info("No seasons provided. Will retrieve data for the last 5 seasons.")
             year = datetime.today().year
-            seasons = [f"{y-1}-{y}" for y in range(year, year - 6, -1)]
+            seasons = [f"{y - 1}-{y}" for y in range(year, year - 6, -1)]
         if isinstance(seasons, str) or isinstance(seasons, int):
             seasons = [seasons]
-        self._season_ids = [season_code(s) for s in seasons]
+        self._season_ids = [season_code(s, l) for s in seasons for l in self.leagues]
 
 
 class BaseRequestsReader(BaseReader):
@@ -473,7 +476,7 @@ class BaseSeleniumReader(BaseReader):
         raise ConnectionError("Could not download %s." % url)
 
 
-def season_code(season: Union[str, int]) -> str:  # noqa: C901
+def season_code(season: Union[str, int], league: Optional[str] = None) -> str:  # noqa: C901
     """Convert a string or int to a season code like '1718'."""
     season = str(season)
     pat1 = re.compile(r"^[0-9]{4}$")  # 1994 | 9495
@@ -482,34 +485,68 @@ def season_code(season: Union[str, int]) -> str:  # noqa: C901
     pat4 = re.compile(r"^[0-9]{4}/[0-9]{4}$")  # 1994/1995
     pat5 = re.compile(r"^[0-9]{4}-[0-9]{2}$")  # 1994-95
     pat6 = re.compile(r"^[0-9]{2}-[0-9]{2}$")  # 94-95
-
-    if re.match(pat1, season):
-        if int(season[2:]) == int(season[:2]) + 1:
-            if season == "2021":
-                msg = 'Season id "{}" is ambiguous: interpreting as "{}-{}"'.format(
-                    season, season[:2], season[-2:]
-                )
-                warnings.warn(msg, stacklevel=1)
-            return season  # 9495
-        elif season[2:] == "99":
-            return "".join([season[2:], "00"])  # 1999
-        else:
-            return "".join([season[-2:], f"{int(season[-2:]) + 1:02d}"])  # 1994
-    elif re.match(pat2, season):
-        if season == "99":
-            return "".join([season, "00"])  # 99
-        else:
-            return "".join([season, f"{int(season) + 1:02d}"])  # 94
-    elif re.match(pat3, season):
-        return "".join([season[2:4], season[-2:]])  # 1994-1995
-    elif re.match(pat4, season):
-        return "".join([season[2:4], season[-2:]])  # 1994/1995
-    elif re.match(pat5, season):
-        return "".join([season[2:4], season[-2:]])  # 1994-95
-    elif re.match(pat6, season):
-        return "".join([season[:2], season[-2:]])  # 94-95
+    pat7 = re.compile(r"^[0-9]{2}/[0-9]{2}$")  # 94/95
+    # Check if season takes place within single calendar year
+    if (league is not None) and (league != "Big 5 European Leagues Combined"):
+        select_league_dict = LEAGUE_DICT[league]
+        start_month = datetime.strptime(select_league_dict.get("season_start"), "%b").month
+        end_month = datetime.strptime(select_league_dict.get("season_end"), "%b").month
+        single_calendar_year = (end_month - start_month) > 0
     else:
-        return season
+        single_calendar_year = False
+    if single_calendar_year:
+        current_year = datetime.now()
+        if re.match(pat1, season):
+            current_century = (int(current_year.strftime("%y")) - int(season[-2:])) >= 0
+            if int(season[2:]) == int(season[:2]) + 1:
+                if current_century:
+                    return "".join(["20", season[-2:]])
+                else:
+                    return "".join(["19", season[-2:]])
+            else:
+                return season
+        elif re.match(pat2, season):
+            current_century = (current_year.year - int(season[-2:])) >= 2000
+            if current_century:
+                return "".join(["20", season])  # 05
+            else:
+                return "".join(["19", season])  # 94
+        else:
+            current_century = (current_year.year - int(season[-2:])) >= 2000
+            if current_century:
+                return "".join(["20", season[-2:]])
+            else:
+                return "".join(["19", season[-2:]])
+    else:
+        if re.match(pat1, season):
+            if int(season[2:]) == int(season[:2]) + 1:
+                if season == "2021":
+                    msg = 'Season id "{}" is ambiguous: interpreting as "{}-{}"'.format(
+                        season, season[:2], season[-2:]
+                    )
+                    warnings.warn(msg, stacklevel=1)
+                return season  # 9495
+            elif season[2:] == "99":
+                return "".join([season[2:], "00"])  # 1999
+            else:
+                return "".join([season[-2:], f"{int(season[-2:]) + 1:02d}"])  # 1994
+        elif re.match(pat2, season):
+            if season == "99":
+                return "".join([season, "00"])  # 99
+            else:
+                return "".join([season, f"{int(season) + 1:02d}"])  # 94
+        elif re.match(pat3, season):
+            return "".join([season[2:4], season[-2:]])  # 1994-1995
+        elif re.match(pat4, season):
+            return "".join([season[2:4], season[-2:]])  # 1994/1995
+        elif re.match(pat5, season):
+            return "".join([season[2:4], season[-2:]])  # 1994-95
+        elif re.match(pat6, season):
+            return "".join([season[:2], season[-2:]])  # 94-95
+        elif re.match(pat7, season):
+            return "".join([season[:2], season[-2:]])  # 94/95
+        else:
+            return season
 
 
 def make_game_id(row: pd.Series) -> str:

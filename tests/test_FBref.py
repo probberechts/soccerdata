@@ -91,9 +91,12 @@ def test_read_events(fbref_ligue1: FBref) -> None:
     assert isinstance(fbref_ligue1.read_events(match_id="796787da"), pd.DataFrame)
 
 
-def test_read_events_no_a_tag_in_player1(fbref_laliga: FBref) -> None:
-    """Testing a match where a yellow card issued to the manager (so there is not <a> tag in player1)"""
-    assert isinstance(fbref_laliga.read_events(match_id="e8867e6b"), pd.DataFrame)
+def test_read_events_yellow_for_manager() -> None:
+    """When a yellow card given to the manager, there is no <a> tag."""
+    fbref_laliga = sd.FBref("ESP-La Liga", "23-24")
+    events = fbref_laliga.read_events(match_id="e8867e6b")
+    yellow_cards = events[events["event_type"] == "yellow_card"]
+    assert "Pepe Bordalás" in yellow_cards["player1"].tolist()
 
 
 def test_read_shot_events(fbref_ligue1: FBref) -> None:

@@ -984,7 +984,7 @@ class FBref(BaseRequestsReader):
                 for e in html_events:
                     minute = e.xpath("./div[1]")[0].text.replace("&rsquor;", "").strip()
                     score = e.xpath("./div[1]/small/span")[0].text
-                    player1 = e.xpath("./div[2]/div[2]/div/a")[0].text
+                    player1 = e.xpath("./div[2]/div[2]/div")[0].text_content().strip()
                     if e.xpath("./div[2]/div[2]/small/a"):
                         player2 = e.xpath("./div[2]/div[2]/small/a")[0].text
                     else:

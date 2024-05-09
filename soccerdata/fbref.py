@@ -1000,10 +1000,12 @@ class FBref(BaseRequestsReader):
                             "event_type": event_type,
                         }
                     )
-            df_match_events = pd.DataFrame(match_events).sort_values(by="minute")
+            df_match_events = pd.DataFrame(match_events)
             df_match_events["game"] = game["game"]
             df_match_events["league"] = game["league"]
             df_match_events["season"] = game["season"]
+            if len(df_match_events) > 0:
+                df_match_events.sort_values(by="minute", inplace=True)
             events.append(df_match_events)
 
         if len(events) == 0:

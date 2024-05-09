@@ -99,6 +99,12 @@ def test_read_events_yellow_for_manager() -> None:
     assert "Pepe Bordalás" in yellow_cards["player1"].tolist()
 
 
+def test_missing_events() -> None:
+    fbref = sd.FBref("FRA-Ligue 1", "19-20")
+    events = fbref.read_events(match_id="1d845950")
+    assert len(events) == 0
+
+
 def test_read_shot_events(fbref_ligue1: FBref) -> None:
     assert isinstance(fbref_ligue1.read_shot_events(match_id="796787da"), pd.DataFrame)
 

@@ -315,7 +315,7 @@ class WhoScored(BaseSeleniumReader):
         )
         return df
 
-    def read_season_stages(self, force_cache=False) -> pd.DataFrame:
+    def read_season_stages(self, force_cache: bool = False) -> pd.DataFrame:
         """Retrieve the season stages for the selected leagues.
 
         Parameters

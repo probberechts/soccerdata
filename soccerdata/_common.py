@@ -452,6 +452,8 @@ class BaseSeleniumReader(BaseReader):
                     response = self._driver.execute_script(
                         "return document.body.innerHTML;"
                     ).encode("utf-8")
+                    if response == b"":
+                        raise Exception("Empty response.")
                 else:
                     if not isinstance(var, str):
                         raise NotImplementedError("Only implemented for single variables.")

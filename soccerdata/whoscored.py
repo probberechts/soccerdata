@@ -647,6 +647,8 @@ class WhoScored(BaseSeleniumReader):
         force_cache: bool = False,
         live: bool = False,
         output_fmt: Optional[str] = "events",
+        retry_missing: bool = True,
+        skip_on_error: bool = False,
     ) -> Optional[Union[pd.DataFrame, Dict[int, List], "OptaLoader"]]:  # type: ignore  # noqa: F821
         """Retrieve the the event data for each game in the selected leagues and seasons.
 
@@ -676,6 +678,12 @@ class WhoScored(BaseSeleniumReader):
                   See https://socceraction.readthedocs.io/en/latest/modules/generated/socceraction.data.opta.OptaLoader.html#socceraction.data.opta.OptaLoader  # noqa: E501
                 - None: Doesn't return any data. This is useful to just cache
                   the data without storing the events in memory.
+        retry_missing : bool
+            If no events were found for a game in a previous attempt, will
+            retry to scrape the events
+        skip_on_error : bool
+            If True, will skip games for which an error occurred while scraping
+            the events. If False, will raise an exception.
 
         Raises
         ------
@@ -684,6 +692,8 @@ class WhoScored(BaseSeleniumReader):
         ImportError
             If the requested output format is 'spadl', 'atomic-spadl' or
             'loader' but the socceraction package is not installed.
+        Exception
+            If the match page could be be retrieved.
 
         Returns
         -------
@@ -743,19 +753,25 @@ class WhoScored(BaseSeleniumReader):
                 game["league"], game["season"], game["game_id"]
             )
 
-            reader = self.get(
-                url,
-                filepath,
-                var="requirejs.s.contexts._.config.config.params.args.matchCentreData",
-                no_cache=live,
-            )
-            if reader.read(4) == b'null':
+            try:
                 reader = self.get(
                     url,
                     filepath,
                     var="requirejs.s.contexts._.config.config.params.args.matchCentreData",
-                    no_cache=True,
+                    no_cache=live,
                 )
+                if retry_missing and reader.read(4) == b'null':
+                    reader = self.get(
+                        url,
+                        filepath,
+                        var="requirejs.s.contexts._.config.config.params.args.matchCentreData",
+                        no_cache=True,
+                    )
+            except Exception as e:
+                if skip_on_error:
+                    logger.warning("Error while scraping game %s: %s", game["game_id"], e)
+                    continue
+                raise
             reader.seek(0)
             json_data = json.load(reader)
             if json_data is not None:

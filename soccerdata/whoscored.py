@@ -693,7 +693,7 @@ class WhoScored(BaseSeleniumReader):
             If the requested output format is 'spadl', 'atomic-spadl' or
             'loader' but the socceraction package is not installed.
         Exception
-            If the match page could be be retrieved.
+            If the match page could not be retrieved.
 
         Returns
         -------

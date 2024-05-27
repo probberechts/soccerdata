@@ -6,7 +6,7 @@ import re
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Dict, Iterable, List, Optional, Union
+from typing import Callable, Dict, Iterable, List, Literal, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -513,7 +513,8 @@ class WhoScored(BaseSeleniumReader):
         self._driver.get(url)
         # league and season
         breadcrumb = self._driver.find_elements(
-            By.XPATH, "//div[@id='breadcrumb-nav']/*[not(contains(@class, 'separator'))]"
+            By.XPATH,
+            "//div[@id='breadcrumb-nav']/*[not(contains(@class, 'separator'))]",
         )
         country = breadcrumb[0].text
         league, season = breadcrumb[1].text.split(" - ")
@@ -541,7 +542,9 @@ class WhoScored(BaseSeleniumReader):
         return data
 
     def read_missing_players(
-        self, match_id: Optional[Union[int, List[int]]] = None, force_cache: bool = False
+        self,
+        match_id: Optional[Union[int, List[int]]] = None,
+        force_cache: bool = False,
     ) -> pd.DataFrame:
         """Retrieve a list of injured and suspended players ahead of each game.
 
@@ -582,7 +585,10 @@ class WhoScored(BaseSeleniumReader):
             filepath = DATA_DIR / filemask.format(game["league"], game["season"], game["game_id"])
 
             logger.info(
-                "[%s/%s] Retrieving game with id=%s", i + 1, len(iterator), game["game_id"]
+                "[%s/%s] Retrieving game with id=%s",
+                i + 1,
+                len(iterator),
+                game["game_id"],
             )
             reader = self.get(url, filepath, var=None)
 
@@ -647,6 +653,8 @@ class WhoScored(BaseSeleniumReader):
         force_cache: bool = False,
         live: bool = False,
         output_fmt: Optional[str] = "events",
+        retry_missing: bool = True,
+        on_error: Literal["raise", "skip"] = "raise",
     ) -> Optional[Union[pd.DataFrame, Dict[int, List], "OptaLoader"]]:  # type: ignore  # noqa: F821
         """Retrieve the the event data for each game in the selected leagues and seasons.
 
@@ -676,11 +684,18 @@ class WhoScored(BaseSeleniumReader):
                   See https://socceraction.readthedocs.io/en/latest/modules/generated/socceraction.data.opta.OptaLoader.html#socceraction.data.opta.OptaLoader  # noqa: E501
                 - None: Doesn't return any data. This is useful to just cache
                   the data without storing the events in memory.
+        retry_missing : bool
+            If no events were found for a game in a previous attempt, will
+            retry to scrape the events
+        on_error : "raise" or "skip", default: "raise"
+            Wheter to raise an exception or to skip the game if an error occurs.
 
         Raises
         ------
         ValueError
             If the given match_id could not be found in the selected seasons.
+        ConnectionError
+            If the match page could not be retrieved.
         ImportError
             If the requested output format is 'spadl', 'atomic-spadl' or
             'loader' but the socceraction package is not installed.
@@ -737,25 +752,34 @@ class WhoScored(BaseSeleniumReader):
             url = urlmask.format(game["game_id"])
             # get league and season
             logger.info(
-                "[%s/%s] Retrieving game with id=%s", i + 1, len(iterator), game["game_id"]
+                "[%s/%s] Retrieving game with id=%s",
+                i + 1,
+                len(iterator),
+                game["game_id"],
             )
             filepath = self.data_dir / filemask.format(
                 game["league"], game["season"], game["game_id"]
             )
 
-            reader = self.get(
-                url,
-                filepath,
-                var="requirejs.s.contexts._.config.config.params.args.matchCentreData",
-                no_cache=live,
-            )
-            if reader.read(4) == b'null':
+            try:
                 reader = self.get(
                     url,
                     filepath,
                     var="requirejs.s.contexts._.config.config.params.args.matchCentreData",
-                    no_cache=True,
+                    no_cache=live,
                 )
+                if retry_missing and reader.read(4) == b"null":
+                    reader = self.get(
+                        url,
+                        filepath,
+                        var="requirejs.s.contexts._.config.config.params.args.matchCentreData",
+                        no_cache=True,
+                    )
+            except ConnectionError as e:
+                if on_error == "skip":
+                    logger.warning("Error while scraping game %s: %s", game["game_id"], e)
+                    continue
+                raise
             reader.seek(0)
             json_data = json.load(reader)
             if json_data is not None:

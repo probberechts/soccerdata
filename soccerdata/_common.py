@@ -467,8 +467,12 @@ class BaseSeleniumReader(BaseReader):
                 return io.BytesIO(response)
             except Exception:
                 logger.exception(
-                    "Error while scraping %s. Retrying... (attempt %d of 5).", url, i + 1
+                    "Error while scraping %s. Retrying in %d seconds... (attempt %d of 5).",
+                    url,
+                    i * 10,
+                    i + 1,
                 )
+                time.sleep(i * 10)
                 self._driver = self._init_webdriver()
                 continue
 

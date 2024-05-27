@@ -104,6 +104,10 @@ class FBref(BaseRequestsReader):
     @property
     def leagues(self) -> List[str]:
         """Return a list of selected leagues."""
+        if "Big 5 European Leagues Combined" in self._leagues_dict:
+            for _, standardized_name in BIG_FIVE_DICT.items():
+                if standardized_name in self._leagues_dict:
+                    del self._leagues_dict[standardized_name]
         return list(self._leagues_dict.keys())
 
     @classmethod
@@ -323,7 +327,7 @@ class FBref(BaseRequestsReader):
 
         # return data frame
         df = (
-            _concat(teams, key=['league', 'season'])
+            _concat(teams, key=["league", "season"])
             .rename(columns={"Squad": "team", "# Pl": "players_used"})
             .replace({"team": TEAMNAME_REPLACEMENTS})
             # .pipe(standardize_colnames)
@@ -426,7 +430,7 @@ class FBref(BaseRequestsReader):
         for (lkey, skey, team), team_url in iterator.url.items():
             # read html page
             filepath = self.data_dir / filemask.format(team, skey, stat_type)
-            if len(team_url.split('/')) == 6:  # already have season in the url
+            if len(team_url.split("/")) == 6:  # already have season in the url
                 url = (
                     FBREF_API
                     + team_url.rsplit("/", 1)[0]
@@ -465,7 +469,7 @@ class FBref(BaseRequestsReader):
             df_table["season"] = skey
             df_table["team"] = team
             df_table["Time"] = [
-                x.get('csk', None) for x in html_table.xpath(".//td[@data-stat='start_time']")
+                x.get("csk", None) for x in html_table.xpath(".//td[@data-stat='start_time']")
             ]
             df_table["Match Report"] = [
                 (
@@ -482,7 +486,7 @@ class FBref(BaseRequestsReader):
 
         # return data frame
         df = (
-            _concat(stats, key=['league', 'season', 'team'])
+            _concat(stats, key=["league", "season", "team"])
             .replace(
                 {
                     "Opponent": TEAMNAME_REPLACEMENTS,
@@ -664,7 +668,9 @@ class FBref(BaseRequestsReader):
             filepath_fixtures = self.data_dir / f"schedule_{lkey}_{skey}.html"
             current_season = not self._is_complete(lkey, skey)
             reader = self.get(
-                url_fixtures, filepath_fixtures, no_cache=current_season and not force_cache
+                url_fixtures,
+                filepath_fixtures,
+                no_cache=current_season and not force_cache,
             )
             tree = html.parse(reader)
             html_table = tree.xpath("//table[contains(@id, 'sched')]")[0]
@@ -799,7 +805,10 @@ class FBref(BaseRequestsReader):
             url = urlmask.format(game["game_id"])
             # get league and season
             logger.info(
-                "[%s/%s] Retrieving game with id=%s", i + 1, len(iterator), game["game_id"]
+                "[%s/%s] Retrieving game with id=%s",
+                i + 1,
+                len(iterator),
+                game["game_id"],
             )
             filepath = self.data_dir / filemask.format(game["game_id"])
             reader = self.get(url, filepath)
@@ -832,7 +841,7 @@ class FBref(BaseRequestsReader):
             else:
                 logger.warning("No stats found for away team for game with id=%s", game["game_id"])
 
-        df = _concat(stats, key=['game'])
+        df = _concat(stats, key=["game"])
         df = df[~df.Player.str.contains(r"^\d+\sPlayers$")]
         df = (
             df.rename(columns={"#": "jersey_number"})
@@ -844,7 +853,9 @@ class FBref(BaseRequestsReader):
         return df
 
     def read_lineup(
-        self, match_id: Optional[Union[str, List[str]]] = None, force_cache: bool = False
+        self,
+        match_id: Optional[Union[str, List[str]]] = None,
+        force_cache: bool = False,
     ) -> pd.DataFrame:
         """Retrieve lineups for the selected leagues and seasons.
 
@@ -887,7 +898,10 @@ class FBref(BaseRequestsReader):
             url = urlmask.format(game["game_id"])
             # get league and season
             logger.info(
-                "[%s/%s] Retrieving game with id=%s", i + 1, len(iterator), game["game_id"]
+                "[%s/%s] Retrieving game with id=%s",
+                i + 1,
+                len(iterator),
+                game["game_id"],
             )
             filepath = self.data_dir / filemask.format(game["game_id"])
             reader = self.get(url, filepath)
@@ -914,7 +928,12 @@ class FBref(BaseRequestsReader):
                 )
                 df_stats_table = _parse_table(html_stats_table)
                 df_stats_table = df_stats_table.droplevel(0, axis=1)[["Player", "#", "Pos", "Min"]]
-                df_stats_table.columns = ["player", "jersey_number", "position", "minutes_played"]
+                df_stats_table.columns = [
+                    "player",
+                    "jersey_number",
+                    "position",
+                    "minutes_played",
+                ]
                 df_stats_table["jersey_number"] = df_stats_table["jersey_number"].astype("Int64")
                 df_table["jersey_number"] = df_table["jersey_number"].astype("Int64")
                 df_table = pd.merge(
@@ -926,7 +945,9 @@ class FBref(BaseRequestsReader):
         return df
 
     def read_events(
-        self, match_id: Optional[Union[str, List[str]]] = None, force_cache: bool = False
+        self,
+        match_id: Optional[Union[str, List[str]]] = None,
+        force_cache: bool = False,
     ) -> pd.DataFrame:
         """Retrieve match events for the selected seasons or selected matches.
 
@@ -973,7 +994,10 @@ class FBref(BaseRequestsReader):
             url = urlmask.format(game["game_id"])
             # get league and season
             logger.info(
-                "[%s/%s] Retrieving game with id=%s", i + 1, len(iterator), game["game_id"]
+                "[%s/%s] Retrieving game with id=%s",
+                i + 1,
+                len(iterator),
+                game["game_id"],
             )
             filepath = self.data_dir / filemask.format(game["game_id"])
             reader = self.get(url, filepath)
@@ -1021,7 +1045,9 @@ class FBref(BaseRequestsReader):
         return df
 
     def read_shot_events(
-        self, match_id: Optional[Union[str, List[str]]] = None, force_cache: bool = False
+        self,
+        match_id: Optional[Union[str, List[str]]] = None,
+        force_cache: bool = False,
     ) -> pd.DataFrame:
         """Retrieve shooting data for the selected seasons or selected matches.
 
@@ -1068,7 +1094,10 @@ class FBref(BaseRequestsReader):
             url = urlmask.format(game["game_id"])
             # get league anigd season
             logger.info(
-                "[%s/%s] Retrieving game with id=%s", i + 1, len(iterator), game["game_id"]
+                "[%s/%s] Retrieving game with id=%s",
+                i + 1,
+                len(iterator),
+                game["game_id"],
             )
             filepath = self.data_dir / filemask.format(game["game_id"])
             reader = self.get(url, filepath)
@@ -1087,12 +1116,20 @@ class FBref(BaseRequestsReader):
             return pd.DataFrame()
 
         df = (
-            _concat(shots, key=['game'])
+            _concat(shots, key=["game"])
             .rename(columns={"Squad": "team"})
             .replace({"team": TEAMNAME_REPLACEMENTS})
             .pipe(
                 standardize_colnames,
-                cols=["Outcome", "Minute", "Distance", "Player", "Body Part", "Notes", "Event"],
+                cols=[
+                    "Outcome",
+                    "Minute",
+                    "Distance",
+                    "Player",
+                    "Body Part",
+                    "Notes",
+                    "Event",
+                ],
             )
             .set_index(["league", "season", "game"])
             .sort_index()
@@ -1178,7 +1215,7 @@ def _concat(dfs: List[pd.DataFrame], key: List[str]) -> pd.DataFrame:
     if len(all_columns) and all_columns[0].shape[1] == 2:
         for i, columns in enumerate(all_columns):
             if not columns[1].equals(all_columns[0][1]):
-                res = all_columns[0].merge(columns, indicator=True, how='outer')
+                res = all_columns[0].merge(columns, indicator=True, how="outer")
                 warnings.warn(
                     (
                         "Different columns found for {first} and {cur}.\n\n"
@@ -1191,7 +1228,7 @@ def _concat(dfs: List[pd.DataFrame], key: List[str]) -> pd.DataFrame:
                         extra_cols=", ".join(
                             map(
                                 str,
-                                res.loc[res['_merge'] == "left_only", [0, 1]]
+                                res.loc[res["_merge"] == "left_only", [0, 1]]
                                 .to_records(index=False)
                                 .tolist(),
                             )
@@ -1199,7 +1236,7 @@ def _concat(dfs: List[pd.DataFrame], key: List[str]) -> pd.DataFrame:
                         missing_cols=", ".join(
                             map(
                                 str,
-                                res.loc[res['_merge'] == "right_only", [0, 1]]
+                                res.loc[res["_merge"] == "right_only", [0, 1]]
                                 .to_records(index=False)
                                 .tolist(),
                             )

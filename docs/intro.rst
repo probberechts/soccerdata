@@ -73,7 +73,7 @@ leagues available for each source can be listed with the
 .. code:: python
 
    sd.FBref.available_leagues()
-   >>> ['ENG-Premier League', 'ESP-La Liga', 'FRA-Ligue 1', 'GER-Bundesliga', 'ITA-Serie A']
+   >>> ['Big 5 European Leagues Combined', 'ENG-Premier League', 'ESP-La Liga', 'FRA-Ligue 1', 'GER-Bundesliga', 'ITA-Serie A', 'INT-World Cup', "INT-Women's World Cup"]
 
 
 You can :doc:`add more leagues <howto/custom-leagues>` but there are no

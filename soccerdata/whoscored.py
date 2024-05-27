@@ -6,16 +6,7 @@ import re
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import (
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Literal,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import Callable, Dict, Iterable, List, Literal, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -218,9 +209,7 @@ class WhoScored(BaseSeleniumReader):
         leagues: Optional[Union[str, List[str]]] = None,
         seasons: Optional[Union[str, int, Iterable[Union[str, int]]]] = None,
         proxy: Optional[
-            Union[
-                str, Dict[str, str], List[Dict[str, str]], Callable[[], Dict[str, str]]
-            ]
+            Union[str, Dict[str, str], List[Dict[str, str]], Callable[[], Dict[str, str]]]
         ] = None,
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
@@ -354,9 +343,7 @@ class WhoScored(BaseSeleniumReader):
                 + f"/Seasons/{season['season_id']}"
             )
             filepath = self.data_dir / filemask.format(lkey, skey)
-            reader = self.get(
-                url, filepath, var=None, no_cache=current_season and not force_cache
-            )
+            reader = self.get(url, filepath, var=None, no_cache=current_season and not force_cache)
             tree = html.parse(reader)
 
             # get default season stage
@@ -457,13 +444,8 @@ class WhoScored(BaseSeleniumReader):
             # get the fixtures for each month
             it = [(year, month) for year in mask.keys() for month in mask[year].keys()]
             for i, (year, month) in enumerate(it):
-                filepath = self.data_dir / filemask_schedule.format(
-                    lkey, skey, stage_id, month
-                )
-                url = (
-                    WHOSCORED_URL
-                    + f"/tournaments/{stage_id}/data/?d={year}{(int(month)+1):02d}"
-                )
+                filepath = self.data_dir / filemask_schedule.format(lkey, skey, stage_id, month)
+                url = WHOSCORED_URL + f"/tournaments/{stage_id}/data/?d={year}{(int(month)+1):02d}"
 
                 if stage_name is not None:
                     logger.info(
@@ -536,15 +518,11 @@ class WhoScored(BaseSeleniumReader):
         )
         country = breadcrumb[0].text
         league, season = breadcrumb[1].text.split(" - ")
-        data["league"] = {v: k for k, v in self._all_leagues().items()}[
-            f"{country} - {league}"
-        ]
+        data["league"] = {v: k for k, v in self._all_leagues().items()}[f"{country} - {league}"]
         data["season"] = season_code(season)
         # match header
         match_header = self._driver.find_element(By.XPATH, "//div[@id='match-header']")
-        score_info = match_header.find_element(
-            By.XPATH, ".//div[@class='teams-score-info']"
-        )
+        score_info = match_header.find_element(By.XPATH, ".//div[@class='teams-score-info']")
         data["home_team"] = score_info.find_element(
             By.XPATH, "./span[contains(@class,'home team')]"
         ).text
@@ -554,15 +532,11 @@ class WhoScored(BaseSeleniumReader):
         data["away_team"] = score_info.find_element(
             By.XPATH, "./span[contains(@class,'away team')]"
         ).text
-        info_blocks = match_header.find_elements(
-            By.XPATH, ".//div[@class='info-block cleared']"
-        )
+        info_blocks = match_header.find_elements(By.XPATH, ".//div[@class='info-block cleared']")
         for block in info_blocks:
             for desc_list in block.find_elements(By.TAG_NAME, "dl"):
                 for desc_def in desc_list.find_elements(By.TAG_NAME, "dt"):
-                    desc_val = desc_def.find_element(
-                        By.XPATH, "./following-sibling::dd"
-                    )
+                    desc_val = desc_def.find_element(By.XPATH, "./following-sibling::dd")
                     data[desc_def.text] = desc_val.text
 
         return data
@@ -598,23 +572,17 @@ class WhoScored(BaseSeleniumReader):
         df_schedule = self.read_schedule(force_cache).reset_index()
         if match_id is not None:
             iterator = df_schedule[
-                df_schedule.game_id.isin(
-                    [match_id] if isinstance(match_id, int) else match_id
-                )
+                df_schedule.game_id.isin([match_id] if isinstance(match_id, int) else match_id)
             ]
             if len(iterator) == 0:
-                raise ValueError(
-                    "No games found with the given IDs in the selected seasons."
-                )
+                raise ValueError("No games found with the given IDs in the selected seasons.")
         else:
             iterator = df_schedule.sample(frac=1)
 
         match_sheets = []
         for i, (_, game) in enumerate(iterator.iterrows()):
             url = urlmask.format(game.game_id)
-            filepath = DATA_DIR / filemask.format(
-                game["league"], game["season"], game["game_id"]
-            )
+            filepath = DATA_DIR / filemask.format(game["league"], game["season"], game["game_id"])
 
             logger.info(
                 "[%s/%s] Retrieving game with id=%s",
@@ -626,9 +594,7 @@ class WhoScored(BaseSeleniumReader):
 
             # extract missing players
             tree = html.parse(reader)
-            for node in tree.xpath(
-                "//div[@id='missing-players']/div[2]/table/tbody/tr"
-            ):
+            for node in tree.xpath("//div[@id='missing-players']/div[2]/table/tbody/tr"):
                 # extract team IDs from links
                 match_sheets.append(
                     {
@@ -643,17 +609,13 @@ class WhoScored(BaseSeleniumReader):
                             .get("href")
                             .split("/")[2]
                         ),
-                        "reason": node.xpath("./td[contains(@class,'reason')]/span")[
-                            0
-                        ].get("title"),
-                        "status": node.xpath("./td[contains(@class,'confirmed')]")[
-                            0
-                        ].text,
+                        "reason": node.xpath("./td[contains(@class,'reason')]/span")[0].get(
+                            "title"
+                        ),
+                        "status": node.xpath("./td[contains(@class,'confirmed')]")[0].text,
                     }
                 )
-            for node in tree.xpath(
-                "//div[@id='missing-players']/div[3]/table/tbody/tr"
-            ):
+            for node in tree.xpath("//div[@id='missing-players']/div[3]/table/tbody/tr"):
                 # extract team IDs from links
                 match_sheets.append(
                     {
@@ -668,12 +630,10 @@ class WhoScored(BaseSeleniumReader):
                             .get("href")
                             .split("/")[2]
                         ),
-                        "reason": node.xpath("./td[contains(@class,'reason')]/span")[
-                            0
-                        ].get("title"),
-                        "status": node.xpath("./td[contains(@class,'confirmed')]")[
-                            0
-                        ].text,
+                        "reason": node.xpath("./td[contains(@class,'reason')]/span")[0].get(
+                            "title"
+                        ),
+                        "status": node.xpath("./td[contains(@class,'confirmed')]")[0].text,
                     }
                 )
 
@@ -778,14 +738,10 @@ class WhoScored(BaseSeleniumReader):
         df_schedule = self.read_schedule(force_cache).reset_index()
         if match_id is not None:
             iterator = df_schedule[
-                df_schedule.game_id.isin(
-                    [match_id] if isinstance(match_id, int) else match_id
-                )
+                df_schedule.game_id.isin([match_id] if isinstance(match_id, int) else match_id)
             ]
             if len(iterator) == 0:
-                raise ValueError(
-                    "No games found with the given IDs in the selected seasons."
-                )
+                raise ValueError("No games found with the given IDs in the selected seasons.")
         else:
             iterator = df_schedule.sample(frac=1)
 
@@ -821,9 +777,7 @@ class WhoScored(BaseSeleniumReader):
                     )
             except ConnectionError as e:
                 if on_error == "skip":
-                    logger.warning(
-                        "Error while scraping game %s: %s", game["game_id"], e
-                    )
+                    logger.warning("Error while scraping game %s: %s", game["game_id"], e)
                     continue
                 raise
             reader.seek(0)
@@ -857,9 +811,7 @@ class WhoScored(BaseSeleniumReader):
                             game_id=game["game_id"],
                         )
                         df_events = (
-                            pd.DataFrame.from_dict(
-                                parser.extract_events(), orient="index"
-                            )
+                            pd.DataFrame.from_dict(parser.extract_events(), orient="index")
                             .merge(_eventtypesdf, on="type_id", how="left")
                             .reset_index(drop=True)
                         )
@@ -885,9 +837,7 @@ class WhoScored(BaseSeleniumReader):
                 root=self.data_dir,
                 parser="whoscored",
                 feeds={
-                    "whoscored": str(
-                        Path("events/{competition_id}_{season_id}/{game_id}.json")
-                    )
+                    "whoscored": str(Path("events/{competition_id}_{season_id}/{game_id}.json"))
                 },
             )
 
@@ -896,9 +846,7 @@ class WhoScored(BaseSeleniumReader):
             .pipe(standardize_colnames)
             .assign(
                 player=lambda x: x.player_id.replace(player_names),
-                team=lambda x: x.team_id.replace(team_names).replace(
-                    TEAMNAME_REPLACEMENTS
-                ),
+                team=lambda x: x.team_id.replace(team_names).replace(TEAMNAME_REPLACEMENTS),
             )
         )
 
@@ -914,9 +862,7 @@ class WhoScored(BaseSeleniumReader):
             df["card_type"] = df["card_type"].apply(
                 lambda x: x.get("displayName") if pd.notnull(x) else x
             )
-            df["type"] = df["type"].apply(
-                lambda x: x.get("displayName") if pd.notnull(x) else x
-            )
+            df["type"] = df["type"].apply(lambda x: x.get("displayName") if pd.notnull(x) else x)
             df["period"] = df["period"].apply(
                 lambda x: x.get("displayName") if pd.notnull(x) else x
             )
@@ -928,9 +874,7 @@ class WhoScored(BaseSeleniumReader):
         try:
             # self._driver.get(WHOSCORED_URL)
             time.sleep(2)
-            self._driver.find_element(
-                By.XPATH, "//button[./span[text()='AGREE']]"
-            ).click()
+            self._driver.find_element(By.XPATH, "//button[./span[text()='AGREE']]").click()
             time.sleep(2)
         except NoSuchElementException:
             with open("/tmp/error.html", "w") as f:

@@ -1,3 +1,4 @@
-furo==2024.4.27
+furo==2024.5.6
 sphinx==7.3.7
-nbsphinx==0.9.3
+nbsphinx==0.9.4
+

@@ -28,7 +28,8 @@ jobs:
 
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v4.1.4
+        uses: actions/checkout@v4.1.6
+
 
       - name: Restore data cache
         if: matrix.session == 'tests'
@@ -119,7 +120,7 @@ jobs:
     needs: tests
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v4.1.4
+        uses: actions/checkout@v4.1.6
 
       - name: Set up Python
         uses: actions/setup-python@v5.1.0
@@ -157,4 +158,5 @@ jobs:
           nox --force-color --session=coverage -- xml
 
       - name: Upload coverage report
-        uses: codecov/codecov-action@v4.3.0
+        uses: codecov/codecov-action@v4.4.1
+

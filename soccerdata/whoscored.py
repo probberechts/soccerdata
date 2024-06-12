@@ -1,5 +1,6 @@
 """Scraper for http://whoscored.com."""
 
+import itertools
 import json
 import re
 import time
@@ -299,12 +300,10 @@ class WhoScored(BaseSeleniumReader):
                 seasons.append(
                     {
                         "league": lkey,
-                        "league_id": league.league_id,
                         "season": season_code(node.text, lkey),
                         "region_id": league.region_id,
                         "league_id": league.league_id,
                         "season_id": season_id,
-
                     }
                 )
         df = (

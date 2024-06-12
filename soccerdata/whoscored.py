@@ -1,6 +1,5 @@
 """Scraper for http://whoscored.com."""
 
-import itertools
 import json
 import re
 import time
@@ -520,7 +519,7 @@ class WhoScored(BaseSeleniumReader):
         country = breadcrumb[0].text
         league, season = breadcrumb[1].text.split(" - ")
         data["league"] = {v: k for k, v in self._all_leagues().items()}[f"{country} - {league}"]
-        data["season"] = data.apply(lambda x: season_code(x["season"], x["league"]), axis=1)
+        data["season"] = season_code(season, league)
         # match header
         match_header = self._driver.find_element(By.XPATH, "//div[@id='match-header']")
         score_info = match_header.find_element(By.XPATH, ".//div[@class='teams-score-info']")

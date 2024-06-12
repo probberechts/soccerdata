@@ -167,7 +167,7 @@ class FBref(BaseRequestsReader):
             )
         for league in leagues:
             if league == "Big 5 European Leagues Combined":
-                league = None
+                league = None  # type: ignore
             df["first_season"] = df["first_season"].apply(season_code, league=league)
             df["last_season"] = df["last_season"].apply(season_code, league=league)
         return df[df.index.isin(leagues)]

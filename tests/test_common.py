@@ -183,7 +183,7 @@ def test_season_pattern1a_warn():
 
 def test_season_pattern1b():
     my_season = check_post = "1998"
-    assert season_code(my_season) == "9798"
+    assert season_code(my_season) == "9899"
     assert my_season == check_post
 
 

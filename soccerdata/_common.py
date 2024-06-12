@@ -296,7 +296,7 @@ class BaseReader(ABC):
             seasons = [f"{y - 1}-{y}" for y in range(year, year - 6, -1)]
         if isinstance(seasons, str) or isinstance(seasons, int):
             seasons = [seasons]
-        self._season_ids = [season_code(s, l) for s in seasons for l in self.leagues]
+        self._season_ids = [season_code(s, league) for s in seasons for league in self.leagues]
 
 
 class BaseRequestsReader(BaseReader):
@@ -493,10 +493,14 @@ def season_code(season: Union[str, int], league: Optional[str] = None) -> str:  
     pat6 = re.compile(r"^[0-9]{2}-[0-9]{2}$")  # 94-95
     pat7 = re.compile(r"^[0-9]{2}/[0-9]{2}$")  # 94/95
     # Check if season takes place within single calendar year
-    if (league is not None) and (league != "Big 5 European Leagues Combined"):
+    if league and (league != "Big 5 European Leagues Combined"):
         select_league_dict = LEAGUE_DICT[league]
-        start_month = datetime.strptime(select_league_dict.get("season_start"), "%b").month
-        end_month = datetime.strptime(select_league_dict.get("season_end"), "%b").month
+        start_month = datetime.strptime(
+            select_league_dict.get("season_start"), "%b"  # type: ignore
+        ).month
+        end_month = datetime.strptime(
+            select_league_dict.get("season_end"), "%b"  # type: ignore
+        ).month
         single_calendar_year = (end_month - start_month) > 0
     else:
         single_calendar_year = False

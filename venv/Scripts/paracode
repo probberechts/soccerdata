@@ -1,0 +1,252 @@
+#!C:\Users\User\desktop\NBASOCCERPY2SQLETLDataProject\soccerdataclone\soccerdata\venv\Scripts\python.exe
+
+import sys, unicodedata
+from optparse import OptionParser
+
+# for python2 compatibility, decode from utf-8
+if sys.version_info[0] < 3:
+    decode = unicode
+    encode = lambda x, enc: x.encode(enc)
+else:
+    # for python3, the input is already unicode string
+    decode = lambda x, enc: x
+    encode = lambda x, enc: x
+
+
+table_cyrillic = {
+
+'A' : u'\N{CYRILLIC CAPITAL LETTER A}',
+'B' : u'\N{CYRILLIC CAPITAL LETTER VE}',
+'C' : u'\N{CYRILLIC CAPITAL LETTER ES}',
+'E' : u'\N{CYRILLIC CAPITAL LETTER IE}',
+'H' : u'\N{CYRILLIC CAPITAL LETTER EN}',
+'I' : u'\N{CYRILLIC CAPITAL LETTER BYELORUSSIAN-UKRAINIAN I}',
+'J' : u'\N{CYRILLIC CAPITAL LETTER JE}',
+'K' : u'\N{CYRILLIC CAPITAL LETTER KA}',
+'M' : u'\N{CYRILLIC CAPITAL LETTER EM}',
+'O' : u'\N{CYRILLIC CAPITAL LETTER O}',
+'P' : u'\N{CYRILLIC CAPITAL LETTER ER}',
+'S' : u'\N{CYRILLIC CAPITAL LETTER DZE}',
+'T' : u'\N{CYRILLIC CAPITAL LETTER TE}',
+'X' : u'\N{CYRILLIC CAPITAL LETTER HA}',
+'Y' : u'\N{CYRILLIC CAPITAL LETTER U}',
+
+'a' : u'\N{CYRILLIC SMALL LETTER A}',
+'c' : u'\N{CYRILLIC SMALL LETTER ES}',
+'e' : u'\N{CYRILLIC SMALL LETTER IE}',
+'i' : u'\N{CYRILLIC SMALL LETTER BYELORUSSIAN-UKRAINIAN I}',
+'j' : u'\N{CYRILLIC SMALL LETTER JE}',
+'o' : u'\N{CYRILLIC SMALL LETTER O}',
+'p' : u'\N{CYRILLIC SMALL LETTER ER}',
+'s' : u'\N{CYRILLIC SMALL LETTER DZE}',
+'x' : u'\N{CYRILLIC SMALL LETTER HA}',
+'y' : u'\N{CYRILLIC SMALL LETTER U}',
+
+}
+
+table_cyrillic_plus = {
+'Y' : u'\N{CYRILLIC CAPITAL LETTER STRAIGHT U}',
+'h' : u'\N{CYRILLIC SMALL LETTER SHHA}',
+}
+
+table_greek = {
+'A' : u'\N{GREEK CAPITAL LETTER ALPHA}',
+'B' : u'\N{GREEK CAPITAL LETTER BETA}',
+'E' : u'\N{GREEK CAPITAL LETTER EPSILON}',
+'H' : u'\N{GREEK CAPITAL LETTER ETA}',
+'I' : u'\N{GREEK CAPITAL LETTER IOTA}',
+'K' : u'\N{GREEK CAPITAL LETTER KAPPA}',
+'M' : u'\N{GREEK CAPITAL LETTER MU}',
+'N' : u'\N{GREEK CAPITAL LETTER NU}',
+'O' : u'\N{GREEK CAPITAL LETTER OMICRON}',
+'P' : u'\N{GREEK CAPITAL LETTER RHO}',
+'T' : u'\N{GREEK CAPITAL LETTER TAU}',
+'X' : u'\N{GREEK CAPITAL LETTER CHI}',
+'Y' : u'\N{GREEK CAPITAL LETTER UPSILON}',
+'Z' : u'\N{GREEK CAPITAL LETTER ZETA}',
+
+'o' : u'\N{GREEK SMALL LETTER OMICRON}',
+}
+
+table_other = {
+'!' : u'\N{LATIN LETTER RETROFLEX CLICK}',
+
+'O' : u'\N{ARMENIAN CAPITAL LETTER OH}',
+'S' : u'\N{ARMENIAN CAPITAL LETTER TIWN}',
+'o' : u'\N{ARMENIAN SMALL LETTER OH}',
+'n' : u'\N{ARMENIAN SMALL LETTER VO}',
+}
+
+table_cherokee = {
+'A' : u'\N{CHEROKEE LETTER GO}',
+'B' : u'\N{CHEROKEE LETTER YV}',
+'C' : u'\N{CHEROKEE LETTER TLI}',
+'D' : u'\N{CHEROKEE LETTER A}',
+'E' : u'\N{CHEROKEE LETTER GV}',
+'G' : u'\N{CHEROKEE LETTER NAH}',
+'H' : u'\N{CHEROKEE LETTER MI}',
+'J' : u'\N{CHEROKEE LETTER GU}',
+'K' : u'\N{CHEROKEE LETTER TSO}',
+'L' : u'\N{CHEROKEE LETTER TLE}',
+'M' : u'\N{CHEROKEE LETTER LU}',
+'P' : u'\N{CHEROKEE LETTER TLV}',
+'R' : u'\N{CHEROKEE LETTER SV}',
+'S' : u'\N{CHEROKEE LETTER DU}',
+'T' : u'\N{CHEROKEE LETTER I}',
+'V' : u'\N{CHEROKEE LETTER DO}',
+'W' : u'\N{CHEROKEE LETTER LA}',
+'Y' : u'\N{CHEROKEE LETTER GI}',
+'Z' : u'\N{CHEROKEE LETTER NO}',
+
+}
+
+table_mirror = {
+
+'A' : u'\N{FOR ALL}',
+'B' : u'\N{CANADIAN SYLLABICS CARRIER KHA}',
+'C' : u'\N{LATIN CAPITAL LETTER OPEN O}',
+'D' : u'\N{CANADIAN SYLLABICS CARRIER PA}',
+'E' : u'\N{LATIN CAPITAL LETTER REVERSED E}',
+'F' : u'\N{TURNED CAPITAL F}',
+'G' : u'\N{TURNED SANS-SERIF CAPITAL G}',
+'H' : u'H',
+'I' : u'I',
+'J' : u'\N{LATIN SMALL LETTER LONG S}',
+'K' : u'\N{LATIN SMALL LETTER TURNED K}', # fixme
+'L' : u'\N{TURNED SANS-SERIF CAPITAL L}',
+'M' : u'W',
+'N' : u'N',
+'O' : u'O',
+'P' : u'\N{CYRILLIC CAPITAL LETTER KOMI DE}',
+'R' : u'\N{CANADIAN SYLLABICS TLHO}',
+'S' : u'S',
+'T' : u'\N{UP TACK}',
+'U' : u'\N{ARMENIAN CAPITAL LETTER VO}',
+'V' : u'\N{N-ARY LOGICAL AND}',
+'W' : u'M',
+'X' : u'X',
+'Y' : u'\N{TURNED SANS-SERIF CAPITAL Y}',
+'Z' : u'Z',
+
+'a' : u'\N{LATIN SMALL LETTER TURNED A}',
+'b' : u'q',
+'c' : u'\N{LATIN SMALL LETTER OPEN O}',
+'d' : u'p',
+'e' : u'\N{LATIN SMALL LETTER SCHWA}',
+'f' : u'\N{LATIN SMALL LETTER DOTLESS J WITH STROKE}',
+'g' : u'\N{LATIN SMALL LETTER B WITH HOOK}',
+'h' : u'\N{LATIN SMALL LETTER TURNED H}',
+'i' : u'\N{LATIN SMALL LETTER DOTLESS I}' + u'\N{COMBINING DOT BELOW}',
+'j' : u'\N{LATIN SMALL LETTER LONG S}' + u'\N{COMBINING DOT BELOW}',
+'k' : u'\N{LATIN SMALL LETTER TURNED K}',
+'l' : u'l',
+'m' : u'\N{LATIN SMALL LETTER TURNED M}',
+'n' : u'u',
+'o' : u'o',
+'p' : u'd',
+'q' : u'b',
+'r' : u'\N{LATIN SMALL LETTER TURNED R}',
+'s' : u's',
+'t' : u'\N{LATIN SMALL LETTER TURNED T}',
+'u' : u'n',
+'v' : u'\N{LATIN SMALL LETTER TURNED V}',
+'w' : u'\N{LATIN SMALL LETTER TURNED W}',
+'x' : u'x',
+'y' : u'\N{LATIN SMALL LETTER TURNED Y}',
+'z' : u'z',
+
+'0' : '0',
+'1' : u'I',
+'2' : u'\N{INVERTED QUESTION MARK}\N{COMBINING MACRON}',
+'3' : u'\N{LATIN CAPITAL LETTER OPEN E}',
+'4' : u'\N{LATIN SMALL LETTER LZ DIGRAPH}',
+'6' : '9',
+'7' : u'\N{LATIN CAPITAL LETTER L WITH STROKE}',
+'8' : '8',
+'9' : '6',
+',' : "'",
+"'" : ',',
+'.' : u'\N{DOT ABOVE}',
+'?' : u'\N{INVERTED QUESTION MARK}',
+'!' : u'\N{INVERTED EXCLAMATION MARK}',
+
+}
+
+
+tables_names = ['cyrillic', 'cyrillic_plus', 'greek',
+'other', 'cherokee']
+
+table_default = table_cyrillic
+table_default.update(table_greek)
+
+table_all={}
+for t in tables_names:
+    table_all.update(globals()['table_'+t])
+
+def main():
+    parser = OptionParser(usage="usage: %prog [options]")
+
+    parser.add_option("-t", "--tables",
+        action="store", default='default', dest="tables", type="string",
+        help="""list of tables to use, separated by a plus sign.
+    Possible tables are: """+'+'.join(tables_names)+"""  and a special name 'all' to specify
+    all these tables joined together.
+    There is another table, 'mirror', that is not selected in 'all'.""")
+
+    parser.add_option("-r", "--reverse",
+          action="count", dest="reverse",
+          default=0,
+          help="Reverse the text after conversion. Best used with the 'mirror' table.")
+
+    (options, args) = parser.parse_args()
+
+    if args:
+        to_convert = decode(' '.join(args), 'utf-8')
+    else:
+        to_convert = None
+
+    tables = options.tables.split('+')
+    tables = ['table_'+x for x in tables]
+
+    tables = [globals()[x] for x in tables]
+
+    table = {}
+    for t in tables:
+        table.update(t)
+
+    def reverse_string(s):
+        l = list(s)
+        l.reverse()
+        r = ''.join(l)
+        return r
+
+    def do_convert(s, reverse=0):
+        if reverse:
+            s = reverse_string(s)
+        l = unicodedata.normalize('NFKD', s)
+        out = []
+        for c in l:
+            out.append(table.get(c, c))
+        out = ''.join(out)
+        out = unicodedata.normalize('NFKC', out)
+        return out
+
+    if not to_convert:
+        if options.reverse:
+            lines = sys.stdin.readlines()
+            lines.reverse()
+        else:
+            lines = sys.stdin
+
+        for line in lines:
+            l = decode(line, 'utf-8')
+            out = do_convert(l, options.reverse)
+            sys.stdout.write(encode(out, 'utf-8'))
+
+    else:
+        out = do_convert(to_convert, options.reverse)
+        sys.stdout.write(encode(out, 'utf-8'))
+        sys.stdout.write('\n')
+
+if __name__ == '__main__':
+    main()

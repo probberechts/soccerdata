@@ -16,7 +16,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.13"
-pandas = "^2.0.0, !=2.1.0"
+pandas = "^2.2.2"
 requests = "^2.23"
 unicode = "^2.7"
 lxml = "^5.0.0"
@@ -26,6 +26,7 @@ PySocks = "^1.7.1"
 html5lib = "^1.1"
 undetected-chromedriver = "^3.5.0"
 cloudscraper = "^1.2.71"
+psycopg2 = "^2.9.9"
 
 [tool.poetry.dev-dependencies]
 pytest = "^8.0.0"

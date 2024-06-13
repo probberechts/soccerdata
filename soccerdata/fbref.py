@@ -438,8 +438,8 @@ class FBref(BaseRequestsReader):
                     + "/all_comps"
                     + f"/{stat_type}"
                 )
-            else:  # special case: latest season
-                season_format = "{}-{}".format(
+            else:  # special case: latest season, MW edited format in fork to {} from {}-{}
+                season_format = "{}".format(
                     datetime.strptime(skey[:2], "%y").year,
                     datetime.strptime(skey[2:], "%y").year,
                 )

@@ -22,7 +22,31 @@ from selenium.common.exceptions import WebDriverException
 
 from ._config import DATA_DIR, LEAGUE_DICT, MAXAGE, logger
 
+import requests
+from requests.adapters import HTTPAdapter #adding for 429 error support
+from urllib3.util.retry import Retry  #adding for 429 error support
 
+# Function to create a session with retry strategy #adding for 429 error support
+def create_session():
+    session = requests.Session()
+    retries = Retry(total=5, backoff_factor=1, status_forcelist=[429, 500, 502, 503, 504])
+    session.mount('http://', HTTPAdapter(max_retries=retries))
+    session.mount('https://', HTTPAdapter(max_retries=retries))
+    return session
+
+# Function to make a request using rotating proxies and user agents #adding for 429 error support
+def fetch_url(url, session, proxies, user_agents):
+    proxy = random.choice(proxies)
+    user_agent = random.choice(user_agents)
+    headers = {"User-Agent": user_agent}
+    try:
+        response = session.get(url, headers=headers, proxies={"http": proxy, "https": proxy})
+        response.raise_for_status()
+        return response
+    except requests.exceptions.RequestException as e:
+        print(f"Request failed: {e}")
+        return None
+    
 class BaseReader(ABC):
     """Base class for data readers.
 
@@ -334,11 +358,84 @@ class BaseRequestsReader(BaseReader):
         var: Optional[Union[str, Iterable[str]]] = None,
     ) -> IO[bytes]:
         """Download file at url to filepath. Overwrites if filepath exists."""
+        session = create_session()  # adding for 429 error support
+        proxies = [
+            '67.43.236.21:7073',
+            '72.10.160.170:28171',
+            '72.10.160.90:26607',
+            '67.43.236.20:29411',
+            '72.10.164.178:22903',
+            '154.113.23.114:10000',
+            '103.137.218.166:82',
+            '72.10.164.178:22159',
+            '72.10.160.170:1045',
+            '72.10.164.178:19221',
+            '72.10.160.170:6133',
+            '72.10.160.93:27997',
+            '72.10.160.90:4269',
+            '67.43.227.227:1257',
+            '103.158.253.91:3125',
+            '67.43.228.253:32495',
+            '67.43.228.250:26875',
+            '67.43.236.20:23665',
+            '67.43.236.20:18499',
+            '67.43.227.228:8561',
+            '67.43.236.20:6967',
+            '67.43.227.228:11135',
+            '72.10.160.171:1181',
+            '72.10.160.170:8473',
+            '67.43.236.20:1733',
+            '67.43.236.20:26401',
+            '72.10.160.90:23025',
+            '67.43.228.253:2031',
+            '67.43.227.227:31519',
+            '67.43.236.20:31179',
+            '72.10.164.178:30663',
+            '67.43.227.226:27905',
+            '67.43.227.227:28345',
+            '67.43.236.20:1357',
+            '72.10.164.178:29355',
+            '67.43.227.226:30043',
+            '72.10.160.90:16633',
+            '72.10.164.178:9207',
+            '72.10.160.90:4627',
+            '67.43.227.228:12283',
+            '72.10.160.90:32857',
+            '72.10.160.170:1271',
+            '72.10.164.178:13693',
+            '196.251.221.2:8102',
+            '67.43.236.20:33103',
+            '72.10.160.92:14775',
+            '67.43.227.226:27167',
+            '72.10.164.178:19975',
+            '72.10.160.170:25431',
+            '72.10.164.178:29067',
+            '67.43.236.20:24759',
+            '67.43.227.227:1125',
+            '72.10.164.178:31895',
+            '67.43.227.227:5259',
+            '67.43.236.20:1541',
+            '141.94.19.216:3128',
+            '67.43.236.20:29633',
+            '72.10.160.90:5671',
+            '103.138.185.1:84',
+        ]
+
+        user_agents = [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:54.0) Gecko/20100101 Firefox/54.0",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1.2 Safari/605.1.15"
+        ]
+
         for i in range(5):
             try:
-                response = self._session.get(url, stream=True)
+                response = fetch_url(url, session, proxies, user_agents)
+                if response is None:
+                    continue
+                
                 time.sleep(self.rate_limit + random.random() * self.max_delay)
                 response.raise_for_status()
+                
                 if var is not None:
                     if isinstance(var, str):
                         var = [var]
@@ -353,18 +450,57 @@ class BaseRequestsReader(BaseReader):
                     payload = json.dumps(data).encode("utf-8")
                 else:
                     payload = response.content
+                
                 if not self.no_store and filepath is not None:
                     with filepath.open(mode="wb") as fh:
                         fh.write(payload)
+                
                 return io.BytesIO(payload)
-            except Exception:
-                logger.exception(
-                    "Error while scraping %s. Retrying... (attempt %d of 5).", url, i + 1
-                )
+            except requests.exceptions.RequestException as e:
+                if response and response.status_code == 429:
+                    wait_time = int(response.headers.get("Retry-After", 1))
+                    print(f"Rate limited. Waiting for {wait_time} seconds.")
+                    time.sleep(wait_time)
+                else:
+                    logger.exception(
+                        "Error while scraping %s. Retrying... (attempt %d of 5).", url, i + 1
+                    )
                 self._session = self._init_session()
                 continue
 
         raise ConnectionError("Could not download %s." % url)
+
+        # for i in range(5): #commented out original for i in range lines
+        #     try:
+        #         response = self._session.get(url, stream=True)
+        #         time.sleep(self.rate_limit + random.random() * self.max_delay)
+        #         response.raise_for_status()
+        #         if var is not None:
+        #             if isinstance(var, str):
+        #                 var = [var]
+        #             var_names = "|".join(var)
+        #             template_understat = br"(%b)+[\s\t]*=[\s\t]*JSON\.parse\('(.*)'\)"
+        #             pattern_understat = template_understat % bytes(var_names, encoding="utf-8")
+        #             results = re.findall(pattern_understat, response.content)
+        #             data = {
+        #                 key.decode("unicode_escape"): json.loads(value.decode("unicode_escape"))
+        #                 for key, value in results
+        #             }
+        #             payload = json.dumps(data).encode("utf-8")
+        #         else:
+        #             payload = response.content
+        #         if not self.no_store and filepath is not None:
+        #             with filepath.open(mode="wb") as fh:
+        #                 fh.write(payload)
+        #         return io.BytesIO(payload)
+        #     except Exception:
+        #         logger.exception(
+        #             "Error while scraping %s. Retrying... (attempt %d of 5).", url, i + 1
+        #         )
+        #         self._session = self._init_session()
+        #         continue
+
+        # raise ConnectionError("Could not download %s." % url)
 
 
 class BaseSeleniumReader(BaseReader):

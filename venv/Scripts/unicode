@@ -1,0 +1,1066 @@
+#!C:\Users\User\desktop\NBASOCCERPY2SQLETLDataProject\soccerdataclone\soccerdata\venv\Scripts\python.exe
+
+from __future__ import unicode_literals, print_function
+
+import os, glob, sys, unicodedata, locale, gzip, re, traceback, encodings, io, codecs, shutil
+import webbrowser, textwrap, struct
+
+#from pprint import pprint
+
+# bz2 was introduced in 2.3, but we want this to work even if for some
+# reason it is not available
+try:
+    import bz2
+except ImportError:
+    bz2 = None
+try:
+    import lzma
+except ImportError:
+    lzma = None
+
+
+def is_ascii(s):
+    "test is string s consists completely of ascii characters"
+    try:
+        s.encode('ascii')
+    except UnicodeEncodeError:
+        return False
+    return True
+
+PY3 = sys.version_info[0] >= 3
+if PY3:
+    import subprocess as cmd
+    from urllib.parse import quote as urlquote
+    import io
+    from urllib.request import urlopen
+
+    def out(*args):
+        "pring args, converting them to output charset"
+        for i in args:
+            #sys.stdout.flush()
+            sys.stdout.buffer.write(i.encode(options.iocharset, 'replace'))
+
+    # ord23 is used to convert elements of byte array in python3, which are already integers
+    ord23 = lambda x: x
+    chr_orig = chr
+
+else: # python2
+
+    # getoutput() and getstatusoutput() methods have
+    # been moved from commands to the subprocess module
+    # with Python >= 3.x
+    import commands as cmd
+
+    from urllib import quote as urlquote
+    from urllib import urlopen
+
+    def out(*args):
+        "pring args, converting them to output charset"
+        for i in args:
+            sys.stdout.write(i.encode(options.iocharset, 'replace'))
+
+    ord23 = ord
+
+    # python3-like chr
+    chr_orig = chr
+    chr = unichr
+    str = unicode
+    range = xrange
+
+from optparse import OptionParser
+
+VERSION='2.9'
+
+
+# list of terminals that support bidi
+biditerms = ['mlterm']
+
+try:
+    locale.setlocale(locale.LC_ALL, '')
+except locale.Error:
+    pass
+
+# guess terminal charset
+try:
+    iocharsetguess = locale.nl_langinfo(locale.CODESET) or "ascii"
+except locale.Error:
+    iocharsetguess = "ascii"
+
+if os.environ.get('TERM') in biditerms and iocharsetguess.lower().startswith('utf'):
+    LTR = chr(0x202d) # left to right override
+else:
+    LTR = ''
+
+
+colours = {
+            'no_colour'  :    "",
+            'default'    :    "\033[0m",
+            'bold'       :    "\033[1m",
+            'underline'  :    "\033[4m",
+            'blink'      :    "\033[5m",
+            'reverse'    :    "\033[7m",
+            'concealed'  :    "\033[8m",
+
+            'black'      :    "\033[30m",
+            'red'        :    "\033[31m",
+            'green'      :    "\033[32m",
+            'yellow'     :    "\033[33m",
+            'blue'       :    "\033[34m",
+            'magenta'    :    "\033[35m",
+            'cyan'       :    "\033[36m",
+            'white'      :    "\033[37m",
+
+            'on_black'   :    "\033[40m",
+            'on_red'     :    "\033[41m",
+            'on_green'   :    "\033[42m",
+            'on_yellow'  :    "\033[43m",
+            'on_blue'    :    "\033[44m",
+            'on_magenta' :    "\033[45m",
+            'on_cyan'    :    "\033[46m",
+            'on_white'   :    "\033[47m",
+
+            'beep'       :    "\007",
+            }
+
+
+general_category = {
+      'Lu':  'Letter, Uppercase',
+      'Ll':  'Letter, Lowercase',
+      'Lt':  'Letter, Titlecase',
+      'Lm':  'Letter, Modifier',
+      'Lo':  'Letter, Other',
+      'Mn':  'Mark, Non-Spacing',
+      'Mc':  'Mark, Spacing Combining',
+      'Me':  'Mark, Enclosing',
+      'Nd':  'Number, Decimal Digit',
+      'Nl':  'Number, Letter',
+      'No':  'Number, Other',
+      'Pc':  'Punctuation, Connector',
+      'Pd':  'Punctuation, Dash',
+      'Ps':  'Punctuation, Open',
+      'Pe':  'Punctuation, Close',
+      'Pi':  'Punctuation, Initial quote',
+      'Pf':  'Punctuation, Final quote',
+      'Po':  'Punctuation, Other',
+      'Sm':  'Symbol, Math',
+      'Sc':  'Symbol, Currency',
+      'Sk':  'Symbol, Modifier',
+      'So':  'Symbol, Other',
+      'Zs':  'Separator, Space',
+      'Zl':  'Separator, Line',
+      'Zp':  'Separator, Paragraph',
+      'Cc':  'Other, Control',
+      'Cf':  'Other, Format',
+      'Cs':  'Other, Surrogate',
+      'Co':  'Other, Private Use',
+      'Cn':  'Other, Not Assigned',
+}
+
+bidi_category = {
+     'L'   : 'Left-to-Right',
+     'LRE' : 'Left-to-Right Embedding',
+     'LRO' : 'Left-to-Right Override',
+     'R'   : 'Right-to-Left',
+     'AL'  : 'Right-to-Left Arabic',
+     'RLE' : 'Right-to-Left Embedding',
+     'RLO' : 'Right-to-Left Override',
+     'PDF' : 'Pop Directional Format',
+     'EN'  : 'European Number',
+     'ES'  : 'European Number Separator',
+     'ET'  : 'European Number Terminator',
+     'AN'  : 'Arabic Number',
+     'CS'  : 'Common Number Separator',
+     'NSM' : 'Non-Spacing Mark',
+     'BN'  : 'Boundary Neutral',
+     'B'   : 'Paragraph Separator',
+     'S'   : 'Segment Separator',
+     'WS'  : 'Whitespace',
+     'ON'  : 'Other Neutrals',
+     'LRI' : 'Left-to-Right Isolate',
+     'RLI' : 'Right-to-Left Isolate',
+     'FSI' : 'First Strong Isolate',
+     'PDI' : 'Pop Directional Isolate',
+}
+
+comb_classes = {
+        0: 'Spacing, split, enclosing, reordrant, and Tibetan subjoined',
+        1: 'Overlays and interior',
+        7: 'Nuktas',
+        8: 'Hiragana/Katakana voicing marks',
+        9: 'Viramas',
+       10: 'Start of fixed position classes',
+      199: 'End of fixed position classes',
+      200: 'Below left attached',
+      202: 'Below attached',
+      204: 'Below right attached',
+      208: 'Left attached (reordrant around single base character)',
+      210: 'Right attached',
+      212: 'Above left attached',
+      214: 'Above attached',
+      216: 'Above right attached',
+      218: 'Below left',
+      220: 'Below',
+      222: 'Below right',
+      224: 'Left (reordrant around single base character)',
+      226: 'Right',
+      228: 'Above left',
+      230: 'Above',
+      232: 'Above right',
+      233: 'Double below',
+      234: 'Double above',
+      240: 'Below (iota subscript)',
+}
+
+eaw_description = {
+    'F': 'fullwidth',
+    'H': 'halfwidth',
+    'W': 'wide',
+    'Na':'narrow',
+    'A': 'ambiguous',
+    'N': 'neutral'
+}
+
+def get_unicode_blocks_descriptions():
+    "parses Blocks.txt"
+    unicodeblocks = {} # (low, high): 'desc'
+    f = None
+    for name in UnicodeBlocksFiles:
+        f = OpenGzip(name)
+        if f:
+            break
+    if not f:
+        return {}
+    for line in f:
+        if line.startswith('#') or ';' not in line or '..' not in line:
+            continue
+        spl = line.split(';', 1)
+        ran, desc = spl
+        desc = desc.strip()
+        low, high = ran.split('..', 1)
+        low = int(low, 16)
+        high = int(high, 16)
+        unicodeblocks[ (low,high) ] = desc
+    return unicodeblocks
+
+unicodeblocks = None
+def get_unicode_block(ch):
+    "return start_of_block, end_of_block, block_name"
+    global unicodeblocks
+    if unicodeblocks is None:
+        unicodeblocks = get_unicode_blocks_descriptions()
+    ch = ord(ch)
+    for low, high in unicodeblocks.keys():
+        if low<=ch<=high:
+            return low, high, unicodeblocks[ (low,high) ]
+
+def get_unicode_properties(ch):
+    properties = {}
+    if ch in linecache:
+        fields = linecache[ch].strip().split(';')
+        proplist = ['codepoint', 'name', 'category', 'combining', 'bidi', 'decomposition', 'dummy', 'digit_value', 'numeric_value', 'mirrored', 'unicode1name', 'iso_comment', 'uppercase', 'lowercase', 'titlecase']
+        for i, prop in enumerate(proplist):
+            if prop!='dummy':
+                if i<len(fields):
+                    properties[prop] = fields[i]
+        if properties['lowercase']:
+            properties['lowercase'] = chr(int(properties['lowercase'], 16))
+        if properties['uppercase']:
+            properties['uppercase'] = chr(int(properties['uppercase'], 16))
+        if properties['titlecase']:
+            properties['titlecase'] = chr(int(properties['titlecase'], 16))
+
+        properties['combining'] = int(properties['combining'])
+        properties['mirrored'] = properties['mirrored']=='Y'
+    else:
+        properties['codepoint'] = '%04X' % ord(ch)
+        properties['name'] = unicodedata.name(ch, '')
+        properties['category'] = unicodedata.category(ch)
+        properties['combining'] = unicodedata.combining(ch)
+        properties['bidi'] = unicodedata.bidirectional(ch)
+        properties['decomposition'] = unicodedata.decomposition(ch)
+        properties['digit_value'] = str(unicodedata.digit(ch, ''))
+        properties['numeric_value'] = str(unicodedata.numeric(ch, ''))
+        properties['mirrored'] = unicodedata.mirrored(ch)
+        properties['unicode1name'] = ''
+        properties['iso_comment'] = ''
+        properties['lowercase'] = properties['uppercase'] = properties['titlecase'] = ''
+        ch_up = ch.upper()
+        ch_lo = ch.lower()
+        ch_title = ch.title()
+        if ch_up != ch:
+            properties['uppercase'] = ch_up
+        if ch_lo != ch:
+            properties['lowercase'] = ch_lo
+        if ch_title != ch_up:
+            properties['titlecase'] = ch_title
+    properties['east_asian_width'] = get_east_asian_width(ch)
+    return properties
+
+
+def do_init():
+    HomeDir = os.path.expanduser('~/.unicode')
+    HomeUnicodeData = os.path.join(HomeDir, "UnicodeData.txt")
+    global UnicodeDataFileNames
+    UnicodeDataFileNames = [HomeUnicodeData, '/usr/share/unicode/UnicodeData.txt', '/usr/share/unicode-data/UnicodeData.txt', '/usr/share/unidata/UnicodeData.txt', '/usr/share/unicode/ucd/UnicodeData.txt', './UnicodeData.txt'] + \
+        glob.glob('/usr/share/unidata/UnicodeData*.txt') + \
+        glob.glob('/usr/share/perl/*/unicore/UnicodeData.txt') + \
+        glob.glob('/System/Library/Perl/*/unicore/UnicodeData.txt') # for MacOSX
+
+    HomeUnihanData = os.path.join(HomeDir, "Unihan*")
+    global UnihanDataGlobs
+    UnihanDataGlobs = [HomeUnihanData, '/usr/share/unidata/Unihan*', '/usr/share/unicode-data/Unihan*', '/usr/share/unicode/Unihan*', './Unihan*']
+    HomeUnicodeBlocks = os.path.join(HomeDir, "Blocks.txt")
+    global UnicodeBlocksFiles
+    UnicodeBlocksFiles = [HomeUnicodeBlocks, '/usr/share/unicode/Blocks.txt', '/usr/share/unicode-data/Blocks.txt', '/usr/share/unidata/Blocks.txt', './Blocks.txt']
+    # cache where grepped unicode properties are kept
+    global linecache
+    linecache = {}
+
+def get_unihan_files():
+    fos = [] # list of file names for Unihan data file(s)
+    for gl in UnihanDataGlobs:
+        fnames = glob.glob(gl)
+        fos += fnames
+    return fos
+
+def get_unihan_properties_internal(ch):
+    properties = {}
+    ch = ord(ch)
+    global unihan_fs
+    for f in unihan_fs:
+        fo = OpenGzip(f)
+        for l in fo:
+            if l.startswith('#'):
+                continue
+            line = l.strip()
+            if not line:
+                continue
+            spl = line.strip().split('\t')
+            if len(spl) != 3:
+                continue
+            char, key, value = spl
+            if int(char[2:], 16) == ch:
+                properties[key] = value
+            elif int(char[2:], 16)>ch:
+                break
+    return properties
+
+def get_unihan_properties_zgrep(ch):
+    properties = {}
+    global unihan_fs
+    ch = ord(ch)
+    chs = 'U+%X' % ch
+    for f in unihan_fs:
+        if f.endswith('.gz'):
+            grepcmd = 'zgrep'
+        elif f.endswith('.bz2'):
+            grepcmd = 'bzgrep'
+        elif f.endswith('.xz'):
+            grepcmd = 'xzgrep'
+        else:
+            grepcmd = 'grep'
+        cmdline = grepcmd+' ^'+chs+r'\\b '+f
+        status, output = cmd.getstatusoutput(cmdline)
+        if not PY3:
+            output = unicode(output, 'utf-8')
+        output = output.split('\n')
+        for l in output:
+            if not l:
+                continue
+            char, key, value = l.strip().split('\t')
+            if int(char[2:], 16) == ch:
+                properties[key] = value
+            elif int(char[2:], 16)>ch:
+                break
+    return properties
+
+# basic sanity check, if e.g. you run this on MS Windows...
+if os.path.exists('/bin/grep'):
+    get_unihan_properties = get_unihan_properties_zgrep
+else:
+    get_unihan_properties = get_unihan_properties_internal
+
+
+def error(txt):
+    out(txt)
+    out('\n')
+    sys.exit(1)
+
+def get_gzip_filename(fname):
+    "return fname, if it does not exist, return fname+.gz, if neither that, fname+.bz2, if neither that, fname+.xz, if neither that, return None"
+    if os.path.exists(fname):
+        return fname
+    if os.path.exists(fname+'.gz'):
+        return fname+'.gz'
+    if os.path.exists(fname+'.bz2') and bz2 is not None:
+        return fname+'.bz2'
+    if os.path.exists(fname+'.xz') and lzma is not None:
+        return fname+'.xz'
+
+    return None
+
+
+def OpenGzip(fname):
+    "open fname, try fname.gz or fname.bz2 or fname.xz if fname does not exist, return file object or GzipFile or BZ2File object"
+    fname = get_gzip_filename(fname)
+    fo = None
+    if not fname:
+        return None
+    if fname.endswith('.gz'):
+        fo = gzip.GzipFile(fname)
+    elif fname.endswith('.bz2'):
+        fo = bz2.BZ2File(fname)
+    elif fname.endswith('.xz'):
+        fo = lzma.open(fname)
+    else:
+        fo = io.open(fname, encoding='utf-8')
+        return fo
+    if fo:
+        # we cannot use TextIOWrapper, since it needs read1 method not implemented by gzip|bz2
+        fo = codecs.getreader('utf-8')(fo)
+        return fo
+
+def get_unicode_cur_version():
+    # return current version of the Unicode standard, hardwired for now
+    return '14.0.0'
+
+def get_unicodedata_url():
+    unicode_version = get_unicode_cur_version()
+    url = 'http://www.unicode.org/Public/{}/ucd/UnicodeData.txt'.format(unicode_version)
+    return url
+
+def download_unicodedata():
+    url = get_unicodedata_url()
+    out('Downloading UnicodeData.txt from ', url, '\n')
+    HomeDir = os.path.expanduser('~/.unicode')
+    HomeUnicodeData = os.path.join(HomeDir, "UnicodeData.txt.gz")
+
+    # we want to minimize the chance of leaving a corrupted file around
+    tmp_file = HomeUnicodeData+'.tmp'
+    try:
+        if not os.path.exists(HomeDir):
+            os.makedirs(HomeDir)
+        response = urlopen(url)
+        r = response.getcode()
+        if r != 200:
+            # this is handled automatically in python3, the exception will be raised by urlopen
+            raise IOError('HTTP response code '+str(r))
+        if os.path.exists(HomeUnicodeData):
+            out(HomeUnicodeData, ' already exists, but downloading as requested\n')
+        out('downloading...')
+        shutil.copyfileobj(response, gzip.open(tmp_file, 'wb'))
+        shutil.move(tmp_file, HomeUnicodeData)
+        out(HomeUnicodeData, ' downloaded\n')
+    finally:
+        if os.path.exists(tmp_file):
+            os.remove(tmp_file)
+
+def GrepInNames(pattern, prefill_cache=False):
+    f = None
+    for name in UnicodeDataFileNames:
+        f = OpenGzip(name)
+        if f != None:
+            break
+    if f:
+        if pattern.endswith('$'):
+            pattern = pattern[:-1]+';'
+    pat = re.compile(pattern, re.I)
+
+    if not f:
+        out( """
+Cannot find UnicodeData.txt, please place it into
+/usr/share/unidata/UnicodeData.txt,
+/usr/share/unicode/UnicodeData.txt, ~/.unicode/ or current
+working directory (optionally you can gzip, bzip2 or xz it).
+Without the file, searching will be much slower.
+
+You can donwload the file from {} (or replace {} with current Unicode version); or run {} --download
+
+""".format(get_unicodedata_url(), get_unicode_cur_version(), sys.argv[0]))
+
+    if prefill_cache:
+        if f:
+            for l in f:
+                if pat.search(l):
+                    r = myunichr(int(l.split(';')[0], 16))
+                    linecache[r] = l
+            f.close()
+    else:
+        if f:
+            for l in f:
+                if pat.search(l):
+                    r = myunichr(int(l.split(';')[0], 16))
+                    linecache[r] = l
+                    yield r
+            f.close()
+        else:
+            for i in range(sys.maxunicode):
+                try:
+                    name = unicodedata.name(chr(i))
+                    if pat.search(name):
+                        yield myunichr(i)
+                except ValueError:
+                    pass
+
+def valfromcp(n, cp=None):
+    "if cp is defined, then the 'n' is considered to be from that codepage and is converted accordingly"
+    "the output is a list of codepoints (integers)"
+    if cp:
+        xh = '%x' %n
+        if len(xh) % 2: # pad hexadecimal representation with a zero
+            xh = '0'+xh
+        cps = ( [xh[i:i+2] for i in range(0,len(xh),2)] )
+        cps = ( int(i, 16) for i in cps)
+        # we have to use chr_orig (it's original chr for python2) and not 'B'
+        # because unicode_literals it will be unicode, which
+        # is not permitted in struct.pack in python2.6
+        cps = ( struct.pack(chr_orig(0x42),i) for i in cps ) # this works in both python3 and python2, unlike bytes([i])
+        cps = b''.join(cps)
+        cps = cps.decode(cp)
+        cps = [ord(x) for x in cps]
+        return cps
+    else:
+        return [n]
+
+def myunichr(n):
+    try:
+        r = chr(n)
+        return r
+    except OverflowError:
+        traceback.print_exc()
+        error("The codepoint is too big - it does not fit into an int.")
+    except ValueError:
+        traceback.print_exc()
+        err = "The codepoint is too big."
+        if sys.maxunicode <= 0xffff:
+            err += "\nPerhaps your python interpreter is not compiled with wide unicode characters."
+        error(err)
+
+
+def guesstype(arg):
+    if not arg: # empty string
+        return 'empty string', arg
+    elif not is_ascii(arg):
+        return 'string', arg
+    elif arg[:2]=='U+' or arg[:2]=='u+': # it is hexadecimal number
+        try:
+            val = int(arg[2:], 16)
+            if val>sys.maxunicode:
+                return 'regexp', arg
+            else:
+                return 'hexadecimal', arg[2:]
+        except ValueError:
+            return 'regexp', arg
+    elif arg[0] in "Uu" and len(arg)>4:
+        try:
+            val = int(arg[1:], 16)
+            if val>sys.maxunicode:
+                return 'regexp', arg
+            else:
+                return 'hexadecimal', arg[1:]
+        except ValueError:
+            return 'regexp', arg
+    elif len(arg)>=4:
+        if len(arg) in (8, 16, 24, 32):
+            if all(x in '01' for x in arg):
+                val = int(arg, 2)
+                if val<=sys.maxunicode:
+                    return 'binary', arg
+        try:
+            val = int(arg, 16)
+            if val>sys.maxunicode:
+                return 'regexp', arg
+            else:
+                return 'hexadecimal', arg
+        except ValueError:
+            return 'regexp', arg
+    else:
+        return 'string', arg
+
+def process(arglist, t, fromcp=None, prefill_cache=False):
+    # build a list of values, so that we can combine queries like
+    # LATIN ALPHA and search for LATIN.*ALPHA and not names that
+    # contain either LATIN or ALPHA
+    result = []
+    names_query = [] # reserved for queries in names - i.e. -r
+    for arg_i in arglist:
+        if t==None:
+            tp, arg = guesstype(arg_i)
+            if tp == 'regexp':
+                # if the first argument is guessed to be a regexp, add
+                # all the following arguments to the regular expression -
+                # this is probably what you wanted, e.g.
+                # 'unicode cyrillic be' will now search for the 'cyrillic.*be' regular expression
+                t = 'regexp'
+        else:
+            tp, arg = t, arg_i
+        if tp=='hexadecimal':
+            val = int(arg, 16)
+            vals = valfromcp(val, fromcp)
+            for val in vals:
+                r = myunichr(val)
+                result.append(r)
+        elif tp=='decimal':
+            val = int(arg, 10)
+            vals = valfromcp(val, fromcp)
+            for val in vals:
+                r = myunichr(val)
+                result.append(r)
+        elif tp=='octal':
+            val = int(arg, 8)
+            vals = valfromcp(val, fromcp)
+            for val in vals:
+                r = myunichr(val)
+                result.append(r)
+        elif tp=='binary':
+            val = int(arg, 2)
+            vals = valfromcp(val, fromcp)
+            for val in vals:
+                r = myunichr(val)
+                result.append(r)
+        elif tp=='regexp':
+            names_query.append(arg)
+        elif tp=='string':
+            unirepr = arg
+            for r in unirepr:
+                result.append(r)
+        elif tp=='empty string':
+            pass # do not do anything for an empty string
+    if result and prefill_cache:
+        hx = '|'.join('%04X'%ord(x) for x in result)
+        list(GrepInNames(hx, prefill_cache=True))
+    if names_query:
+        query = '.*'.join(names_query)
+        for r in GrepInNames(query):
+            result.append(r)
+    return result
+
+def maybe_colours(colour):
+    if options.use_colour:
+        return colours[colour]
+    else:
+        return ""
+
+# format key and value
+def printkv(*l):
+    for i in range(0, len(l), 2):
+        if i<len(l)-2:
+            sep = "  "
+        else:
+            sep = "\n"
+        k, v = l[i], l[i+1]
+        out(maybe_colours('green'))
+        out(k)
+        out(": ")
+        out(maybe_colours('default'))
+        out(str(v))
+        out(sep)
+
+def print_characters(clist, maxcount, format_string, query_wikipedia=0, query_wiktionary=0):
+    """query_wikipedia or query_wiktionary:
+            0 - don't
+            1 - spawn browser
+    """
+    counter = 0
+
+    for colour_key in colours.keys():
+        locals()[colour_key] = maybe_colours(colour_key)
+
+    for c in clist:
+
+        if query_wikipedia or query_wiktionary:
+            ch = urlquote(c.encode('utf-8')) # wikipedia uses UTF-8 in names
+            wiki_base_url = 'http://en.wikipedia.org/wiki/'
+            if query_wiktionary:
+                wiki_base_url = 'http://en.wiktionary.org/wiki/'
+            wiki_url = wiki_base_url+ch
+            webbrowser.open(wiki_url)
+            query_wikipedia = query_wiktionary = 0 # query only the very first character
+
+        if maxcount:
+            counter += 1
+        if counter > options.maxcount:
+            sys.stdout.flush()
+            sys.stderr.write("\nToo many characters to display, more than %s, use --max 0 (or other value) option to change it\n" % options.maxcount)
+            return
+        properties = get_unicode_properties(c)
+        ordc = ord(c)
+        if properties['name']:
+            name = properties['name']
+        else:
+            name = " - No such unicode character name in database"
+        if 0xd800 <= ordc <= 0xdfff: # surrogate
+            utf8 = utf16be = 'N/A'
+        else:
+            utf8 = ' '.join([("%02x" % ord23(x)) for x in c.encode('utf-8')])
+            utf16be = ''.join([("%02x" % ord23(x)) for x in c.encode('utf-16be')])
+        decimal = "&#%s;" % ordc
+        octal = "\\0%o" % ordc
+
+        addcharset = options.addcharset
+        if addcharset:
+            try:
+                in_additional_charset = ' '.join([("%02x" % ord23(x)) for x in c.encode(addcharset)] )
+            except UnicodeError:
+                in_additional_charset = "NONE"
+
+        category = properties['category']
+        category_desc = general_category[category]
+        if category == 'Cc': # control character
+            pchar = ''
+        else:
+            if properties['combining']:
+                pchar = " "+c
+            else:
+                pchar = c
+
+        uppercase = properties['uppercase']
+        lowercase = properties['lowercase']
+        opt_uppercase = opt_lowercase = ''
+        flipcase = None
+        if uppercase:
+            ord_uppercase = ord(properties['uppercase'])
+            opt_uppercase = '\n{green}Uppercase:{default} {ord_uppercase:04X}'.format(**locals())
+            flipcase = uppercase
+        elif lowercase:
+            ord_lowercase = ord(properties['lowercase'])
+            opt_lowercase = '\n{green}Lowercase:{default} {ord_lowercase:04X}'.format(**locals())
+            flipcase = lowercase
+
+        opt_numeric = ''
+        numeric_desc = ''
+        if properties['numeric_value']:
+            opt_numeric = 'Numeric value: '
+            numeric_desc = properties['numeric_value']+'\n'
+        opt_digit = ''
+        digit_desc = ''
+        if properties['digit_value']:
+            opt_digit = 'Digit value: '
+            digit_desc = properties['digit_value']+'\n'
+
+        opt_bidi = ''
+        bidi_desc = ''
+        bidi = properties['bidi']
+        bidi_desc = bidi_category.get(bidi, bidi)
+        if bidi:
+            opt_bidi = 'Bidi: '
+            bidi_desc = ' ({0})\n'.format(bidi_desc)
+        mirrored_desc = ''
+        mirrored = properties['mirrored']
+        if mirrored:
+            mirrored_desc = 'Character is mirrored\n'
+        opt_combining = ''
+        comb = properties['combining']
+        combining_desc = ''
+        if comb:
+            opt_combining = 'Combining: '
+            combining_desc = "{comb} ({comb_class})\n".format(comb=comb, comb_class=comb_classes.get(comb, '?'))
+
+        opt_decomp = ''
+        decomp_desc = ''
+        decomp = properties['decomposition']
+        if decomp:
+            opt_decomp = 'Decomposition: '
+            decomp_desc = decomp+'\n'
+        if properties['east_asian_width']:
+            opt_eaw = 'East Asian width: '
+            eaw = properties['east_asian_width']
+            eaw_desc = '{eaw} ({desc})'.format(eaw=eaw, desc=eaw_description.get(eaw, eaw))
+
+        opt_unicode_block = ''
+        opt_unicode_block_desc = ''
+        unicode_block = get_unicode_block(c)
+        if unicode_block:
+            low, high, desc = unicode_block
+            opt_unicode_block = 'Unicode block: '
+            opt_unicode_block_desc = "{low:04X}..{high:04X}; {desc}\n".format(low=low,high=high,desc=desc)
+
+        if addcharset:
+            opt_additional = ' {green}{addcharset}:{default} {in_additional_charset}'.format(**locals())
+        else:
+            opt_additional = ''
+        if flipcase:
+            opt_flipcase = ' ({flipcase})'.format(**locals())
+        else:
+            opt_flipcase = ''
+        formatted_output = format_string.format(**locals())
+        out(formatted_output)
+
+
+        if options.verbosity>0:
+            uhp = get_unihan_properties(c)
+            for key in uhp:
+                printkv(key, uhp[key])
+
+def get_east_asian_width(c):
+    eaw = 'east_asian_width' in unicodedata.__dict__ and unicodedata.east_asian_width(c)
+    return eaw
+
+def print_block(block):
+    #header
+    out(" "*10)
+    for i in range(16):
+        out(".%X " % i)
+    out('\n')
+    #body
+    for i in range(block*16, block*16+16):
+        hexi = "%X" % i
+        if len(hexi)>3:
+            hexi = "%07X" % i
+            hexi = hexi[:4]+" "+hexi[4:]
+        else:
+            hexi = "     %03X" % i
+        out(LTR+hexi+". ")
+        for j in range(16):
+            c = chr(i*16+j)
+            if unicodedata.category(c) == 'Cc':
+                c_out = ' '
+            else:
+                c_out = c
+            if unicodedata.combining(c):
+                c_out = " "+c
+            # fallback for python without east_asian_width (probably unnecessary, since this script does not work with <2.6 anyway)
+            fullwidth = get_east_asian_width(c)[0] in 'FW'
+            if not fullwidth:
+                c_out = ' '+c_out
+            out(c_out)
+            out(' ')
+        out('\n')
+    out('\n')
+
+def print_blocks(blocks):
+    for block in blocks:
+        print_block(block)
+
+def is_range(s, typ):
+    sp = s.split('..')
+    if len(sp)!=2:
+        return False
+    if not sp[1]:
+        sp[1] = sp[0]
+    elif not sp[0]:
+        sp[0] = sp[1]
+    if not sp[0]:
+        return False
+    low = list(process([sp[0]], typ)) # intentionally no fromcp here, ranges are only of unicode characters
+    high = list(process([sp[1]], typ))
+    if len(low)!=1 or len(high)!=1:
+        return False
+    low = ord(low[0])
+    high = ord(high[0])
+    low = low // 256
+    high = high // 256 + 1
+    return range(low, high)
+
+def unescape(s):
+    return s.replace(r'\n', '\n')
+
+ascii_cc_names = ('NUL', 'SOH', 'STX', 'ETX', 'EOT', 'ENQ', 'ACK', 'BEL', 'BS', 'HT', 'LF', 'VT', 'FF', 'CR', 'SO', 'SI', 'DLE', 'DC1', 'DC2', 'DC3', 'DC4', 'NAK', 'SYN', 'ETB', 'CAN', 'EM', 'SUB', 'ESC', 'FS', 'GS', 'RS', 'US')
+
+def display_ascii_table():
+    print('Dec Hex    Dec Hex    Dec Hex  Dec Hex  Dec Hex  Dec Hex   Dec Hex   Dec Hex')
+    for row in range(0, 16):
+        for col in range(0, 8):
+            cp = 16*col+row
+            ch = chr(cp) if 32<=cp else ascii_cc_names[cp]
+            ch = 'DEL' if cp==127 else ch
+            frm = '{:3d} {:02X} {:2s}'
+            if cp < 32:
+                frm = '{:3d} {:02X} {:4s}'
+            elif cp >= 96:
+                frm = '{:4d} {:02X} {:2s}'
+            cell = frm.format(cp, cp, ch)
+            print(cell, end='')
+        print()
+
+brexit_ascii_diffs = {
+ 30: ' ',
+ 31: ' ',
+ 34: "'",
+123: '{}{',
+125: '}}',
+127: ' ',
+128: ' ',
+129: ' ',
+        }
+
+def display_brexit_ascii_table():
+    print(' + | 0    1    2    3    4    5    6    7    8    9')
+    print('---+-----------------------------------------------')
+    for row in range(30, 130, 10):
+        print('{:3d}'.format(row), end='|')
+        for col in range(0, 10):
+            cp = col+row
+            ch = brexit_ascii_diffs.get(cp, chr(cp))
+            cell = ' {:3s} '.format(ch)
+            print(cell, end='')
+        print()
+
+
+
+format_string_default = '''{yellow}{bold}U+{ordc:04X} {name}{default}
+{green}UTF-8:{default} {utf8} {green}UTF-16BE:{default} {utf16be} {green}Decimal:{default} {decimal} {green}Octal:{default} {octal}{opt_additional}
+{pchar}{opt_flipcase}{opt_uppercase}{opt_lowercase}
+{green}Category:{default} {category} ({category_desc}); {green}{opt_eaw}{default}{eaw_desc}
+{green}{opt_unicode_block}{default}{opt_unicode_block_desc}{green}{opt_numeric}{default}{numeric_desc}{green}{opt_digit}{default}{digit_desc}{green}{opt_bidi}{default}{bidi}{bidi_desc}
+{mirrored_desc}{green}{opt_combining}{default}{combining_desc}{green}{opt_decomp}{default}{decomp_desc}
+'''
+
+def main():
+    parser = OptionParser(usage="usage: %prog [options] arg")
+    parser.add_option("-x", "--hexadecimal",
+          action="store_const", const='hexadecimal', dest="type",
+          help="Assume arg to be hexadecimal number")
+    parser.add_option("-o", "--octal",
+          action="store_const", const='octal', dest="type",
+          help="Assume arg to be octal number")
+    parser.add_option("-b", "--binary",
+          action="store_const", const='binary', dest="type",
+          help="Assume arg to be binary number")
+    parser.add_option("-d", "--decimal",
+          action="store_const", const='decimal', dest="type",
+          help="Assume arg to be decimal number")
+    parser.add_option("-r", "--regexp",
+          action="store_const", const='regexp', dest="type",
+          help="Assume arg to be regular expression")
+    parser.add_option("-s", "--string",
+          action="store_const", const='string', dest="type",
+          help="Assume arg to be a sequence of characters")
+    parser.add_option("-a", "--auto",
+          action="store_const", const=None, dest="type",
+          help="Try to guess arg type (default)")
+    parser.add_option("-m", "--max",
+          action="store", default=10, dest="maxcount", type="int",
+          help="Maximal number of codepoints to display, default: 10; 0=unlimited")
+    parser.add_option("-i", "--io",
+          action="store", default=iocharsetguess, dest="iocharset", type="string",
+          help="I/O character set, I am guessing %s" % iocharsetguess)
+    parser.add_option("--fcp", "--fromcp",
+          action="store", default='', dest="fromcp", type="string",
+          help="Convert numerical arguments from this encoding, default: no conversion")
+    parser.add_option("-c", "--charset-add",
+          action="store", dest="addcharset", type="string",
+          help="Show hexadecimal reprezentation in this additional charset")
+    parser.add_option("-C", "--colour",
+          action="store", dest="use_colour", type="string",
+          default="auto",
+          help="Use colours, on, off or auto")
+    parser.add_option('', "--color",
+          action="store", dest="use_colour", type="string",
+          default="auto",
+          help="synonym for --colour")
+    parser.add_option("-v", "--verbose",
+          action="count", dest="verbosity",
+          default=0,
+          help="Increase verbosity (reads Unihan properties - slow!)")
+    parser.add_option("-w", "--wikipedia",
+          action="count", dest="query_wikipedia",
+          default=0,
+          help="Query wikipedia for the character")
+    parser.add_option("--wt", "--wiktionary",
+          action="count", dest="query_wiktionary",
+          default=0,
+          help="Query wiktionary for the character")
+    parser.add_option("--list",
+          action="store_const", dest="list_all_encodings",
+          const=True,
+          help="List (approximately) all known encodings")
+    parser.add_option("--format",
+          action="store", dest="format_string", type="string",
+          default=format_string_default,
+          help="formatting string")
+    parser.add_option("--brief", "--terse", "--br",
+          action="store_const", dest="format_string",
+          const='{pchar} U+{ordc:04X} {name}\n',
+          help="Brief format")
+    parser.add_option("--download",
+          action="store_const", dest="download_unicodedata",
+          const=True,
+          help="Try to dowload UnicodeData.txt")
+    parser.add_option("--ascii",
+          action="store_const", dest="ascii_table",
+          const=True,
+          help="Display ASCII table")
+    parser.add_option("--brexit-ascii", "--brexit",
+          action="store_const", dest="brexit_ascii_table",
+          const=True,
+          help="Display ASCII table (EU-UK Trade and Cooperation Agreement version)")
+
+    global options
+    (options, arguments) = parser.parse_args()
+    format_string = unescape(options.format_string)
+
+    do_init()
+
+    if options.list_all_encodings:
+        all_encodings = os.listdir(os.path.dirname(encodings.__file__))
+        all_encodings = set([os.path.splitext(x)[0] for x in all_encodings])
+        all_encodings = list(all_encodings)
+        all_encodings.sort()
+        print (textwrap.fill(' '.join(all_encodings)))
+        sys.exit()
+
+    if options.ascii_table:
+        display_ascii_table()
+        sys.exit()
+
+    if options.brexit_ascii_table:
+        display_brexit_ascii_table()
+        sys.exit()
+
+    if options.download_unicodedata:
+        download_unicodedata()
+        sys.exit()
+
+    if len(arguments)==0:
+        parser.print_help()
+        sys.exit()
+
+
+    if options.use_colour.lower() in ("on", "1", "true", "yes"):
+        # we reuse the options.use_colour, so that we do not need to use another global
+        options.use_colour = True
+    elif options.use_colour.lower() in ("off", "0", "false", "no"):
+        options.use_colour = False
+    else:
+        options.use_colour = sys.stdout.isatty()
+        if sys.platform == 'win32':
+            options.use_colour = False
+
+    l_args = [] # list of non range arguments to process
+    for argum in arguments:
+        if PY3:
+            # in python3, argv is automatically decoded into unicode
+            # but we have to check for surrogates
+            argum = argum.encode(options.iocharset, 'surrogateescape')
+        try:
+            argum = argum.decode(options.iocharset)
+        except UnicodeDecodeError:
+            error ("Sequence %s is not valid in charset '%s'." % (repr(argum),  options.iocharset))
+        is_r = is_range(argum, options.type)
+        if is_r:
+            print_blocks(is_r)
+        else:
+            l_args.append(argum)
+
+    if l_args:
+        global unihan_fs
+        unihan_fs = []
+        if options.verbosity>0:
+            unihan_fs = get_unihan_files() # list of file names for Unihan data file(s), empty if not available
+            if not unihan_fs:
+                out( """
+Unihan_*.txt files not found. In order to view Unihan properties,
+please place the files into /usr/share/unidata/,
+/usr/share/unicode/, ~/.unicode/
+or current working directory (optionally you can gzip or bzip2 them).
+You can get the files by unpacking ftp://ftp.unicode.org/Public/UNIDATA/Unihan.zip
+Warning, listing UniHan Properties is rather slow.
+
+""")
+                options.verbosity = 0
+        processed_args = process(l_args, options.type, options.fromcp, prefill_cache=True)
+        print_characters(processed_args, options.maxcount, format_string, options.query_wikipedia, options.query_wiktionary)
+
+if __name__ == '__main__':
+    main()

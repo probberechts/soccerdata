@@ -60,7 +60,7 @@ FotMob
 
     .. code::
 
-      from soccerdata import FotFom
+      from soccerdata import FotMob
 
     Historical results, lineups, and detailed aggregated statistics for teams and individual players based on Opta data.
 

@@ -49,7 +49,20 @@ FBref
 
       from soccerdata import FBref
 
-    Historical results, lineups, and detailed aggregated statistics for teams and individual players based on Stats Perform data.
+    Historical results, lineups, and detailed aggregated statistics for teams and individual players based on Opta data.
+
+-----
+
+FotMob
+    `URL <https://www.fotmob.com/>`__ |
+    :doc:`Example usage <FotMob>` |
+    :doc:`API reference </reference/fotmob>`
+
+    .. code::
+
+      from soccerdata import FotFom
+
+    Historical results, lineups, and detailed aggregated statistics for teams and individual players based on Opta data.
 
 -----
 

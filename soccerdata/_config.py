@@ -78,7 +78,7 @@ logger.handlers[0] = RichHandler(markup=True)
 TEAMNAME_REPLACEMENTS = {}
 _f_custom_teamnname_replacements = CONFIG_DIR / "teamname_replacements.json"
 if _f_custom_teamnname_replacements.is_file():
-    with open(_f_custom_teamnname_replacements, encoding="utf8") as json_file:
+    with _f_custom_teamnname_replacements.open(encoding="utf8") as json_file:
         for team, to_replace_list in json.load(json_file).items():
             for to_replace in to_replace_list:
                 TEAMNAME_REPLACEMENTS[to_replace] = team
@@ -180,7 +180,7 @@ LEAGUE_DICT = {
 }
 _f_custom_league_dict = CONFIG_DIR / "league_dict.json"
 if _f_custom_league_dict.is_file():
-    with open(_f_custom_league_dict, encoding="utf8") as json_file:
+    with _f_custom_league_dict.open(encoding="utf8") as json_file:
         LEAGUE_DICT = {**LEAGUE_DICT, **json.load(json_file)}
     logger.info("Custom league dict loaded from %s.", _f_custom_league_dict)
 else:

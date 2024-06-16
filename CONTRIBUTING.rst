@@ -156,7 +156,7 @@ a few guidelines:
 
 - Line-length can exceed 79 characters, to 100, when convenient.
 - Line-length can exceed 100 characters, when doing otherwise would be *terribly* inconvenient.
-- Always use single-quoted strings (e.g. ``'#soccer'``), unless a single-quote occurs within the string.
+- Always use double-quoted strings (e.g. ``"#soccer"``), unless a double-quote occurs within the string.
 
 To ensure all code conforms to this format. You can format the code using the
 pre-commit hooks.
@@ -168,7 +168,6 @@ pre-commit hooks.
 Docstrings are to follow the `numpydoc guidelines`_.
 
 .. _PEP 8: https://pep8.org/
-.. _black: https://black.readthedocs.io/en/stable/
 .. _numpydoc guidelines: https://numpydoc.readthedocs.io/en/latest/format.html
 
 Submitting changes

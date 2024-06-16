@@ -2,15 +2,15 @@
 
 import itertools
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Union
+from typing import Callable, Optional, Union
 
 import pandas as pd
 
 from ._common import BaseRequestsReader, make_game_id
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS
 
-MATCH_HISTORY_DATA_DIR = DATA_DIR / 'MatchHistory'
-MATCH_HISTORY_API = 'https://www.football-data.co.uk'
+MATCH_HISTORY_DATA_DIR = DATA_DIR / "MatchHistory"
+MATCH_HISTORY_API = "https://www.football-data.co.uk"
 
 
 class MatchHistory(BaseRequestsReader):
@@ -53,10 +53,10 @@ class MatchHistory(BaseRequestsReader):
 
     def __init__(
         self,
-        leagues: Optional[Union[str, List[str]]] = None,
-        seasons: Optional[Union[str, int, List]] = None,
+        leagues: Optional[Union[str, list[str]]] = None,
+        seasons: Optional[Union[str, int, list]] = None,
         proxy: Optional[
-            Union[str, Dict[str, str], List[Dict[str, str]], Callable[[], Dict[str, str]]]
+            Union[str, dict[str, str], list[dict[str, str]], Callable[[], dict[str, str]]]
         ] = None,
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
@@ -76,15 +76,15 @@ class MatchHistory(BaseRequestsReader):
         -------
         pd.DataFrame
         """
-        urlmask = MATCH_HISTORY_API + '/mmz4281/{}/{}.csv'
-        filemask = '{}_{}.csv'
+        urlmask = MATCH_HISTORY_API + "/mmz4281/{}/{}.csv"
+        filemask = "{}_{}.csv"
         col_rename = {
-            'Div': 'league',
-            'Date': 'date',
-            'Time': 'time',
-            'HomeTeam': 'home_team',
-            'AwayTeam': 'away_team',
-            'Referee': 'referee',
+            "Div": "league",
+            "Date": "date",
+            "Time": "time",
+            "HomeTeam": "home_team",
+            "AwayTeam": "away_team",
+            "Referee": "referee",
         }
 
         df_list = []
@@ -96,10 +96,10 @@ class MatchHistory(BaseRequestsReader):
 
             df_games = pd.read_csv(
                 reader,
-                encoding='ISO-8859-1',
+                encoding="ISO-8859-1",
             ).assign(season=skey)
-            if 'Time' not in df_games.columns:
-                df_games['Time'] = "12:00"
+            if "Time" not in df_games.columns:
+                df_games["Time"] = "12:00"
             df_games["Time"] = df_games["Time"].fillna("12:00")
             df_list.append(df_games)
 
@@ -107,21 +107,21 @@ class MatchHistory(BaseRequestsReader):
             pd.concat(df_list, sort=False)
             .rename(columns=col_rename)
             .assign(
-                date=lambda x: pd.to_datetime(x["date"] + ' ' + x['time'], format="%d/%m/%Y %H:%M")
+                date=lambda x: pd.to_datetime(x["date"] + " " + x["time"], format="%d/%m/%Y %H:%M")
             )
             .drop("time", axis=1)
             .pipe(self._translate_league)
             .replace(
                 {
-                    'home_team': TEAMNAME_REPLACEMENTS,
-                    'away_team': TEAMNAME_REPLACEMENTS,
+                    "home_team": TEAMNAME_REPLACEMENTS,
+                    "away_team": TEAMNAME_REPLACEMENTS,
                 }
             )
-            .dropna(subset=['home_team', 'away_team'])
+            .dropna(subset=["home_team", "away_team"])
         )
 
-        df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
-        df['game'] = df.apply(make_game_id, axis=1)
-        df.set_index(['league', 'season', 'game'], inplace=True)
+        df = df.loc[:, ~df.columns.str.contains("^Unnamed")]
+        df["game"] = df.apply(make_game_id, axis=1)
+        df.set_index(["league", "season", "game"], inplace=True)
         df.sort_index(inplace=True)
         return df

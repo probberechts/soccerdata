@@ -7,6 +7,7 @@ license = "Apache-2.0"
 readme = 'README.rst'
 homepage = "https://github.com/probberechts/soccerdata"
 repository = "https://github.com/probberechts/soccerdata"
+documentation = "https://soccerdata.readthedocs.io"
 keywords = ["soccer", "football", "soccer data", "web scraping", "soccer analytics"]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -14,67 +15,52 @@ classifiers = [
     "Operating System :: OS Independent"
 ]
 
+[tool.poetry.urls]
+Changelog = "https://github.com/probberechts/soccerdata/releases"
+
 [tool.poetry.dependencies]
 python = ">=3.9,<3.13"
+PySocks = "^1.7.1"
+Unidecode = "^1.2.0"
+cloudscraper = "^1.2.71"
+html5lib = "^1.1"
+lxml = "^5.0.0"
 pandas = "^2.0.0, !=2.1.0"
 requests = "^2.23"
-unicode = "^2.7"
-lxml = "^5.0.0"
-Unidecode = "^1.2.0"
 rich = "^13.0.0"
-PySocks = "^1.7.1"
-html5lib = "^1.1"
 undetected-chromedriver = "^3.5.0"
-cloudscraper = "^1.2.71"
+unicode = "^2.7"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.test.dependencies]
 pytest = "^8.0.0"
-mypy = "^1.0"
-pylint = "^3.0.0"
 pytest-deadfixtures = "^2.2.1"
-unify = "^0.5"
-black = "^24.0.0"
-Sphinx = "^7.0.0"
-sphinx-autobuild = "^2024.0.0"
-furo = "^2024.0.0"
-coverage = {version = "^7.0", extras = ["toml"]}
-pre-commit = "^3.0.0"
-flake8 = "^7.0.0"
-flake8-bugbear = "^24.0.0"
-flake8-docstrings = "^1.6.0"
-flake8-rst-docstrings = "^0.3.0"
-pep8-naming = "^0.14.0"
-darglint = "^1.8.1"
-pre-commit-hooks = "^4.3.0"
-Pygments = "^2.13.0"
-time-machine = "^2.8.2"
 pytest-mock = "^3.10.0"
+coverage = {version = "^7.0", extras = ["toml"]}
+time-machine = "^2.8.2"
+
+[tool.poetry.group.dev.dependencies]
+Pygments = "^2.13.0"
 bumpversion = "^0.6.0"
+darglint = "^1.8.1"
+ruff = "*"
+mypy = "*"
+pep8-naming = "^0.14.0"
+pre-commit = "^3.0.0"
+pre-commit-hooks = "^4.3.0"
+
+[tool.poetry.group.docs.dependencies]
+Sphinx = "^7.0.0"
+furo = "^2024.0.0"
 nbsphinx = "^0.9.0"
-
-[tool.isort]
-profile = "black"
-src_paths = ["soccerdata", "tests"]
-balanced_wrapping = true
-default_section = "THIRDPARTY"
-include_trailing_comma = true
-known_first_party = ["soccerdata", "tests"]
-line_length = 79
-multi_line_output = 3
-
-[tool.black]
-line-length = 99
-target-version = ['py38']
-skip-string-normalization = 1
-include = '\.pyi?$'
+sphinx-autobuild = "^2024.0.0"
 
 [tool.coverage.paths]
 source = ["soccerdata", "*/site-packages"]
+tests = ["tests", "*/tests"]
 
 [tool.coverage.run]
 branch = true
-source = ["soccerdata"]
-relative_files = true
+source = ["soccerdata", "tests"]
 
 [tool.coverage.report]
 show_missing = true
@@ -93,6 +79,62 @@ warn_unused_ignores = true
 module = ["tests.*"]
 disallow_untyped_defs = false
 
+[tool.ruff]
+src = ['soccerdata', 'tests']
+line-length = 99
+target-version = 'py39'
+
+[tool.ruff.lint]
+select = [
+  'A',
+  'ARG',
+  'B',
+  'B9',
+  'C',
+  'C4',
+  'D',
+  'DTZ',
+  'E',
+  'F',
+  'I',
+  'N',
+  'PIE',
+  'PT',
+  'PTH',
+  'Q',
+  'RET',
+  'RUF',
+  'SIM',
+  'SLF',
+  'T10',
+  'TCH',
+  'UP',
+  'W',
+]
+ignore = ['B904']
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ['F401']
+"tests/*" = [
+    'S',
+    'D212',
+    'D415',
+    'D205',
+    'D103',
+    'D104',
+    'N999',
+    'SLF001',
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pydocstyle]
+convention = 'numpy'
+
+[tool.ruff.lint.isort]
+known-first-party = ["soccerdata", "tests"]
+
 [build-system]
-requires = ["poetry>=0.12"]
-build-backend = "poetry.masonry.api"
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

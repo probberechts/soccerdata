@@ -44,7 +44,7 @@ def activate_virtualenv_in_precommit_hooks(session: Session) -> None:
     session : Session
         The Session object.
     """
-    assert session.bin is not None  # noqa: S101
+    assert session.bin is not None
 
     # Only patch hooks containing a reference to this session's bindir. Support
     # quoting rules for Python and bash, but strip the outermost quotes so we
@@ -108,17 +108,13 @@ def precommit(session: Session) -> None:
     """Lint using pre-commit."""
     args = session.posargs or ["run", "--all-files", "--show-diff-on-failure"]
     session.install(
-        "black",
+        "bandit",
         "darglint",
-        "flake8",
-        "flake8-bugbear",
-        "flake8-docstrings",
-        "flake8-rst-docstrings",
+        "ruff",
         "pep8-naming",
         "pre-commit",
         "pre-commit-hooks",
         "pyupgrade",
-        "isort",
     )
     session.run("pre-commit", *args)
     if args and args[0] == "install":
@@ -151,8 +147,8 @@ def tests(session: Session) -> None:
             "pytest",
             *args,
             env={
-                'SOCCERDATA_DIR': str(Path(__file__).parent / "tests" / "appdata"),
-                'MAXAGE': '604800',
+                "SOCCERDATA_DIR": str(Path(__file__).parent / "tests" / "appdata"),
+                "MAXAGE": "604800",
             },
         )
     finally:
@@ -187,7 +183,7 @@ def docs_build(session: Session) -> None:
     if build_dir.exists():
         shutil.rmtree(build_dir)
 
-    session.run("sphinx-build", *args, env={'SOCCERDATA_DIR': str(Path.home() / 'soccerdata')})
+    session.run("sphinx-build", *args, env={"SOCCERDATA_DIR": str(Path.home() / "soccerdata")})
 
 
 @session(python=python_versions[0])
@@ -201,4 +197,8 @@ def docs(session: Session) -> None:
     if build_dir.exists():
         shutil.rmtree(build_dir)
 
-    session.run("sphinx-autobuild", *args, env={'SOCCERDATA_DIR': str(Path.home() / 'soccerdata')})
+    session.run(
+        "sphinx-autobuild",
+        *args,
+        env={"SOCCERDATA_DIR": str(Path.home() / "soccerdata")},
+    )

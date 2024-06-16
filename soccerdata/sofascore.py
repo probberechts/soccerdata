@@ -1,10 +1,11 @@
 """Scraper for https://www.sofascore.com/."""
 
-import datetime
 import itertools
 import json
+from collections.abc import Iterable
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable, Dict, Iterable, List, Optional, Union
+from typing import Callable, Optional, Union
 
 import pandas as pd
 
@@ -55,10 +56,10 @@ class Sofascore(BaseRequestsReader):
 
     def __init__(
         self,
-        leagues: Optional[Union[str, List[str]]] = None,
+        leagues: Optional[Union[str, list[str]]] = None,
         seasons: Optional[Union[str, int, Iterable[Union[str, int]]]] = None,
         proxy: Optional[
-            Union[str, Dict[str, str], List[Dict[str, str]], Callable[[], Dict[str, str]]]
+            Union[str, dict[str, str], list[dict[str, str]], Callable[[], dict[str, str]]]
         ] = None,
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
@@ -226,7 +227,7 @@ class Sofascore(BaseRequestsReader):
             season_data = json.load(reader1)
             rounds = season_data["rounds"]
 
-            for round in rounds:
+            for round in rounds:  # noqa: A001
                 filepath2 = self.data_dir / filemask2.format(lkey, skey, round["round"])
                 url2 = urlmask2.format(season["league_id"], season["season_id"], round["round"])
                 reader2 = self.get(url2, filepath2, no_cache=current_season and not force_cache)
@@ -246,7 +247,9 @@ class Sofascore(BaseRequestsReader):
                                 "season": skey,
                                 "round": round["round"],
                                 "week": _match["roundInfo"]["round"],
-                                "date": datetime.datetime.fromtimestamp(_match["startTimestamp"]),
+                                "date": datetime.fromtimestamp(
+                                    _match["startTimestamp"], tz=timezone.utc
+                                ),
                                 "home_team": _match["homeTeam"]["name"],
                                 "away_team": _match["awayTeam"]["name"],
                                 "home_score": home_score,

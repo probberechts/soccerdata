@@ -3,7 +3,7 @@
 import itertools
 import json
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Union
+from typing import Callable, Optional, Union
 
 import pandas as pd
 
@@ -59,10 +59,10 @@ class FiveThirtyEight(BaseRequestsReader):
 
     def __init__(
         self,
-        leagues: Optional[Union[str, List[str]]] = None,
-        seasons: Optional[Union[str, int, List]] = None,
+        leagues: Optional[Union[str, list[str]]] = None,
+        seasons: Optional[Union[str, int, list]] = None,
         proxy: Optional[
-            Union[str, Dict[str, str], List[Dict[str, str]], Callable[[], Dict[str, str]]]
+            Union[str, dict[str, str], list[dict[str, str]], Callable[[], dict[str, str]]]
         ] = None,
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
@@ -70,7 +70,11 @@ class FiveThirtyEight(BaseRequestsReader):
     ):
         """Initialize a new FiveThirtyEight reader."""
         super().__init__(
-            leagues=leagues, proxy=proxy, no_cache=no_cache, no_store=no_store, data_dir=data_dir
+            leagues=leagues,
+            proxy=proxy,
+            no_cache=no_cache,
+            no_store=no_store,
+            data_dir=data_dir,
         )
         self.seasons = seasons  # type: ignore
 
@@ -86,7 +90,7 @@ class FiveThirtyEight(BaseRequestsReader):
         reader = self.get(url, filepath)
         data = json.load(reader)
 
-        df = (
+        return (
             pd.DataFrame.from_dict(data["leagues"])
             .rename(columns={"slug": "league", "id": "league_id"})
             .pipe(self._translate_league)
@@ -96,7 +100,6 @@ class FiveThirtyEight(BaseRequestsReader):
             .loc[self._selected_leagues.keys()]
             .sort_index()
         )
-        return df
 
     def read_games(self) -> pd.DataFrame:
         """Retrieve all games for the selected leagues.
@@ -185,7 +188,7 @@ class FiveThirtyEight(BaseRequestsReader):
                             **team,
                         }
                     )
-        df = (
+        return (
             pd.DataFrame.from_dict(data)
             .rename(columns={"name": "team"})
             .replace({"team": TEAMNAME_REPLACEMENTS})
@@ -194,7 +197,6 @@ class FiveThirtyEight(BaseRequestsReader):
             .set_index(["league", "season", "last_updated", "team"])
             .sort_index()
         )
-        return df
 
     def read_clinches(self) -> pd.DataFrame:
         """Retrieve clinches for the selected leagues.
@@ -217,7 +219,7 @@ class FiveThirtyEight(BaseRequestsReader):
             .drop_duplicates()
             .rename(columns={"home_team": "team", "home_id": "team_id"})
         )
-        df = (
+        return (
             pd.DataFrame.from_dict(data)
             .assign(date=lambda x: pd.to_datetime(x["dt"]))
             .merge(teams, on="team_id", how="left")
@@ -229,4 +231,3 @@ class FiveThirtyEight(BaseRequestsReader):
             .set_index(["league", "season", "date"])
             .sort_index()
         )
-        return df

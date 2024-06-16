@@ -1,7 +1,7 @@
 """Unittests for soccerdata._common."""
 
-import datetime
 import json
+from datetime import datetime, timezone
 
 import pandas as pd
 import pytest
@@ -99,7 +99,7 @@ def test_download_and_save_variable_no_store_no_filepath():
 def test_make_game_id():
     s = pd.Series(
         {
-            "date": datetime.datetime(1993, 7, 30),
+            "date": datetime(1993, 7, 30, tzinfo=timezone.utc),
             "home_team": "Barcelona",
             "away_team": "Real Madrid",
         }
@@ -140,13 +140,13 @@ def test_standardize_colnames():
 
 def test_is_complete():
     reader = BaseRequestsReader(no_store=True)
-    with time_machine.travel(datetime.datetime(2020, 12, 25, 1, 24)):
+    with time_machine.travel(datetime(2020, 12, 25, 1, 24, tzinfo=timezone.utc)):
         assert reader._is_complete("ENG-Premier League", "1920")
         assert not reader._is_complete("ENG-Premier League", "2021")
-    with time_machine.travel(datetime.datetime(2021, 2, 25, 1, 24)):
+    with time_machine.travel(datetime(2021, 2, 25, 1, 24, tzinfo=timezone.utc)):
         assert reader._is_complete("ENG-Premier League", "1920")
         assert not reader._is_complete("ENG-Premier League", "2021")
-    with time_machine.travel(datetime.datetime(2021, 7, 1, 1, 24)):
+    with time_machine.travel(datetime(2021, 7, 1, 1, 24, tzinfo=timezone.utc)):
         assert reader._is_complete("ENG-Premier League", "1920")
         assert reader._is_complete("ENG-Premier League", "2021")
         assert not reader._is_complete("ENG-Premier League", "2122")
@@ -155,13 +155,16 @@ def test_is_complete():
 def test_is_complete_default_value(mocker):
     mocker.patch.object(soccerdata._common, "LEAGUE_DICT", {"FAKE-Dummy League": {}})
     reader = BaseRequestsReader(no_store=True)
-    with time_machine.travel(datetime.datetime(2020, 12, 25, 1, 24)):
+    with time_machine.travel(datetime(2020, 12, 25, 1, 24, tzinfo=timezone.utc)):
         assert reader._is_complete("FAKE-Dummy League", "1920")
 
 
-def test_is_complete_undefined_league(mocker):
+def test_is_complete_undefined_league(mocker):  # noqa: ARG001
     reader = BaseRequestsReader(no_store=True)
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError,
+        match="Invalid league 'FAKE-Dummy League'",
+    ):
         reader._is_complete("FAKE-Dummy League", "1920")
 
 

@@ -17,12 +17,7 @@ from selenium.common.exceptions import (
 )
 from selenium.webdriver.common.by import By
 
-from ._common import (
-    BaseSeleniumReader,
-    make_game_id,
-    season_code,
-    standardize_colnames,
-)
+from ._common import BaseSeleniumReader, make_game_id, standardize_colnames
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
 
 WHOSCORED_DATADIR = DATA_DIR / "WhoScored"
@@ -300,7 +295,7 @@ class WhoScored(BaseSeleniumReader):
                 seasons.append(
                     {
                         "league": lkey,
-                        "season": season_code(node.text),
+                        "season": self._season_code.parse(node.text),
                         "region_id": league.region_id,
                         "league_id": league.league_id,
                         "season_id": season_id,
@@ -519,7 +514,7 @@ class WhoScored(BaseSeleniumReader):
         country = breadcrumb[0].text
         league, season = breadcrumb[1].text.split(" - ")
         data["league"] = {v: k for k, v in self._all_leagues().items()}[f"{country} - {league}"]
-        data["season"] = season_code(season)
+        data["season"] = self._season_code.parse(season)
         # match header
         match_header = self._driver.find_element(By.XPATH, "//div[@id='match-header']")
         score_info = match_header.find_element(By.XPATH, ".//div[@class='teams-score-info']")

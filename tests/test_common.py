@@ -10,8 +10,8 @@ import time_machine
 import soccerdata
 from soccerdata._common import (
     BaseRequestsReader,
+    SeasonCode,
     make_game_id,
-    season_code,
     standardize_colnames,
 )
 
@@ -167,12 +167,13 @@ def test_is_complete_undefined_league(mocker):
 
 # Season codes
 def test_season_pattern1a():
-    assert season_code("9495") == "9495"
+    assert SeasonCode.MULTI_YEAR.parse("9495") == "9495"
+    assert SeasonCode.SINGLE_YEAR.parse("9495") == "1994"
 
 
 def test_season_pattern1a_warn():
     with pytest.warns(UserWarning) as record:
-        assert season_code("2021") == "2021"
+        assert SeasonCode.MULTI_YEAR.parse("2021") == "2021"
 
     # check that only one warning was raised
     assert len(record) == 1
@@ -183,28 +184,37 @@ def test_season_pattern1a_warn():
 
 def test_season_pattern1b():
     my_season = check_post = "1998"
-    assert season_code(my_season) == "9899"
+    assert SeasonCode.MULTI_YEAR.parse(my_season) == "9899"
+    assert SeasonCode.SINGLE_YEAR.parse(my_season) == "1998"
     assert my_season == check_post
 
 
 def test_season_pattern1c():
-    assert season_code("1999") == "9900"
+    assert SeasonCode.MULTI_YEAR.parse("1999") == "9900"
+    assert SeasonCode.SINGLE_YEAR.parse("1999") == "1999"
 
 
 def test_season_pattern2():
-    assert season_code("11") == "1112"
-    assert season_code("99") == "9900"
+    assert SeasonCode.MULTI_YEAR.parse("11") == "1112"
+    assert SeasonCode.SINGLE_YEAR.parse("11") == "2011"
+    assert SeasonCode.MULTI_YEAR.parse("99") == "9900"
+    assert SeasonCode.SINGLE_YEAR.parse("99") == "1999"
 
 
 def test_season_pattern3():
-    assert season_code("2011-2012") == "1112"
-    assert season_code("1999-2000") == "9900"
+    assert SeasonCode.MULTI_YEAR.parse("2011-2012") == "1112"
+    assert SeasonCode.SINGLE_YEAR.parse("2011-2012") == "2011"
+    assert SeasonCode.MULTI_YEAR.parse("1999-2000") == "9900"
+    assert SeasonCode.SINGLE_YEAR.parse("1999-2000") == "1999"
 
 
 def test_season_pattern4():
-    assert season_code("2011-12") == "1112"
-    assert season_code("1999-00") == "9900"
+    assert SeasonCode.MULTI_YEAR.parse("2011-12") == "1112"
+    assert SeasonCode.SINGLE_YEAR.parse("2011-12") == "2011"
+    assert SeasonCode.MULTI_YEAR.parse("1999-00") == "9900"
+    assert SeasonCode.SINGLE_YEAR.parse("1999-00") == "1999"
 
 
 def test_season_pattern5():
-    assert season_code("13-14") == "1314"
+    assert SeasonCode.MULTI_YEAR.parse("13-14") == "1314"
+    assert SeasonCode.SINGLE_YEAR.parse("13-14") == "2013"

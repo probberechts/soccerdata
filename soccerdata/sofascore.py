@@ -8,11 +8,11 @@ from typing import Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 
-from ._common import BaseRequestsReader, make_game_id, season_code
+from ._common import BaseRequestsReader, make_game_id
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS
 
-SOFASCORE_DATADIR = DATA_DIR / 'Sofascore'
-SOFASCORE_API = 'https://api.sofascore.com/api/v1/'
+SOFASCORE_DATADIR = DATA_DIR / "Sofascore"
+SOFASCORE_API = "https://api.sofascore.com/api/v1/"
 
 
 class Sofascore(BaseRequestsReader):
@@ -85,23 +85,23 @@ class Sofascore(BaseRequestsReader):
         -------
         pd.DataFrame
         """
-        url = SOFASCORE_API + 'config/top-unique-tournaments/EN/football'
-        filepath = self.data_dir / 'leagues.json'
+        url = SOFASCORE_API + "config/top-unique-tournaments/EN/football"
+        filepath = self.data_dir / "leagues.json"
         reader = self.get(url, filepath)
         data = json.load(reader)
         leagues = []
-        for k in data['uniqueTournaments']:
+        for k in data["uniqueTournaments"]:
             leagues.append(
                 {
-                    'league_id': k['id'],
-                    'league': k['name'],
+                    "league_id": k["id"],
+                    "league": k["name"],
                 }
             )
         df = (
             pd.DataFrame(leagues)
             .pipe(self._translate_league)
-            .assign(region=lambda x: x['league'].str.split('-').str[0])
-            .set_index('league')
+            .assign(region=lambda x: x["league"].str.split("-").str[0])
+            .set_index("league")
             .loc[self._selected_leagues.keys()]
             .sort_index()
         )
@@ -114,24 +114,24 @@ class Sofascore(BaseRequestsReader):
         -------
         pd.DataFrame
         """
-        filemask = 'leagues/{}.json'
+        filemask = "leagues/{}.json"
         seasons = []
         df_leagues = self.read_leagues()
         for lkey, league in df_leagues.iterrows():
-            url = SOFASCORE_API + 'unique-tournament/{}/seasons'
+            url = SOFASCORE_API + "unique-tournament/{}/seasons"
             filepath = self.data_dir / filemask.format(lkey)
             reader = self.get(url.format(league.league_id), filepath)
-            data = json.load(reader)['seasons']
+            data = json.load(reader)["seasons"]
             for season in data:
                 seasons.append(
                     {
-                        'league': lkey,
-                        'season': season_code(season['year']),
-                        'league_id': league.league_id,
-                        'season_id': season['id'],
+                        "league": lkey,
+                        "season": self._season_code.parse(season["year"]),
+                        "league_id": league.league_id,
+                        "season_id": season["id"],
                     }
                 )
-        df = pd.DataFrame(seasons).set_index(['league', 'season']).sort_index()
+        df = pd.DataFrame(seasons).set_index(["league", "season"]).sort_index()
 
         return df.loc[df.index.isin(list(itertools.product(self.leagues, self.seasons)))]
 
@@ -148,11 +148,11 @@ class Sofascore(BaseRequestsReader):
         -------
         pd.DataFrame
         """
-        filemask = 'seasons/{}_{}.html'
+        filemask = "seasons/{}_{}.html"
         urlmask = SOFASCORE_API + "unique-tournament/{}/season/{}/standings/total"
 
-        idx = ['league', 'season']
-        cols = ['team', 'MP', 'W', 'D', 'L', 'GF', 'GA', 'GD', 'Pts']
+        idx = ["league", "season"]
+        cols = ["team", "MP", "W", "D", "L", "GF", "GA", "GD", "Pts"]
 
         seasons = self.read_seasons()
         # collect league tables
@@ -163,26 +163,26 @@ class Sofascore(BaseRequestsReader):
             current_season = not self._is_complete(lkey, skey)
             reader = self.get(url, filepath, no_cache=current_season and not force_cache)
             season_data = json.load(reader)
-            for row in season_data['standings'][0]['rows']:
+            for row in season_data["standings"][0]["rows"]:
                 mult_tables.append(
                     {
-                        'league': lkey,
-                        'season': skey,
-                        'team': row['team']['name'],
-                        'MP': row['matches'],
-                        'W': row['wins'],
-                        'D': row['draws'],
-                        'L': row['losses'],
-                        'GF': row['scoresFor'],
-                        'GA': row['scoresAgainst'],
-                        'GD': row['scoresFor'] - row['scoresAgainst'],
-                        'Pts': row['points'],
+                        "league": lkey,
+                        "season": skey,
+                        "team": row["team"]["name"],
+                        "MP": row["matches"],
+                        "W": row["wins"],
+                        "D": row["draws"],
+                        "L": row["losses"],
+                        "GF": row["scoresFor"],
+                        "GA": row["scoresAgainst"],
+                        "GD": row["scoresFor"] - row["scoresAgainst"],
+                        "Pts": row["points"],
                     }
                 )
             df = (
                 pd.DataFrame(mult_tables)
                 .set_index(idx)
-                .replace({'team': TEAMNAME_REPLACEMENTS})
+                .replace({"team": TEAMNAME_REPLACEMENTS})
                 .sort_index()[cols]
             )
         return df
@@ -206,60 +206,60 @@ class Sofascore(BaseRequestsReader):
         filemask2 = "matches/round_matches_{}_{}_{}.json"
 
         cols = [
-            'round',
-            'week',
-            'date',
-            'home_team',
-            'away_team',
-            'home_score',
-            'away_score',
-            'game_id',
+            "round",
+            "week",
+            "date",
+            "home_team",
+            "away_team",
+            "home_score",
+            "away_score",
+            "game_id",
         ]
 
         df_seasons = self.read_seasons()
         all_schedules = []
         for (lkey, skey), season in df_seasons.iterrows():
             filepath1 = self.data_dir / filemask1.format(lkey, skey)
-            url1 = urlmask1.format(season['league_id'], season['season_id'])
+            url1 = urlmask1.format(season["league_id"], season["season_id"])
             current_season = not self._is_complete(lkey, skey)
             reader1 = self.get(url1, filepath1, no_cache=current_season and not force_cache)
             season_data = json.load(reader1)
-            rounds = season_data['rounds']
+            rounds = season_data["rounds"]
 
             for round in rounds:
-                filepath2 = self.data_dir / filemask2.format(lkey, skey, round['round'])
-                url2 = urlmask2.format(season['league_id'], season['season_id'], round['round'])
+                filepath2 = self.data_dir / filemask2.format(lkey, skey, round["round"])
+                url2 = urlmask2.format(season["league_id"], season["season_id"], round["round"])
                 reader2 = self.get(url2, filepath2, no_cache=current_season and not force_cache)
                 match_data = json.load(reader2)
-                for _match in match_data['events']:
-                    if _match['status']['code'] == 100 or _match['status']['code'] == 0:
-                        if _match['status']['code'] == 100:
-                            home_score = int(_match['homeScore']['current'])
-                            away_score = int(_match['awayScore']['current'])
+                for _match in match_data["events"]:
+                    if _match["status"]["code"] == 100 or _match["status"]["code"] == 0:
+                        if _match["status"]["code"] == 100:
+                            home_score = int(_match["homeScore"]["current"])
+                            away_score = int(_match["awayScore"]["current"])
                         else:
-                            home_score = float('nan')  # type: ignore
-                            away_score = float('nan')  # type: ignore
+                            home_score = float("nan")  # type: ignore
+                            away_score = float("nan")  # type: ignore
 
                         all_schedules.append(
                             {
-                                'league': lkey,
-                                'season': skey,
-                                'round': round['round'],
-                                'week': _match['roundInfo']['round'],
-                                'date': datetime.datetime.fromtimestamp(_match['startTimestamp']),
-                                'home_team': _match['homeTeam']['name'],
-                                'away_team': _match['awayTeam']['name'],
-                                'home_score': home_score,
-                                'away_score': away_score,
-                                'game_id': _match['id'],
+                                "league": lkey,
+                                "season": skey,
+                                "round": round["round"],
+                                "week": _match["roundInfo"]["round"],
+                                "date": datetime.datetime.fromtimestamp(_match["startTimestamp"]),
+                                "home_team": _match["homeTeam"]["name"],
+                                "away_team": _match["awayTeam"]["name"],
+                                "home_score": home_score,
+                                "away_score": away_score,
+                                "game_id": _match["id"],
                             }
                         )
 
         df = pd.DataFrame(all_schedules).replace(
             {
-                'home_team': TEAMNAME_REPLACEMENTS,
-                'away_team': TEAMNAME_REPLACEMENTS,
+                "home_team": TEAMNAME_REPLACEMENTS,
+                "away_team": TEAMNAME_REPLACEMENTS,
             }
         )
-        df['game'] = df.apply(make_game_id, axis=1)
-        return df.set_index(['league', 'season', 'game']).sort_index()[cols]
+        df["game"] = df.apply(make_game_id, axis=1)
+        return df.set_index(["league", "season", "game"]).sort_index()[cols]

@@ -10,12 +10,12 @@ from pathlib import Path
 from rich.logging import RichHandler
 
 # Configuration
-NOCACHE = os.environ.get("SOCCERDATA_NOCACHE", 'False').lower() in ('true', '1', 't')
-NOSTORE = os.environ.get("SOCCERDATA_NOSTORE", 'False').lower() in ('true', '1', 't')
+NOCACHE = os.environ.get("SOCCERDATA_NOCACHE", "False").lower() in ("true", "1", "t")
+NOSTORE = os.environ.get("SOCCERDATA_NOSTORE", "False").lower() in ("true", "1", "t")
 MAXAGE = None
 if os.environ.get("SOCCERDATA_MAXAGE") is not None:
     MAXAGE = int(os.environ.get("SOCCERDATA_MAXAGE", 0))
-LOGLEVEL = os.environ.get('SOCCERDATA_LOGLEVEL', 'INFO').upper()
+LOGLEVEL = os.environ.get("SOCCERDATA_LOGLEVEL", "INFO").upper()
 
 # Directories
 BASE_DIR = Path(os.environ.get("SOCCERDATA_DIR", Path.home() / "soccerdata"))
@@ -78,11 +78,14 @@ logger.handlers[0] = RichHandler(markup=True)
 TEAMNAME_REPLACEMENTS = {}
 _f_custom_teamnname_replacements = CONFIG_DIR / "teamname_replacements.json"
 if _f_custom_teamnname_replacements.is_file():
-    with open(_f_custom_teamnname_replacements, encoding='utf8') as json_file:
+    with open(_f_custom_teamnname_replacements, encoding="utf8") as json_file:
         for team, to_replace_list in json.load(json_file).items():
             for to_replace in to_replace_list:
                 TEAMNAME_REPLACEMENTS[to_replace] = team
-    logger.info("Custom team name replacements loaded from %s.", _f_custom_teamnname_replacements)
+    logger.info(
+        "Custom team name replacements loaded from %s.",
+        _f_custom_teamnname_replacements,
+    )
 else:
     logger.info(
         "No custom team name replacements found. You can configure these in %s.",
@@ -166,16 +169,18 @@ LEAGUE_DICT = {
         "FBref": "FIFA World Cup",
         "FotMob": "INT-World Cup",
         "WhoScored": "International - FIFA World Cup",
+        "season_code": "single-year",
     },
     "INT-Women's World Cup": {
         "FBref": "FIFA Women's World Cup",
         "FotMob": "INT-Women's World Cup",
         "WhoScored": "International - FIFA Women's World Cup",
+        "season_code": "single-year",
     },
 }
 _f_custom_league_dict = CONFIG_DIR / "league_dict.json"
 if _f_custom_league_dict.is_file():
-    with open(_f_custom_league_dict, encoding='utf8') as json_file:
+    with open(_f_custom_league_dict, encoding="utf8") as json_file:
         LEAGUE_DICT = {**LEAGUE_DICT, **json.load(json_file)}
     logger.info("Custom league dict loaded from %s.", _f_custom_league_dict)
 else:

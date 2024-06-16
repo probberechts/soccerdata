@@ -6,10 +6,11 @@ import re
 import time
 import warnings
 from abc import ABC, abstractmethod
-from datetime import date, datetime, timedelta
+from collections.abc import Iterable
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
-from typing import IO, Callable, Dict, Iterable, List, Optional, Union
+from typing import IO, Callable, Optional, Union
 
 import cloudscraper
 import numpy as np
@@ -45,27 +46,33 @@ class SeasonCode(Enum):
         league : str
             The league to consider.
 
+        Raises
+        ------
+        ValueError
+            If the league is not recognized.
+
         Returns
         -------
         SeasonCode
             The season code format to use.
         """
-        assert league in LEAGUE_DICT, f"Unknown league '{league}'"
+        if league not in LEAGUE_DICT:
+            raise ValueError(f"Invalid league '{league}'")
         select_league_dict = LEAGUE_DICT[league]
         if "season_code" in select_league_dict:
             return SeasonCode(select_league_dict["season_code"])
-        start_month = datetime.strptime(
+        start_month = datetime.strptime(  # noqa: DTZ007
             select_league_dict.get("season_start", "Aug"),
             "%b",
         ).month
-        end_month = datetime.strptime(
+        end_month = datetime.strptime(  # noqa: DTZ007
             select_league_dict.get("season_end", "May"),
             "%b",
         ).month
         return SeasonCode.MULTI_YEAR if (end_month - start_month) < 0 else SeasonCode.SINGLE_YEAR
 
     @staticmethod
-    def from_leagues(leagues: List[str]) -> "SeasonCode":
+    def from_leagues(leagues: list[str]) -> "SeasonCode":
         """Determine the season code to use for a set of leagues.
 
         If the given leagues have different default season codes,
@@ -124,70 +131,61 @@ class SeasonCode(Enum):
             ),
         ]
 
-        current_year = datetime.now().year
+        current_year = datetime.now(tz=timezone.utc).year
 
         def process_four_digit_year(season: str) -> str:
             """Process a 4-digit string like '1994' or '9495'."""
             if self == SeasonCode.MULTI_YEAR:
                 if int(season[2:]) == int(season[:2]) + 1:
                     if season == "2021":
-                        msg = 'Season id "{}" is ambiguous: interpreting as "{}-{}"'.format(
-                            season, season[:2], season[-2:]
+                        msg = (
+                            f'Season id "{season}" is ambiguous: '
+                            f'interpreting as "{season[:2]}-{season[-2:]}"'
                         )
                         warnings.warn(msg, stacklevel=1)
                     return season
-                elif season[2:] == "99":
+                if season[2:] == "99":
                     return "9900"
-                else:
-                    return season[-2:] + f"{int(season[-2:]) + 1:02d}"
-            else:
-                if season == "1920":
-                    return "1919"
-                elif season == "2021":
-                    return "2020"
-                elif season[:2] == "19" or season[:2] == "20":
-                    return season
-                elif int(season) <= current_year:
-                    return "20" + season[:2]
-                else:
-                    return "19" + season[:2]
+                return season[-2:] + f"{int(season[-2:]) + 1:02d}"
+            if season == "1920":
+                return "1919"
+            if season == "2021":
+                return "2020"
+            if season[:2] == "19" or season[:2] == "20":
+                return season
+            if int(season) <= current_year:
+                return "20" + season[:2]
+            return "19" + season[:2]
 
         def process_two_digit_year(season: str) -> str:
             """Process a 2-digit string like '94'."""
             if self == SeasonCode.MULTI_YEAR:
                 if season == "99":
                     return "9900"
-                else:
-                    return season + f"{int(season) + 1:02d}"
-            else:
-                if int("20" + season) <= current_year:
-                    return "20" + season
-                else:
-                    return "19" + season
+                return season + f"{int(season) + 1:02d}"
+            if int("20" + season) <= current_year:
+                return "20" + season
+            return "19" + season
 
         def process_full_year_range(season: str) -> str:
             """Process a range of 4-digit strings like '1994-1995'."""
             if self == SeasonCode.MULTI_YEAR:
                 return season[2:4] + season[-2:]
-            else:
-                return season[:4]
+            return season[:4]
 
         def process_partial_year_range(season: str) -> str:
             """Process a range of 4-digit and 2-digit string like '1994-95'."""
             if self == SeasonCode.MULTI_YEAR:
                 return season[2:4] + season[-2:]
-            else:
-                return season[:4]
+            return season[:4]
 
         def process_short_year_range(season: str) -> str:
             """Process a range of 2-digit strings like '94-95'."""
             if self == SeasonCode.MULTI_YEAR:
                 return season[:2] + season[-2:]
-            else:
-                if int("20" + season[:2]) <= current_year:
-                    return "20" + season[:2]
-                else:
-                    return "19" + season[:2]
+            if int("20" + season[:2]) <= current_year:
+                return "20" + season[:2]
+            return "19" + season[:2]
 
         for pattern, action in patterns:
             if pattern.match(season):
@@ -230,9 +228,9 @@ class BaseReader(ABC):
 
     def __init__(
         self,
-        leagues: Optional[Union[str, List[str]]] = None,
+        leagues: Optional[Union[str, list[str]]] = None,
         proxy: Optional[
-            Union[str, Dict[str, str], List[Dict[str, str]], Callable[[], Dict[str, str]]]
+            Union[str, dict[str, str], list[dict[str, str]], Callable[[], dict[str, str]]]
         ] = None,
         no_cache: bool = False,
         no_store: bool = False,
@@ -251,7 +249,7 @@ class BaseReader(ABC):
         elif callable(proxy):
             self.proxy = proxy
         else:
-            self.proxy = lambda: {}
+            self.proxy = dict
 
         self._selected_leagues = leagues  # type: ignore
         self.no_cache = no_cache
@@ -307,7 +305,8 @@ class BaseReader(ABC):
             logger.debug("Scraping %s", url)
             return self._download_and_save(url, filepath, var)
         logger.debug("Retrieving %s from cache", url)
-        assert filepath is not None
+        if filepath is None:
+            raise ValueError("No filepath provided for cached data.")
         return filepath.open(mode="rb")
 
     def _is_cached(
@@ -348,8 +347,8 @@ class BaseReader(ABC):
         cache_invalid = False
         # Check if cached file is too old
         if _max_age is not None and filepath is not None and filepath.exists():
-            last_modified = datetime.fromtimestamp(filepath.stat().st_mtime)
-            now = datetime.now()
+            last_modified = datetime.fromtimestamp(filepath.stat().st_mtime, tz=timezone.utc)
+            now = datetime.now(timezone.utc)
             if (now - last_modified) > _max_age:
                 cache_invalid = True
 
@@ -380,12 +379,12 @@ class BaseReader(ABC):
         """
 
     @classmethod
-    def available_leagues(cls) -> List[str]:
+    def available_leagues(cls) -> list[str]:
         """Return a list of league IDs available for this source."""
         return sorted(cls._all_leagues().keys())
 
     @classmethod
-    def _all_leagues(cls) -> Dict[str, str]:
+    def _all_leagues(cls) -> dict[str, str]:
         """Return a dict mapping all canonical league IDs to source league IDs."""
         if not hasattr(cls, "_all_leagues_dict"):
             cls._all_leagues_dict = {  # type: ignore
@@ -403,12 +402,12 @@ class BaseReader(ABC):
         return df
 
     @property
-    def _selected_leagues(self) -> Dict[str, str]:
+    def _selected_leagues(self) -> dict[str, str]:
         """Return a dict mapping selected canonical league IDs to source league IDs."""
         return self._leagues_dict
 
     @_selected_leagues.setter
-    def _selected_leagues(self, ids: Optional[Union[str, List[str]]] = None) -> None:
+    def _selected_leagues(self, ids: Optional[Union[str, list[str]]] = None) -> None:
         if ids is None:
             self._leagues_dict = self._all_leagues()
         else:
@@ -443,22 +442,30 @@ class BaseReader(ABC):
             else:
                 raise ValueError(f"Invalid league '{league}'")
         if "season_end" not in league_dict:
-            season_ends = date(datetime.strptime(season[-2:], "%y").year, 7, 1)
-        else:
-            season_ends = date(
-                datetime.strptime(season[-2:], "%y").year,
-                datetime.strptime(league_dict["season_end"], "%b").month,
+            season_ends = datetime(
+                datetime.strptime(season[-2:], "%y").year,  # noqa: DTZ007
+                7,
                 1,
+                tzinfo=timezone.utc,
+            )
+        else:
+            season_ends = datetime(
+                datetime.strptime(season[-2:], "%y").year,  # noqa: DTZ007
+                datetime.strptime(  # noqa: DTZ007
+                    league_dict["season_end"], "%b"
+                ).month,
+                1,
+                tzinfo=timezone.utc,
             ) + relativedelta(months=1)
-        return date.today() >= season_ends
+        return datetime.now(tz=timezone.utc) >= season_ends
 
     @property
-    def leagues(self) -> List[str]:
+    def leagues(self) -> list[str]:
         """Return a list of selected leagues."""
         return list(self._leagues_dict.keys())
 
     @property
-    def seasons(self) -> List[str]:
+    def seasons(self) -> list[str]:
         """Return a list of selected seasons."""
         return self._season_ids
 
@@ -466,9 +473,9 @@ class BaseReader(ABC):
     def seasons(self, seasons: Optional[Union[str, int, Iterable[Union[str, int]]]]) -> None:
         if seasons is None:
             logger.info("No seasons provided. Will retrieve data for the last 5 seasons.")
-            year = datetime.today().year
+            year = datetime.now(tz=timezone.utc).year
             seasons = [f"{y - 1}-{y}" for y in range(year, year - 6, -1)]
-        if isinstance(seasons, str) or isinstance(seasons, int):
+        if isinstance(seasons, (str, int)):
             seasons = [seasons]
         self._season_ids = [self._season_code.parse(s) for s in seasons]
 
@@ -478,9 +485,9 @@ class BaseRequestsReader(BaseReader):
 
     def __init__(
         self,
-        leagues: Optional[Union[str, List[str]]] = None,
+        leagues: Optional[Union[str, list[str]]] = None,
         proxy: Optional[
-            Union[str, Dict[str, str], List[Dict[str, str]], Callable[[], Dict[str, str]]]
+            Union[str, dict[str, str], list[dict[str, str]], Callable[[], dict[str, str]]]
         ] = None,
         no_cache: bool = False,
         no_store: bool = False,
@@ -543,7 +550,7 @@ class BaseRequestsReader(BaseReader):
                 self._session = self._init_session()
                 continue
 
-        raise ConnectionError("Could not download %s." % url)
+        raise ConnectionError(f"Could not download {url}.")
 
 
 class BaseSeleniumReader(BaseReader):
@@ -551,9 +558,9 @@ class BaseSeleniumReader(BaseReader):
 
     def __init__(
         self,
-        leagues: Optional[Union[str, List[str]]] = None,
+        leagues: Optional[Union[str, list[str]]] = None,
         proxy: Optional[
-            Union[str, Dict[str, str], List[Dict[str, str]], Callable[[], Dict[str, str]]]
+            Union[str, dict[str, str], list[dict[str, str]], Callable[[], dict[str, str]]]
         ] = None,
         no_cache: bool = False,
         no_store: bool = False,
@@ -612,7 +619,7 @@ class BaseSeleniumReader(BaseReader):
             chrome_options.add_argument("--host-resolver-rules=" + resolver_rules)
         return uc.Chrome(options=chrome_options)
 
-    def _download_and_save(  # noqa: C901
+    def _download_and_save(
         self,
         url: str,
         filepath: Optional[Path] = None,
@@ -655,7 +662,7 @@ class BaseSeleniumReader(BaseReader):
                 self._driver = self._init_webdriver()
                 continue
 
-        raise ConnectionError("Could not download %s." % url)
+        raise ConnectionError(f"Could not download {url}.")
 
 
 def make_game_id(row: pd.Series) -> str:
@@ -674,7 +681,7 @@ def make_game_id(row: pd.Series) -> str:
     return game_id
 
 
-def standardize_colnames(df: pd.DataFrame, cols: Optional[List[str]] = None) -> pd.DataFrame:
+def standardize_colnames(df: pd.DataFrame, cols: Optional[list[str]] = None) -> pd.DataFrame:
     """Convert DataFrame column names to snake case."""
 
     def to_snake(name: str) -> str:
@@ -696,7 +703,7 @@ def standardize_colnames(df: pd.DataFrame, cols: Optional[List[str]] = None) -> 
     return df.rename(columns={c: to_snake(c) for c in cols})
 
 
-def get_proxy() -> Dict[str, str]:
+def get_proxy() -> dict[str, str]:
     """Return a public proxy."""
     # list of free proxy apis
     # protocols: http, https, socks4 and socks5
@@ -713,8 +720,7 @@ def get_proxy() -> Dict[str, str]:
         if not full_proxy_list:
             logger.info("There are currently no proxies available. Exiting...")
             return {}
-        else:
-            logger.info(f"Found {len(full_proxy_list)} proxy servers. Checking...\n")
+        logger.info(f"Found {len(full_proxy_list)} proxy servers. Checking...")
 
     # creating proxy dict
     final_proxy_list = []
@@ -745,5 +751,5 @@ def check_proxy(proxy: dict) -> bool:
         r0 = requests.get("https://ipinfo.io/json", proxies=proxy, timeout=15)
         return r0.status_code == 200
     except Exception as error:
-        logger.error(f"BAD PROXY: Reason: {str(error)}\n")
+        logger.error(f"BAD PROXY: Reason: {error!s}\n")
         return False

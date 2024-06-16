@@ -1,9 +1,9 @@
 """Scraper for api.clubelo.com."""
 
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import IO, Callable, Dict, List, Optional, Union
+from typing import IO, Callable, Optional, Union
 
 import pandas as pd
 from unidecode import unidecode
@@ -60,7 +60,7 @@ class ClubElo(BaseRequestsReader):
     def __init__(
         self,
         proxy: Optional[
-            Union[str, Dict[str, str], List[Dict[str, str]], Callable[[], Dict[str, str]]]
+            Union[str, dict[str, str], list[dict[str, str]], Callable[[], dict[str, str]]]
         ] = None,
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
@@ -93,9 +93,9 @@ class ClubElo(BaseRequestsReader):
         pd.DataFrame
         """
         if not date:
-            date = datetime.today()
+            date = datetime.now(tz=timezone.utc)
         elif isinstance(date, str):
-            date = datetime.strptime(date, "%Y-%m-%d")
+            date = datetime.strptime(date, "%Y-%m-%d").astimezone(timezone.utc)
 
         if not isinstance(date, datetime):
             raise TypeError("'date' must be a datetime object or string like 'YYYY-MM-DD'")
@@ -106,7 +106,7 @@ class ClubElo(BaseRequestsReader):
 
         data = self.get(url, filepath)
 
-        df = (
+        return (
             _parse_csv(data)
             .pipe(standardize_colnames)
             .rename(columns={"club": "team"})
@@ -118,7 +118,6 @@ class ClubElo(BaseRequestsReader):
             .reset_index(drop=True)
             .set_index("team")
         )
-        return df
 
     def read_team_history(
         self, team: str, max_age: Union[int, timedelta] = 1

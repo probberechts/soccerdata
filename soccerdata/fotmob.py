@@ -2,8 +2,9 @@
 
 import itertools
 import json
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Callable, Dict, Iterable, List, Optional, Union
+from typing import Callable, Optional, Union
 
 import pandas as pd
 
@@ -54,10 +55,10 @@ class FotMob(BaseRequestsReader):
 
     def __init__(
         self,
-        leagues: Optional[Union[str, List[str]]] = None,
+        leagues: Optional[Union[str, list[str]]] = None,
         seasons: Optional[Union[str, int, Iterable[Union[str, int]]]] = None,
         proxy: Optional[
-            Union[str, Dict[str, str], List[Dict[str, str]], Callable[[], Dict[str, str]]]
+            Union[str, dict[str, str], list[dict[str, str]], Callable[[], dict[str, str]]]
         ] = None,
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
@@ -78,7 +79,7 @@ class FotMob(BaseRequestsReader):
             (self.data_dir / "matches").mkdir(parents=True, exist_ok=True)
 
     @property
-    def leagues(self) -> List[str]:
+    def leagues(self) -> list[str]:
         """Return a list of selected leagues."""
         return list(self._leagues_dict.keys())
 
@@ -95,9 +96,7 @@ class FotMob(BaseRequestsReader):
         data = json.load(reader)
         leagues = []
         for k, v in data.items():
-            if k in ("favourite", "popular", "userSettings"):
-                continue
-            elif k == "international":
+            if k == "international":
                 for int_league in v[0]["leagues"]:
                     leagues.append(
                         {
@@ -107,7 +106,7 @@ class FotMob(BaseRequestsReader):
                             "url": "https://fotmob.com" + int_league["pageUrl"],
                         }
                     )
-            else:
+            elif k not in ("favourite", "popular", "userSettings"):
                 for country in v:
                     for dom_league in country["leagues"]:
                         leagues.append(
@@ -238,14 +237,13 @@ class FotMob(BaseRequestsReader):
                             winner = game["winner"]
                             df_table.loc[df_table["id"] == winner, "playoff"] = "cup_winner"
             mult_tables.append(df_table)
-        df = (
+        return (
             pd.concat(mult_tables, axis=0)
             .rename(columns={"Squad": "team"})
             .replace({"team": TEAMNAME_REPLACEMENTS})
             .set_index(idx)
             .sort_index()[cols]
         )
-        return df
 
     def read_schedule(self, force_cache: bool = False) -> pd.DataFrame:
         """Retrieve the game schedule for the selected leagues and seasons.
@@ -321,7 +319,7 @@ class FotMob(BaseRequestsReader):
         self,
         stat_type: str = "Top stats",
         opponent_stats: bool = True,
-        team: Optional[Union[str, List[str]]] = None,
+        team: Optional[Union[str, list[str]]] = None,
         force_cache: bool = False,
     ) -> pd.DataFrame:
         """Retrieve the match stats for the selected leagues and seasons.

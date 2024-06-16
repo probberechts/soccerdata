@@ -1,18 +1,18 @@
 """A collection of tools to read and process soccer data from various sources."""
 
-__version__ = '1.7.1'
+__version__ = "1.7.1"
 
 __all__ = [
-    'ClubElo',
-    'ESPN',
-    'FBref',
-    'FiveThirtyEight',
-    'FotMob',
-    'MatchHistory',
-    'Sofascore',
-    'SoFIFA',
-    'Understat',
-    'WhoScored',
+    "ClubElo",
+    "ESPN",
+    "FBref",
+    "FiveThirtyEight",
+    "FotMob",
+    "MatchHistory",
+    "Sofascore",
+    "SoFIFA",
+    "Understat",
+    "WhoScored",
 ]
 
 from .clubelo import ClubElo

@@ -5,7 +5,7 @@ import re
 from datetime import timedelta
 from itertools import product
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Union
+from typing import Callable, Optional, Union
 
 import pandas as pd
 from lxml import html
@@ -59,10 +59,10 @@ class SoFIFA(BaseRequestsReader):
 
     def __init__(
         self,
-        leagues: Optional[Union[str, List[str]]] = None,
-        versions: Union[str, int, List[int]] = "latest",
+        leagues: Optional[Union[str, list[str]]] = None,
+        versions: Union[str, int, list[int]] = "latest",
         proxy: Optional[
-            Union[str, Dict[str, str], List[Dict[str, str]], Callable[[], Dict[str, str]]]
+            Union[str, dict[str, str], list[dict[str, str]], Callable[[], dict[str, str]]]
         ] = None,
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
@@ -213,10 +213,9 @@ class SoFIFA(BaseRequestsReader):
                 )
 
         # return data frame
-        df = pd.DataFrame(teams).replace({"team": TEAMNAME_REPLACEMENTS}).set_index(["team_id"])
-        return df
+        return pd.DataFrame(teams).replace({"team": TEAMNAME_REPLACEMENTS}).set_index(["team_id"])
 
-    def read_players(self, team: Optional[Union[str, List[str]]] = None) -> pd.DataFrame:
+    def read_players(self, team: Optional[Union[str, list[str]]] = None) -> pd.DataFrame:
         """Retrieve all players for the selected leagues.
 
         Parameters
@@ -288,7 +287,7 @@ class SoFIFA(BaseRequestsReader):
                         ),
                         "player": node.get("data-tippy-content"),
                         "team": df_team["team"],
-                        "league": df_team['league'],
+                        "league": df_team["league"],
                         **version.to_dict(),
                     }
                 )
@@ -332,7 +331,7 @@ class SoFIFA(BaseRequestsReader):
 
         # build url
         urlmask = SO_FIFA_API + "/teams?lg={}&r={}&set=true"
-        for rating_id in ratings.keys():
+        for rating_id in ratings:
             urlmask += f"&showCol[]={rating_id}"
         filemask = "teams_{}_{}.html"
 
@@ -365,26 +364,25 @@ class SoFIFA(BaseRequestsReader):
                         "league": lkey,
                         "team": node.xpath(".//td[2]//a")[0].text,
                         **{
-                            desc: node.xpath(f".//td[@data-col='{id}']//text()")[0]
-                            for id, desc in ratings.items()
+                            desc: node.xpath(f".//td[@data-col='{key}']//text()")[0]
+                            for key, desc in ratings.items()
                         },
                         **version.to_dict(),
                     }
                 )
 
         # return data frame
-        df = (
+        return (
             pd.DataFrame(teams)
             .replace({"team": TEAMNAME_REPLACEMENTS})
             .set_index(["league", "team"])
             .sort_index()
         )
-        return df
 
     def read_player_ratings(
         self,
-        team: Optional[Union[str, List[str]]] = None,
-        player: Optional[Union[int, List[int]]] = None,
+        team: Optional[Union[str, list[str]]] = None,
+        player: Optional[Union[int, list[int]]] = None,
     ) -> pd.DataFrame:
         """Retrieve ratings for players.
 
@@ -470,7 +468,7 @@ class SoFIFA(BaseRequestsReader):
             reader = self.get(url, filepath)
 
             # extract scores one-by-one
-            tree = html.parse(reader, parser=html.HTMLParser(encoding='utf8'))
+            tree = html.parse(reader, parser=html.HTMLParser(encoding="utf8"))
             scores = {
                 "player": tree.xpath("//div[contains(@class, 'profile')]/h1")[0].text.strip(),
                 **version.to_dict(),
@@ -489,5 +487,4 @@ class SoFIFA(BaseRequestsReader):
                     scores[s] = None
             ratings.append(scores)
         # return data frame
-        df = pd.DataFrame(ratings).pipe(standardize_colnames).set_index(["player"]).sort_index()
-        return df
+        return pd.DataFrame(ratings).pipe(standardize_colnames).set_index(["player"]).sort_index()

@@ -4,10 +4,10 @@
 
 project = "soccerdata"
 author = "Pieter Robberechts"
-copyright = f"2021, {author}"
+copyright = f"2021, {author}"  # noqa: A001
 
 # The full version, including alpha/beta/rc tags
-release = '1.7.1'
+release = "1.7.1"
 
 # -- General configuration ------------------------------------------------
 
@@ -47,14 +47,14 @@ html_css_files = ["default.css"]
 # -- Options for nbsphinx ---------------------------------------------------
 
 nbsphinx_thumbnails = {
-    'examples/datasources/ClubElo': '_static/ClubElo-logo.png',
-    'examples/datasources/ESPN': '_static/ESPN-logo.png',
-    'examples/datasources/WhoScored': '_static/WhoScored-logo.png',
-    'examples/datasources/FBref': '_static/FBref-logo.png',
-    'examples/datasources/FiveThirtyEight': '_static/FiveThirtyEight-logo.png',
-    'examples/datasources/MatchHistory': '_static/FootballData-logo.jpg',
-    'examples/datasources/SoFIFA': '_static/SoFIFA-logo.png',
-    'examples/datasources/Understat': '_static/Understat-logo.png',
+    "examples/datasources/ClubElo": "_static/ClubElo-logo.png",
+    "examples/datasources/ESPN": "_static/ESPN-logo.png",
+    "examples/datasources/WhoScored": "_static/WhoScored-logo.png",
+    "examples/datasources/FBref": "_static/FBref-logo.png",
+    "examples/datasources/FiveThirtyEight": "_static/FiveThirtyEight-logo.png",
+    "examples/datasources/MatchHistory": "_static/FootballData-logo.jpg",
+    "examples/datasources/SoFIFA": "_static/SoFIFA-logo.png",
+    "examples/datasources/Understat": "_static/Understat-logo.png",
 }
 
 # This is processed by Jinja2 and inserted before each notebook

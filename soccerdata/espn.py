@@ -1,11 +1,11 @@
 """Scraper for http://site.api.espn.com/apis/site/v2/sports/soccer."""
 
-import datetime
 import itertools
 import json
 import re
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Union
+from typing import Callable, Optional, Union
 
 import pandas as pd
 
@@ -61,10 +61,10 @@ class ESPN(BaseRequestsReader):
 
     def __init__(
         self,
-        leagues: Optional[Union[str, List[str]]] = None,
-        seasons: Optional[Union[str, int, List]] = None,
+        leagues: Optional[Union[str, list[str]]] = None,
+        seasons: Optional[Union[str, int, list]] = None,
         proxy: Optional[
-            Union[str, Dict[str, str], List[Dict[str, str]], Callable[[], Dict[str, str]]]
+            Union[str, dict[str, str], list[dict[str, str]], Callable[[], dict[str, str]]]
         ] = None,
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
@@ -99,7 +99,7 @@ class ESPN(BaseRequestsReader):
         df_list = []
         # Get match days
         for lkey, skey in itertools.product(self._selected_leagues.values(), self.seasons):
-            if int(skey[:2]) > int(str(datetime.datetime.now().year + 1)[-2:]):
+            if int(skey[:2]) > int(str(datetime.now(tz=timezone.utc).year + 1)[-2:]):
                 start_date = "".join(["19", skey[:2], "07", "01"])
             else:
                 start_date = "".join(["20", skey[:2], "07", "01"])
@@ -110,7 +110,7 @@ class ESPN(BaseRequestsReader):
             data = json.load(reader)
 
             match_dates = [
-                datetime.datetime.strptime(d, "%Y-%m-%dT%H:%MZ").strftime("%Y%m%d")
+                datetime.strptime(d, "%Y-%m-%dT%H:%MZ").strftime("%Y%m%d")  # noqa: DTZ007
                 for d in data["leagues"][0]["calendar"]
             ]
             for date in match_dates:
@@ -134,7 +134,7 @@ class ESPN(BaseRequestsReader):
                         for e in data["events"]
                     ]
                 )
-        df = (
+        return (
             pd.DataFrame(df_list)
             .pipe(self._translate_league)
             .replace({"home_team": TEAMNAME_REPLACEMENTS, "away_team": TEAMNAME_REPLACEMENTS})
@@ -145,9 +145,7 @@ class ESPN(BaseRequestsReader):
             .sort_index()
         )
 
-        return df
-
-    def read_matchsheet(self, match_id: Optional[Union[int, List[int]]] = None) -> pd.DataFrame:
+    def read_matchsheet(self, match_id: Optional[Union[int, list[int]]] = None) -> pd.DataFrame:
         """Retrieve match sheets for the selected leagues and seasons.
 
         Parameters
@@ -200,29 +198,26 @@ class ESPN(BaseRequestsReader):
                     ),
                     "attendance": data["gameInfo"].get("attendance"),
                     "capacity": (
-                        data["gameInfo"]["venue"]["capacity"]
+                        data["gameInfo"]["venue"].get("capacity")
                         if "venue" in data["gameInfo"]
                         else None
                     ),
-                    "roster": (
-                        data["rosters"][i]["roster"] if "roster" in data["rosters"][i] else None
-                    ),
+                    "roster": data["rosters"][i].get("roster", None),
                 }
                 if "statistics" in data["boxscore"]["teams"][i]:
                     for stat in data["boxscore"]["teams"][i]["statistics"]:
                         match_sheet[stat["name"]] = stat["displayValue"]
                 df_list.append(match_sheet)
-        df = (
+        return (
             pd.DataFrame(df_list)
             .replace({"team": TEAMNAME_REPLACEMENTS})
             .pipe(standardize_colnames)
             .set_index(["league", "season", "game", "team"])
             .sort_index()
         )
-        return df
 
     def read_lineup(  # noqa: C901
-        self, match_id: Optional[Union[int, List[int]]] = None
+        self, match_id: Optional[Union[int, list[int]]] = None
     ) -> pd.DataFrame:
         """Retrieve lineups for the selected leagues and seasons.
 
@@ -279,7 +274,7 @@ class ESPN(BaseRequestsReader):
                         "is_home": (i == 0),
                         "player": p["athlete"]["displayName"],
                         "position": p["position"]["name"] if "position" in p else None,
-                        "formation_place": p["formationPlace"] if "formationPlace" in p else None,
+                        "formation_place": p.get("formationPlace", None),
                     }
                     subbed_in = (
                         p["subbedIn"]
@@ -344,11 +339,10 @@ class ESPN(BaseRequestsReader):
         if len(df_list) == 0:
             return pd.DataFrame()
 
-        df = (
+        return (
             pd.DataFrame(df_list)
             .replace({"team": TEAMNAME_REPLACEMENTS})
             .pipe(standardize_colnames)
             .set_index(["league", "season", "game", "team", "player"])
             .sort_index()
         )
-        return df

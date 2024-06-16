@@ -441,10 +441,14 @@ class FBref(BaseRequestsReader):
                     + f"/{stat_type}"
                 )
             else:  # special case: latest season
-                season_format = "{}-{}".format(
-                    datetime.strptime(skey[:2], "%y").year,  # noqa: DTZ007
-                    datetime.strptime(skey[2:], "%y").year,  # noqa: DTZ007
-                )
+                if SeasonCode.from_league(lkey) == SeasonCode.MULTI_YEAR:
+                    _skey = SeasonCode.MULTI_YEAR.parse(skey)
+                    season_format = "{}-{}".format(
+                        datetime.strptime(_skey[:2], "%y").year,  # noqa: DTZ007
+                        datetime.strptime(_skey[2:], "%y").year,  # noqa: DTZ007
+                    )
+                else:
+                    season_format = SeasonCode.SINGLE_YEAR.parse(skey)
                 url = (
                     FBREF_API
                     + team_url.rsplit("/", 1)[0]
@@ -522,7 +526,13 @@ class FBref(BaseRequestsReader):
             lambda x: x["team"] if x["venue"] == "Away" else x["opponent"], axis=1
         )
         df["game"] = df_tmp.apply(make_game_id, axis=1)
-        return df.set_index(["league", "season", "team", "game"]).sort_index().loc[self.leagues]
+        return (
+            df
+            # .dropna(subset="league")
+            .set_index(["league", "season", "team", "game"])
+            .sort_index()
+            .loc[self.leagues]
+        )
 
     def read_player_season_stats(self, stat_type: str = "standard") -> pd.DataFrame:
         """Retrieve players from the datasource for the selected leagues and seasons.

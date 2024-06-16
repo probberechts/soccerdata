@@ -7,6 +7,7 @@ import time
 import warnings
 from abc import ABC, abstractmethod
 from datetime import date, datetime, timedelta
+from enum import Enum
 from pathlib import Path
 from typing import IO, Callable, Dict, Iterable, List, Optional, Union
 
@@ -21,6 +22,178 @@ from packaging import version
 from selenium.common.exceptions import WebDriverException
 
 from ._config import DATA_DIR, LEAGUE_DICT, MAXAGE, logger
+
+
+class SeasonCode(Enum):
+    """How to interpret season codes.
+
+    Attributes
+    ----------
+    SINGLE_YEAR: The season code is a single year, e.g. '2021'.
+    MULTI_YEAR: The season code is a range of years, e.g. '2122'.
+    """
+
+    SINGLE_YEAR = "single-year"
+    MULTI_YEAR = "multi-year"
+
+    @staticmethod
+    def from_league(league: str) -> "SeasonCode":
+        """Return the default season code for a league.
+
+        Parameters
+        ----------
+        league : str
+            The league to consider.
+
+        Returns
+        -------
+        SeasonCode
+            The season code format to use.
+        """
+        assert league in LEAGUE_DICT, f"Unknown league '{league}'"
+        select_league_dict = LEAGUE_DICT[league]
+        if "season_code" in select_league_dict:
+            return SeasonCode(select_league_dict["season_code"])
+        start_month = datetime.strptime(
+            select_league_dict.get("season_start", "Aug"),
+            "%b",
+        ).month
+        end_month = datetime.strptime(
+            select_league_dict.get("season_end", "May"),
+            "%b",
+        ).month
+        return SeasonCode.MULTI_YEAR if (end_month - start_month) < 0 else SeasonCode.SINGLE_YEAR
+
+    @staticmethod
+    def from_leagues(leagues: List[str]) -> "SeasonCode":
+        """Determine the season code to use for a set of leagues.
+
+        If the given leagues have different default season codes,
+        the multi-year format is usded.
+
+        Parameters
+        ----------
+        leagues : list of str
+            The leagues to consider.
+
+        Returns
+        -------
+        SeasonCode
+            The season code format to use.
+        """
+        season_codes = {SeasonCode.from_league(league) for league in leagues}
+        if len(season_codes) == 1:
+            return season_codes.pop()
+        warnings.warn(
+            "The leagues have different default season codes. Using multi-year season codes.",
+            stacklevel=2,
+        )
+        return SeasonCode.MULTI_YEAR
+
+    def parse(self, season: Union[str, int]) -> str:  # noqa: C901
+        """Convert a string or int to a standard season format."""
+        season = str(season)
+        patterns = [
+            (
+                re.compile(r"^[0-9]{4}$"),  # 1994 | 9495
+                lambda s: process_four_digit_year(s),
+            ),
+            (
+                re.compile(r"^[0-9]{2}$"),  # 94
+                lambda s: process_two_digit_year(s),
+            ),
+            (
+                re.compile(r"^[0-9]{4}-[0-9]{4}$"),  # 1994-1995
+                lambda s: process_full_year_range(s),
+            ),
+            (
+                re.compile(r"^[0-9]{4}/[0-9]{4}$"),  # 1994/1995
+                lambda s: process_full_year_range(s.replace("/", "-")),
+            ),
+            (
+                re.compile(r"^[0-9]{4}-[0-9]{2}$"),  # 1994-95
+                lambda s: process_partial_year_range(s),
+            ),
+            (
+                re.compile(r"^[0-9]{2}-[0-9]{2}$"),  # 94-95
+                lambda s: process_short_year_range(s),
+            ),
+            (
+                re.compile(r"^[0-9]{2}/[0-9]{2}$"),  # 94/95
+                lambda s: process_short_year_range(s.replace("/", "-")),
+            ),
+        ]
+
+        current_year = datetime.now().year
+
+        def process_four_digit_year(season: str) -> str:
+            """Process a 4-digit string like '1994' or '9495'."""
+            if self == SeasonCode.MULTI_YEAR:
+                if int(season[2:]) == int(season[:2]) + 1:
+                    if season == "2021":
+                        msg = 'Season id "{}" is ambiguous: interpreting as "{}-{}"'.format(
+                            season, season[:2], season[-2:]
+                        )
+                        warnings.warn(msg, stacklevel=1)
+                    return season
+                elif season[2:] == "99":
+                    return "9900"
+                else:
+                    return season[-2:] + f"{int(season[-2:]) + 1:02d}"
+            else:
+                if season == "1920":
+                    return "1919"
+                elif season == "2021":
+                    return "2020"
+                elif season[:2] == "19" or season[:2] == "20":
+                    return season
+                elif int(season) <= current_year:
+                    return "20" + season[:2]
+                else:
+                    return "19" + season[:2]
+
+        def process_two_digit_year(season: str) -> str:
+            """Process a 2-digit string like '94'."""
+            if self == SeasonCode.MULTI_YEAR:
+                if season == "99":
+                    return "9900"
+                else:
+                    return season + f"{int(season) + 1:02d}"
+            else:
+                if int("20" + season) <= current_year:
+                    return "20" + season
+                else:
+                    return "19" + season
+
+        def process_full_year_range(season: str) -> str:
+            """Process a range of 4-digit strings like '1994-1995'."""
+            if self == SeasonCode.MULTI_YEAR:
+                return season[2:4] + season[-2:]
+            else:
+                return season[:4]
+
+        def process_partial_year_range(season: str) -> str:
+            """Process a range of 4-digit and 2-digit string like '1994-95'."""
+            if self == SeasonCode.MULTI_YEAR:
+                return season[2:4] + season[-2:]
+            else:
+                return season[:4]
+
+        def process_short_year_range(season: str) -> str:
+            """Process a range of 2-digit strings like '94-95'."""
+            if self == SeasonCode.MULTI_YEAR:
+                return season[:2] + season[-2:]
+            else:
+                if int("20" + season[:2]) <= current_year:
+                    return "20" + season[:2]
+                else:
+                    return "19" + season[:2]
+
+        for pattern, action in patterns:
+            if pattern.match(season):
+                return action(season)
+
+        raise ValueError(f"Unrecognized season code: '{season}'")
 
 
 class BaseReader(ABC):
@@ -255,6 +428,10 @@ class BaseReader(ABC):
                 tmp_league_dict[i] = self._all_leagues()[i]
             self._leagues_dict = tmp_league_dict
 
+    @property
+    def _season_code(self) -> SeasonCode:
+        return SeasonCode.from_leagues(self.leagues)
+
     def _is_complete(self, league: str, season: str) -> bool:
         """Check if a season is complete."""
         if league in LEAGUE_DICT:
@@ -293,7 +470,7 @@ class BaseReader(ABC):
             seasons = [f"{y - 1}-{y}" for y in range(year, year - 6, -1)]
         if isinstance(seasons, str) or isinstance(seasons, int):
             seasons = [seasons]
-        self._season_ids = [season_code(s) for s in seasons]
+        self._season_ids = [self._season_code.parse(s) for s in seasons]
 
 
 class BaseRequestsReader(BaseReader):
@@ -322,7 +499,7 @@ class BaseRequestsReader(BaseReader):
 
     def _init_session(self) -> requests.Session:
         session = cloudscraper.create_scraper(
-            browser={'browser': 'chrome', 'platform': 'linux', 'mobile': False}
+            browser={"browser": "chrome", "platform": "linux", "mobile": False}
         )
         session.proxies.update(self.proxy())
         return session
@@ -343,7 +520,7 @@ class BaseRequestsReader(BaseReader):
                     if isinstance(var, str):
                         var = [var]
                     var_names = "|".join(var)
-                    template_understat = br"(%b)+[\s\t]*=[\s\t]*JSON\.parse\('(.*)'\)"
+                    template_understat = rb"(%b)+[\s\t]*=[\s\t]*JSON\.parse\('(.*)'\)"
                     pattern_understat = template_understat % bytes(var_names, encoding="utf-8")
                     results = re.findall(pattern_understat, response.content)
                     data = {
@@ -359,7 +536,9 @@ class BaseRequestsReader(BaseReader):
                 return io.BytesIO(payload)
             except Exception:
                 logger.exception(
-                    "Error while scraping %s. Retrying... (attempt %d of 5).", url, i + 1
+                    "Error while scraping %s. Retrying... (attempt %d of 5).",
+                    url,
+                    i + 1,
                 )
                 self._session = self._init_session()
                 continue
@@ -477,48 +656,6 @@ class BaseSeleniumReader(BaseReader):
                 continue
 
         raise ConnectionError("Could not download %s." % url)
-
-
-def season_code(season: Union[str, int]) -> str:  # noqa: C901
-    """Convert a string or int to a season code like '1718'."""
-    season = str(season)
-    pat1 = re.compile(r"^[0-9]{4}$")  # 1994 | 9495
-    pat2 = re.compile(r"^[0-9]{2}$")  # 94
-    pat3 = re.compile(r"^[0-9]{4}-[0-9]{4}$")  # 1994-1995
-    pat4 = re.compile(r"^[0-9]{4}/[0-9]{4}$")  # 1994/1995
-    pat5 = re.compile(r"^[0-9]{4}-[0-9]{2}$")  # 1994-95
-    pat6 = re.compile(r"^[0-9]{2}-[0-9]{2}$")  # 94-95
-    pat7 = re.compile(r"^[0-9]{2}/[0-9]{2}$")  # 94/95
-
-    if re.match(pat1, season):
-        if int(season[2:]) == int(season[:2]) + 1:
-            if season == "2021":
-                msg = 'Season id "{}" is ambiguous: interpreting as "{}-{}"'.format(
-                    season, season[:2], season[-2:]
-                )
-                warnings.warn(msg, stacklevel=1)
-            return season  # 9495
-        elif season[2:] == "99":
-            return "".join([season[2:], "00"])  # 1999
-        else:
-            return "".join([season[-2:], f"{int(season[-2:]) + 1:02d}"])  # 1994
-    elif re.match(pat2, season):
-        if season == "99":
-            return "".join([season, "00"])  # 99
-        else:
-            return "".join([season, f"{int(season) + 1:02d}"])  # 94
-    elif re.match(pat3, season):
-        return "".join([season[2:4], season[-2:]])  # 1994-1995
-    elif re.match(pat4, season):
-        return "".join([season[2:4], season[-2:]])  # 1994/1995
-    elif re.match(pat5, season):
-        return "".join([season[2:4], season[-2:]])  # 1994-95
-    elif re.match(pat6, season):
-        return "".join([season[:2], season[-2:]])  # 94-95
-    elif re.match(pat7, season):
-        return "".join([season[:2], season[-2:]])  # 94/95
-    else:
-        return season
 
 
 def make_game_id(row: pd.Series) -> str:

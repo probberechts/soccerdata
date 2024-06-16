@@ -11,8 +11,8 @@ from lxml import etree, html
 
 from ._common import (
     BaseRequestsReader,
+    SeasonCode,
     make_game_id,
-    season_code,
     standardize_colnames,
 )
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
@@ -117,6 +117,12 @@ class FBref(BaseRequestsReader):
         res.update({"Big 5 European Leagues Combined": "Big 5 European Leagues Combined"})
         return res
 
+    @property
+    def _season_code(self) -> SeasonCode:
+        if "Big 5 European Leagues Combined" in self.leagues:
+            return SeasonCode.MULTI_YEAR
+        return SeasonCode.from_leagues(self.leagues)
+
     def _is_complete(self, league: str, season: str) -> bool:
         """Check if a season is complete."""
         if league == "Big 5 European Leagues Combined":
@@ -158,8 +164,8 @@ class FBref(BaseRequestsReader):
             .set_index("league")
             .sort_index()
         )
-        df["first_season"] = df["first_season"].apply(season_code)
-        df["last_season"] = df["last_season"].apply(season_code)
+        df["first_season"] = df["first_season"].apply(self._season_code.parse)
+        df["last_season"] = df["last_season"].apply(self._season_code.parse)
 
         leagues = self.leagues
         if "Big 5 European Leagues Combined" in self.leagues and split_up_big5:
@@ -212,7 +218,7 @@ class FBref(BaseRequestsReader):
 
         df = pd.concat(seasons).pipe(standardize_colnames)
         df = df.rename(columns={"competition_name": "league"})
-        df["season"] = df["season"].apply(season_code)
+        df["season"] = df["season"].apply(self._season_code.parse)
         # if both a 20xx and 19xx season are available, drop the 19xx season
         df.drop_duplicates(subset=["league", "season"], keep="first", inplace=True)
         df = df.set_index(["league", "season"]).sort_index()

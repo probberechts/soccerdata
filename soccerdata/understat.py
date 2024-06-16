@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 
-from ._common import BaseRequestsReader, make_game_id, season_code
+from ._common import BaseRequestsReader, make_game_id
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS
 
 UNDERSTAT_DATADIR = DATA_DIR / "Understat"
@@ -83,7 +83,11 @@ class Understat(BaseRequestsReader):
     ):
         """Initialize a new Understat reader."""
         super().__init__(
-            leagues=leagues, proxy=proxy, no_cache=no_cache, no_store=no_store, data_dir=data_dir
+            leagues=leagues,
+            proxy=proxy,
+            no_cache=no_cache,
+            no_store=no_store,
+            data_dir=data_dir,
         )
         self.seasons = seasons  # type: ignore
 
@@ -153,7 +157,7 @@ class Understat(BaseRequestsReader):
                     "league_id": league_id,
                     "league": league,
                     "season_id": season_id,
-                    "season": season_code(season),
+                    "season": self._season_code.parse(season),
                     "url": UNDERSTAT_URL + f"/league/{league_slug}/{season_id}",
                 }
 
@@ -637,7 +641,9 @@ class Understat(BaseRequestsReader):
         return df
 
     def _select_matches(
-        self, df_schedule: pd.DataFrame, match_id: Optional[Union[int, List[int]]] = None
+        self,
+        df_schedule: pd.DataFrame,
+        match_id: Optional[Union[int, List[int]]] = None,
     ) -> pd.DataFrame:
         if match_id is not None:
             match_ids = [match_id] if isinstance(match_id, int) else match_id
@@ -662,7 +668,10 @@ class Understat(BaseRequestsReader):
     ) -> dict:
         filepath = self.data_dir / f"league_{league_id}_season_{season_id}.json"
         response = self.get(
-            url, filepath, no_cache=no_cache, var=["datesData", "playersData", "teamsData"]
+            url,
+            filepath,
+            no_cache=no_cache,
+            var=["datesData", "playersData", "teamsData"],
         )
         data = json.load(response)
 

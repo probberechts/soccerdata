@@ -171,6 +171,15 @@ LEAGUE_DICT = {
         "WhoScored": "International - FIFA World Cup",
         "season_code": "single-year",
     },
+    "INT-European Championship": {
+        "FBref": "UEFA European Football Championship",
+        "FotMob": "INT-EURO",
+        "Sofascore": "EURO",
+        "WhoScored": "International - European Championship",
+        "season_start": "Jun",
+        "season_end": "Jul",
+        "season_code": "single-year",
+    },
     "INT-Women's World Cup": {
         "FBref": "FIFA Women's World Cup",
         "FotMob": "INT-Women's World Cup",

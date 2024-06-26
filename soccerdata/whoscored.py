@@ -703,14 +703,14 @@ class WhoScored(BaseSeleniumReader):
                 reader = self.get(
                     url,
                     filepath,
-                    var="requirejs.s.contexts._.config.config.params.args.matchCentreData",
+                    var="require.config.params['args'].matchCentreData",
                     no_cache=live,
                 )
                 if retry_missing and reader.read(4) == b"null":
                     reader = self.get(
                         url,
                         filepath,
-                        var="requirejs.s.contexts._.config.config.params.args.matchCentreData",
+                        var="require.config.params['args'].matchCentreData",
                         no_cache=True,
                     )
             except ConnectionError as e:

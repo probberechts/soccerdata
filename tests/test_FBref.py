@@ -7,6 +7,20 @@ import soccerdata as sd
 from soccerdata.fbref import FBref, _concat
 
 
+def test_available_leagues() -> None:
+    assert sd.FBref.available_leagues() == [
+        "Big 5 European Leagues Combined",
+        "ENG-Premier League",
+        "ESP-La Liga",
+        "FRA-Ligue 1",
+        "GER-Bundesliga",
+        "INT-European Championship",
+        "INT-Women's World Cup",
+        "INT-World Cup",
+        "ITA-Serie A",
+    ]
+
+
 @pytest.mark.parametrize(
     "stat_type",
     [

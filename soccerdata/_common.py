@@ -20,7 +20,7 @@ import selenium
 import undetected_chromedriver as uc
 from dateutil.relativedelta import relativedelta
 from packaging import version
-from selenium.common.exceptions import WebDriverException
+from selenium.common.exceptions import WebDriverException, JavascriptException
 
 from ._config import DATA_DIR, LEAGUE_DICT, MAXAGE, logger
 
@@ -643,9 +643,12 @@ class BaseSeleniumReader(BaseReader):
                 else:
                     if not isinstance(var, str):
                         raise NotImplementedError("Only implemented for single variables.")
-                    response = json.dumps(self._driver.execute_script("return " + var)).encode(
-                        "utf-8"
-                    )
+                    try:
+                        response = json.dumps(self._driver.execute_script("return " + var)).encode(
+                            "utf-8"
+                        )
+                    except JavascriptException:
+                        response = json.dumps(None).encode("utf-8")
                 if not self.no_store and filepath is not None:
                     filepath.parent.mkdir(parents=True, exist_ok=True)
                     with filepath.open(mode="wb") as fh:

@@ -20,7 +20,7 @@ import selenium
 import undetected_chromedriver as uc
 from dateutil.relativedelta import relativedelta
 from packaging import version
-from selenium.common.exceptions import WebDriverException, JavascriptException
+from selenium.common.exceptions import JavascriptException, WebDriverException
 
 from ._config import DATA_DIR, LEAGUE_DICT, MAXAGE, logger
 

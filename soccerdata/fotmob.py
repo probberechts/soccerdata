@@ -362,7 +362,7 @@ class FotMob(BaseRequestsReader):
 
         # Retrieve games for which a match report is available
         df_matches = self.read_schedule(force_cache)
-        df_complete = df_matches.loc[df_matches["status"] == "FT"]
+        df_complete = df_matches.loc[df_matches["status"].isin(["FT", "AET", "Pen"])]
 
         if team is not None:
             # get alternative names of the specified team(s)

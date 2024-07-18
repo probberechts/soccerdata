@@ -706,7 +706,8 @@ class WhoScored(BaseSeleniumReader):
                     var="require.config.params['args'].matchCentreData",
                     no_cache=live,
                 )
-                if retry_missing and reader.read() == b"null" or reader.read() == b"":
+                reader_value = reader.read()
+                if retry_missing and reader_value == b"null" or reader_value == b"":
                     reader = self.get(
                         url,
                         filepath,

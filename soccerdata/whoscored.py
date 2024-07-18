@@ -706,7 +706,8 @@ class WhoScored(BaseSeleniumReader):
                     var="require.config.params['args'].matchCentreData",
                     no_cache=live,
                 )
-                if retry_missing and reader.read(4) == b"null":
+                reader_value = reader.read()
+                if retry_missing and reader_value == b"null" or reader_value == b"":
                     reader = self.get(
                         url,
                         filepath,
@@ -779,6 +780,9 @@ class WhoScored(BaseSeleniumReader):
                 },
             )
 
+        if len(events) == 0:
+            return pd.DataFrame(index=["league", "season", "game"])
+
         df = (
             pd.concat(events.values())
             .pipe(standardize_colnames)
@@ -789,7 +793,7 @@ class WhoScored(BaseSeleniumReader):
         )
 
         if output_fmt == "events":
-            df = df.set_index(["league", "season", "game", "id"]).sort_index()
+            df = df.set_index(["league", "season", "game"]).sort_index()
             # add missing columns
             for col, default in COLS_EVENTS.items():
                 if col not in df.columns:

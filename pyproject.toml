@@ -49,7 +49,7 @@ pre-commit = "^3.0.0"
 pre-commit-hooks = "^4.3.0"
 
 [tool.poetry.group.docs.dependencies]
-Sphinx = "^7.0.0"
+Sphinx = "^8.0.0"
 furo = "^2024.0.0"
 nbsphinx = "^0.9.0"
 sphinx-autobuild = "^2024.0.0"

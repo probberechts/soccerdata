@@ -508,9 +508,13 @@ class Understat(BaseRequestsReader):
                             "own_goals": _as_int(player["own_goals"]),
                             "shots": _as_int(player["shots"]),
                             "xg": _as_float(player["xG"]),
-                            "xa": _as_float(player["xA"]),
                             "xg_chain": _as_float(player["xGChain"]),
                             "xg_buildup": _as_float(player["xGBuildup"]),
+                            "assists": _as_int(player["assists"]),
+                            "xa": _as_float(player["xA"]),
+                            "key_passes": _as_int(player["key_passes"]),
+                            "yellow_cards": _as_int(player["yellow_card"]),
+                            "red_cards": _as_int(player["red_card"]),
                         }
                     )
 

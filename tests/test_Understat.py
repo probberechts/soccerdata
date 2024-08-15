@@ -47,6 +47,14 @@ def test_read_player_match_stats(understat_epl_1516: Understat) -> None:
     assert isinstance(player_match_stats, pd.DataFrame)
 
 
+def test_read_player_match_stats_new_columns(understat_epl_1516: Understat) -> None:
+    player_match_stats = understat_epl_1516.read_player_match_stats()
+    assert "assists" in player_match_stats.columns
+    assert "key_passes" in player_match_stats.columns
+    assert "yellow_cards" in player_match_stats.columns
+    assert "red_cards" in player_match_stats.columns
+
+
 def test_read_shots(understat_epl_1516: Understat) -> None:
     shots_all = understat_epl_1516.read_shot_events()
     assert isinstance(shots_all, pd.DataFrame)

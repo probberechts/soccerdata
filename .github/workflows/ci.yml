@@ -39,7 +39,7 @@ jobs:
           key: cache-data-${{ runner.os }}-${{ matrix.python }}
 
       - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v5.1.1
+        uses: actions/setup-python@v5.2.0
         with:
           python-version: ${{ matrix.python }}
 
@@ -122,7 +122,7 @@ jobs:
         uses: actions/checkout@v4.1.7
 
       - name: Set up Python
-        uses: actions/setup-python@v5.1.1
+        uses: actions/setup-python@v5.2.0
         with:
           python-version: "3.11"
 

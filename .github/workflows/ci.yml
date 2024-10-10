@@ -24,7 +24,7 @@ jobs:
       PRE_COMMIT_COLOR: "always"
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v4.1.7
+        uses: actions/checkout@v4.2.0
       - name: Restore data cache
         if: matrix.session == 'tests'
         id: cache-data
@@ -103,7 +103,7 @@ jobs:
     needs: tests
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v4.1.7
+        uses: actions/checkout@v4.2.0
       - name: Set up Python
         uses: actions/setup-python@v5.2.0
         with:

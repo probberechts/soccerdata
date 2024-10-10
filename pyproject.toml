@@ -50,7 +50,7 @@ darglint = "^1.8.1"
 ruff = "*"
 mypy = "*"
 pep8-naming = "^0.14.0"
-pre-commit = "^3.0.0"
+pre-commit = "^4.0.0"
 pre-commit-hooks = "^4.3.0"
 
 [tool.poetry.group.docs.dependencies]

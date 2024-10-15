@@ -107,7 +107,9 @@ class MatchHistory(BaseRequestsReader):
             pd.concat(df_list, sort=False)
             .rename(columns=col_rename)
             .assign(
-                date=lambda x: pd.to_datetime(x["date"] + " " + x["time"], format="%d/%m/%Y %H:%M")
+                date=lambda x: pd.to_datetime(
+                    x["date"] + " " + x["time"], format="mixed", dayfirst=True
+                )
             )
             .drop("time", axis=1)
             .pipe(self._translate_league)

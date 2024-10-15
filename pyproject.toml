@@ -19,7 +19,7 @@ classifiers = [
 Changelog = "https://github.com/probberechts/soccerdata/releases"
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.13"
+python = ">=3.13,<3.14"
 PySocks = "^1.7.1"
 Unidecode = "^1.2.0"
 cloudscraper = "^1.2.71"

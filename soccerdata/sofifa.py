@@ -172,7 +172,7 @@ class SoFIFA(BaseRequestsReader):
         pd.DataFrame
         """
         # build url
-        urlmask = SO_FIFA_API + "/teams?lg={}&r={}"
+        urlmask = SO_FIFA_API + "/teams?lg={}&r={}&set=true"
         filemask = "teams_{}_{}.html"
 
         # get league IDs

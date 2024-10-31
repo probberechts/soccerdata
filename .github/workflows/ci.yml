@@ -33,7 +33,7 @@ jobs:
           path: tests/appdata/data
           key: cache-data-${{ runner.os }}-${{ matrix.python }}
       - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v5.2.0
+        uses: actions/setup-python@v5.3.0
         with:
           python-version: ${{ matrix.python }}
       - name: Upgrade pip
@@ -105,7 +105,7 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v4.2.2
       - name: Set up Python
-        uses: actions/setup-python@v5.2.0
+        uses: actions/setup-python@v5.3.0
         with:
           python-version: "3.11"
       - name: Upgrade pip

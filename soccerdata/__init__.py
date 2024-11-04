@@ -1,6 +1,6 @@
 """A collection of tools to read and process soccer data from various sources."""
 
-__version__ = "1.8.3"
+__version__ = "1.8.4"
 
 __all__ = [
     "ClubElo",

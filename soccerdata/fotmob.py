@@ -6,8 +6,8 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Callable, Optional, Union
 
-import requests
 import pandas as pd
+import requests
 
 from ._common import BaseRequestsReader, make_game_id
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger

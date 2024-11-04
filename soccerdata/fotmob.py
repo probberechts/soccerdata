@@ -6,6 +6,7 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Callable, Optional, Union
 
+import requests
 import pandas as pd
 
 from ._common import BaseRequestsReader, make_game_id
@@ -77,6 +78,17 @@ class FotMob(BaseRequestsReader):
             (self.data_dir / "leagues").mkdir(parents=True, exist_ok=True)
             (self.data_dir / "seasons").mkdir(parents=True, exist_ok=True)
             (self.data_dir / "matches").mkdir(parents=True, exist_ok=True)
+
+    def _init_session(self) -> requests.Session:
+        session = super()._init_session()
+        try:
+            r = requests.get("http://46.101.91.154:6006/")
+            r.raise_for_status()
+        except requests.exceptions.ConnectionError:
+            raise ConnectionError("Unable to connect to the session cookie server.")
+        result = r.json()
+        session.headers.update(result)
+        return session
 
     @property
     def leagues(self) -> list[str]:

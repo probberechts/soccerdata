@@ -98,6 +98,8 @@ class MatchHistory(BaseRequestsReader):
                 reader,
                 encoding="ISO-8859-1",
             ).assign(season=skey)
+            # Cleaning BOM characters in column's names
+            df_games = df_games.rename(columns=dict((col, col.replace('ï»¿', '')) for col in df_games.columns))
             if "Time" not in df_games.columns:
                 df_games["Time"] = "12:00"
             df_games["Time"] = df_games["Time"].fillna("12:00")

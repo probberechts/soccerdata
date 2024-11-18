@@ -92,6 +92,7 @@ Install the package with development requirements:
 .. code:: console
 
    $ poetry install
+   $ poetry self add poetry-plugin-export
 
 You can now run an interactive Python session.
 

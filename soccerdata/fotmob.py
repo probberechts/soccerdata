@@ -382,8 +382,8 @@ class FotMob(BaseRequestsReader):
             teams_to_check = []
             for team in teams:
                 for alt_name, norm_name in TEAMNAME_REPLACEMENTS.items():
-                    if norm_name == team:
-                        teams_to_check.append(alt_name)
+                    if alt_name == team:
+                        teams_to_check.append(norm_name)
                 teams_to_check.append(team)
             # select requested teams
             iterator = df_complete.loc[

@@ -416,9 +416,9 @@ class FBref(BaseRequestsReader):
             teams_to_check = []
             for team in teams:
                 for alt_name, norm_name in TEAMNAME_REPLACEMENTS.items():
-                    if norm_name == team:
-                        teams_to_check.append(alt_name)
-            teams_to_check.append(team)
+                    if alt_name == team:
+                        teams_to_check.append(norm_name)
+                teams_to_check.append(team)
 
             # select requested teams
             iterator = df_teams.loc[df_teams.index.isin(teams_to_check, level=2), :]

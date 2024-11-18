@@ -148,10 +148,13 @@ class ClubElo(BaseRequestsReader):
         -------
         pd.DataFrame
         """
+        teams = [team] if isinstance(team, str) else team
         teams_to_check = []
-        for alt_name, norm_name in TEAMNAME_REPLACEMENTS.items():
-            if alt_name == team:
-                teams_to_check.append(norm_name)
+        for team in teams:
+            for alt_name, norm_name in TEAMNAME_REPLACEMENTS.items():
+                if alt_name == team:
+                    teams_to_check.append(norm_name)
+            teams_to_check.append(team)
 
         for i, _ in enumerate(teams_to_check):
             teams_to_check[i] = unidecode(teams_to_check[i])

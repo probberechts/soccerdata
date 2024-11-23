@@ -74,7 +74,8 @@ def test_read_team_match_stats(fbref_ligue1: FBref, stat_type: str) -> None:
     ],
 )
 def test_read_team_match_stats_alt_names(fbref_ligue1: FBref, stat_type: str) -> None:
-    assert isinstance(fbref_ligue1.read_team_match_stats(stat_type, team="Olympique Marseille"), pd.DataFrame)
+    assert isinstance(fbref_ligue1.read_team_match_stats(stat_type, team="Olympique Marseille"), 
+                      pd.DataFrame)
 
 
 @pytest.mark.parametrize(

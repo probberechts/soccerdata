@@ -10,7 +10,7 @@ from typing import Callable, Optional, Union
 import pandas as pd
 from lxml import html
 
-from ._common import BaseRequestsReader, standardize_colnames
+from ._common import BaseRequestsReader, add_alt_team_names, standardize_colnames
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
 
 SO_FIFA_DATADIR = DATA_DIR / "SoFIFA"
@@ -240,14 +240,7 @@ class SoFIFA(BaseRequestsReader):
         df_teams = self.read_teams()
 
         if team is not None:
-            # get alternative names of the specified team(s)
-            teams = [team] if isinstance(team, str) else team
-            teams_to_check = []
-            for team in teams:
-                for alt_name, norm_name in TEAMNAME_REPLACEMENTS.items():
-                    if alt_name == team:
-                        teams_to_check.append(norm_name)
-            teams_to_check.append(team)
+            teams_to_check = add_alt_team_names(team)
 
             # select requested teams
             iterator = df_teams.loc[df_teams.team.isin(teams_to_check), :]

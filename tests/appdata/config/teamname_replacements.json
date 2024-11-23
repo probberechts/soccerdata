@@ -1,5 +1,5 @@
 {
-  "Man City": ["Manchester City"],
-  "Marseille": ["Olympique Marseille"],
-  "Valencia": ["Valencia CF"]
+  "Manchester City": ["Man City"],
+  "Olympique Marseille": ["Marseille"],
+  "Valencia CF": ["Valencia"]
 }

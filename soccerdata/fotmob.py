@@ -9,7 +9,7 @@ from typing import Callable, Optional, Union
 import pandas as pd
 import requests
 
-from ._common import BaseRequestsReader, make_game_id
+from ._common import BaseRequestsReader, add_standardized_team_name, make_game_id
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
 
 FOTMOB_DATADIR = DATA_DIR / "FotMob"
@@ -327,7 +327,7 @@ class FotMob(BaseRequestsReader):
         df[["home_score", "away_score"]] = df["status.scoreStr"].str.split("-", expand=True)
         return df.set_index(["league", "season", "game"]).sort_index()[cols]
 
-    def read_team_match_stats(  # noqa: C901
+    def read_team_match_stats(
         self,
         stat_type: str = "Top stats",
         opponent_stats: bool = True,
@@ -378,13 +378,8 @@ class FotMob(BaseRequestsReader):
 
         if team is not None:
             # get alternative names of the specified team(s)
-            teams = [team] if isinstance(team, str) else team
-            teams_to_check = []
-            for team in teams:
-                for alt_name, norm_name in TEAMNAME_REPLACEMENTS.items():
-                    if alt_name == team:
-                        teams_to_check.append(norm_name)
-                teams_to_check.append(team)
+            teams_to_check = add_standardized_team_name(team)
+
             # select requested teams
             iterator = df_complete.loc[
                 (

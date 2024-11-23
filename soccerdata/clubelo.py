@@ -8,7 +8,7 @@ from typing import IO, Callable, Optional, Union
 import pandas as pd
 from unidecode import unidecode
 
-from ._common import BaseRequestsReader, standardize_colnames
+from ._common import BaseRequestsReader, add_alt_team_names, standardize_colnames
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS
 
 CLUB_ELO_DATADIR = DATA_DIR / "ClubElo"
@@ -148,17 +148,8 @@ class ClubElo(BaseRequestsReader):
         -------
         pd.DataFrame
         """
-        teams = [team] if isinstance(team, str) else team
-        teams_to_check = []
-        for team in teams:
-            for alt_name, norm_name in TEAMNAME_REPLACEMENTS.items():
-                if alt_name == team:
-                    teams_to_check.append(norm_name)
-            teams_to_check.append(team)
-
-        for i, _ in enumerate(teams_to_check):
-            teams_to_check[i] = unidecode(teams_to_check[i])
-            teams_to_check[i] = re.sub(r"[\s']", "", teams_to_check[i])
+        teams_to_check = add_alt_team_names(team)
+        teams_to_check = {re.sub(r"[\s']", "", unidecode(team)) for team in teams_to_check}
 
         for _team in teams_to_check:
             filepath = self.data_dir / f"{_team}.csv"

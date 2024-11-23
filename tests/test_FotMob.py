@@ -26,6 +26,7 @@ def test_read_team_match_stats(fotmob_laliga: FotMob, stat_type: str) -> None:
         fotmob_laliga.read_team_match_stats(stat_type, team="Valencia"), pd.DataFrame
     )
 
+
 @pytest.mark.parametrize(
     "stat_type",
     ["Top stats", "Shots", "Expected goals (xG)", "Passes", "Defence", "Duels", "Discipline"],

@@ -22,7 +22,7 @@ from dateutil.relativedelta import relativedelta
 from packaging import version
 from selenium.common.exceptions import JavascriptException, WebDriverException
 
-from ._config import DATA_DIR, LEAGUE_DICT, MAXAGE, logger
+from ._config import DATA_DIR, LEAGUE_DICT, MAXAGE, TEAMNAME_REPLACEMENTS, logger
 
 
 class SeasonCode(Enum):
@@ -682,6 +682,61 @@ def make_game_id(row: pd.Series) -> str:
             row["away_team"],
         )
     return game_id
+
+
+def add_alt_team_names(team: Union[str, list[str]]) -> set[str]:
+    """Add a set of alternative team names for a standardized team name.
+
+    If a standardized team name is given, add the set of alternative
+    names used by the data sources. If a non-standardized name is given,
+    a set only containing the given name is returned.
+
+    Parameters
+    ----------
+    team : str or list of str
+        The team name(s) to consider.
+
+    Returns
+    -------
+    set of str
+        A set contraining the given team name(s) and alternative names.
+    """
+    teams = [team] if isinstance(team, str) else team
+
+    alt_teams = set()
+    for team in teams:
+        for alt_name, norm_name in TEAMNAME_REPLACEMENTS.items():
+            if norm_name == team:
+                alt_teams.add(alt_name)
+        alt_teams.add(team)
+    return alt_teams
+
+
+def add_standardized_team_name(team: Union[str, list[str]]) -> set[str]:
+    """Add the standardized team name for a non-standardized team name.
+
+    If a non-standardized team name is given, add the standardized
+    name. If a standardized name is given, a set only containing the given
+    name is returned.
+
+    Parameters
+    ----------
+    team : str or list of str
+        The team name(s) to consider.
+
+    Returns
+    -------
+    set of str
+        A set contraining the given team name(s) and standardized names.
+    """
+    teams = [team] if isinstance(team, str) else team
+    std_teams = set()
+    for team in teams:
+        for alt_name, norm_name in TEAMNAME_REPLACEMENTS.items():
+            if alt_name == team:
+                std_teams.add(norm_name)
+        std_teams.add(team)
+    return std_teams
 
 
 def standardize_colnames(df: pd.DataFrame, cols: Optional[list[str]] = None) -> pd.DataFrame:

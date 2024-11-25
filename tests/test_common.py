@@ -11,6 +11,8 @@ import soccerdata
 from soccerdata._common import (
     BaseRequestsReader,
     SeasonCode,
+    add_alt_team_names,
+    add_standardized_team_name,
     make_game_id,
     standardize_colnames,
 )
@@ -106,6 +108,23 @@ def test_make_game_id():
     )
     game_id = make_game_id(s)
     assert game_id == "1993-07-30 Barcelona-Real Madrid"
+
+
+# add_alt_team_names
+
+
+def test_add_alt_team_names():
+    # "Valencia" is replaced by "Valencia CF"
+    assert add_alt_team_names("Valencia CF") == {"Valencia", "Valencia CF"}
+    # "Real Madrid" is not replaced
+    assert add_alt_team_names("Real Madrid") == {"Real Madrid"}
+
+
+def test_add_standardize_team_name():
+    # "Valencia" is replaced by "Valencia CF"
+    assert add_standardized_team_name("Valencia") == {"Valencia", "Valencia CF"}
+    # "Real Madrid" is not replaced
+    assert add_standardized_team_name("Real Madrid") == {"Real Madrid"}
 
 
 # standardize_colnames

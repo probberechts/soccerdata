@@ -9,7 +9,13 @@ from typing import Callable, Optional, Union
 import pandas as pd
 from lxml import etree, html
 
-from ._common import BaseRequestsReader, SeasonCode, make_game_id, standardize_colnames
+from ._common import (
+    BaseRequestsReader,
+    SeasonCode,
+    add_alt_team_names,
+    make_game_id,
+    standardize_colnames,
+)
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
 
 FBREF_DATADIR = DATA_DIR / "FBref"
@@ -411,14 +417,7 @@ class FBref(BaseRequestsReader):
         df_teams = self.read_team_season_stats()
 
         if team is not None:
-            # get alternative names of the specified team(s)
-            teams = [team] if isinstance(team, str) else team
-            teams_to_check = []
-            for team in teams:
-                for alt_name, norm_name in TEAMNAME_REPLACEMENTS.items():
-                    if norm_name == team:
-                        teams_to_check.append(alt_name)
-            teams_to_check.append(team)
+            teams_to_check = add_alt_team_names(team)
 
             # select requested teams
             iterator = df_teams.loc[df_teams.index.isin(teams_to_check, level=2), :]

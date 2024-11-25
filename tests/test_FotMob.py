@@ -28,3 +28,16 @@ def test_read_team_match_stats(fotmob_laliga: FotMob, stat_type: str) -> None:
     assert isinstance(
         fotmob_laliga.read_team_match_stats(stat_type, team="Valencia"), pd.DataFrame
     )
+
+
+@pytest.mark.fails_gha()
+def test_read_team_match_stats_alt_names(fotmob_laliga: FotMob) -> None:
+    # Test with Fotmob team name
+    assert isinstance(
+        fotmob_laliga.read_team_match_stats(stat_type="Top stats", team="Valencia"), pd.DataFrame
+    )
+    # Test with standardized team name
+    assert isinstance(
+        fotmob_laliga.read_team_match_stats(stat_type="Top stats", team="Valencia CF"),
+        pd.DataFrame,
+    )

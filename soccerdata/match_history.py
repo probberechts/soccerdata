@@ -7,10 +7,28 @@ from typing import Callable, Optional, Union
 import pandas as pd
 
 from ._common import BaseRequestsReader, make_game_id
-from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS
+from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
 
 MATCH_HISTORY_DATA_DIR = DATA_DIR / "MatchHistory"
 MATCH_HISTORY_API = "https://www.football-data.co.uk"
+
+
+def _parse_csv(raw_data, lkey, skey) -> pd.DataFrame:
+    logger.info("Parsing league=%s season=%s", lkey, skey)
+    if int(skey) >= 2425:
+        # Since 2024-25, the CSV files are encoded in UTF-8-SIG
+        df_games = pd.read_csv(
+            raw_data,
+            encoding="UTF-8-SIG",
+            on_bad_lines="warn",
+        )
+    else:
+        df_games = pd.read_csv(
+            raw_data,
+            encoding="latin-1",
+            on_bad_lines="warn",
+        )
+    return df_games
 
 
 class MatchHistory(BaseRequestsReader):
@@ -92,12 +110,10 @@ class MatchHistory(BaseRequestsReader):
             filepath = self.data_dir / filemask.format(lkey, skey)
             url = urlmask.format(skey, lkey)
             current_season = not self._is_complete(lkey, skey)
-            reader = self.get(url, filepath, no_cache=current_season)
 
-            df_games = pd.read_csv(
-                reader,
-                encoding="ISO-8859-1",
-            ).assign(season=skey)
+            reader = self.get(url, filepath, no_cache=current_season)
+            df_games = _parse_csv(reader, lkey, skey).assign(season=skey)
+
             if "Time" not in df_games.columns:
                 df_games["Time"] = "12:00"
             df_games["Time"] = df_games["Time"].fillna("12:00")

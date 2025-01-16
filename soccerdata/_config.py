@@ -71,6 +71,7 @@ logging_config = {
     },
 }
 logging.config.dictConfig(logging_config)
+logging.captureWarnings(True)
 logger = logging.getLogger("root")
 logger.handlers[0] = RichHandler(markup=True)
 

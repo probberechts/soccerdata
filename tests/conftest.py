@@ -48,9 +48,9 @@ def elo() -> sd.ClubElo:
 
 
 @pytest.fixture()
-def match_epl_2y() -> sd.MatchHistory:
-    """Return a MatchHistory instance for the last 2 years of the EPL."""
-    return sd.MatchHistory("ENG-Premier League", list(range(2018, 2020)))
+def match_epl_5y() -> sd.MatchHistory:
+    """Return a MatchHistory instance for the last 5 years of the EPL."""
+    return sd.MatchHistory("ENG-Premier League", list(range(2019, 2025)))
 
 
 @pytest.fixture()

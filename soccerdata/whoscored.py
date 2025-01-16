@@ -11,7 +11,10 @@ from typing import Callable, Literal, Optional, Union
 import numpy as np
 import pandas as pd
 from lxml import html
-from selenium.common.exceptions import ElementClickInterceptedException, NoSuchElementException
+from selenium.common.exceptions import (
+    ElementClickInterceptedException,
+    NoSuchElementException,
+)
 from selenium.webdriver.common.by import By
 
 from ._common import BaseSeleniumReader, make_game_id, standardize_colnames
@@ -88,13 +91,13 @@ def _parse_url(url: str) -> dict:
     """
     patt = (
         r"^(?:https:\/\/www.whoscored.com)?\/"
-        + r"(?:Regions\/(\d+)\/)?"
-        + r"(?:Tournaments\/(\d+)\/)?"
-        + r"(?:Seasons\/(\d+)\/)?"
-        + r"(?:Stages\/(\d+)\/)?"
-        + r"(?:Matches\/(\d+)\/)?"
+        + r"(?:regions\/(\d+)\/)?"
+        + r"(?:tournaments\/(\d+)\/)?"
+        + r"(?:seasons\/(\d+)\/)?"
+        + r"(?:stages\/(\d+)\/)?"
+        + r"(?:matches\/(\d+)\/)?"
     )
-    matches = re.search(patt, url)
+    matches = re.search(patt, url, re.IGNORECASE)
     if matches:
         return {
             "region_id": matches.group(1),

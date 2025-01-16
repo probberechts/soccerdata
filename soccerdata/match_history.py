@@ -2,7 +2,7 @@
 
 import itertools
 from pathlib import Path
-from typing import Callable, Optional, Union
+from typing import IO, Callable, Optional, Union
 
 import pandas as pd
 
@@ -13,7 +13,7 @@ MATCH_HISTORY_DATA_DIR = DATA_DIR / "MatchHistory"
 MATCH_HISTORY_API = "https://www.football-data.co.uk"
 
 
-def _parse_csv(raw_data, lkey, skey) -> pd.DataFrame:
+def _parse_csv(raw_data: IO[bytes], lkey: str, skey: str) -> pd.DataFrame:
     logger.info("Parsing league=%s season=%s", lkey, skey)
     if int(skey) >= 2425:
         # Since 2024-25, the CSV files are encoded in UTF-8-SIG

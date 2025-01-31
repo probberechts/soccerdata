@@ -493,5 +493,5 @@ class SoFIFA(BaseRequestsReader):
 
             scores[s] = value if value is not None else None  # Assign only once
         ratings.append(scores)
-        # return data frame
+        # return data frame 
         return pd.DataFrame(ratings).pipe(standardize_colnames).set_index(["player"]).sort_index()

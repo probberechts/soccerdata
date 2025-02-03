@@ -475,15 +475,14 @@ class SoFIFA(BaseRequestsReader):
                 "player": before_br if before_br else after_br,
                 **version.to_dict(),
             }
-           
 
-# Try each XPath until one returns a result
+        # Try each XPath until one returns a result
         for s in score_labels:
             value = None
             xpaths = [
                 f"//p[.//text()[contains(.,'{s}')]]/span/em",
                 f"//div[contains(.,'{s}')]/em",
-                f"//li[not(self::script)][.//text()[contains(.,'{s}')]]/em"
+                f"//li[not(self::script)][.//text()[contains(.,'{s}')]]/em",
             ]
             for xpath in xpaths:
                 nodes = tree.xpath(xpath)
@@ -493,5 +492,5 @@ class SoFIFA(BaseRequestsReader):
 
             scores[s] = value if value is not None else None  # Assign only once
         ratings.append(scores)
-        # return data frame 
+        # return data frame
         return pd.DataFrame(ratings).pipe(standardize_colnames).set_index(["player"]).sort_index()

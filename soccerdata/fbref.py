@@ -533,7 +533,35 @@ class FBref(BaseRequestsReader):
             .loc[self.leagues]
         )
 
-    def read_player_season_stats(self, stat_type: str = "standard") -> pd.DataFrame:
+    def _extract_players_url(self, tree: etree.ElementTree) -> dict:
+        """Extract players profile URL from the parsed HTML tree."""
+        player_urls = {}
+
+        # The table is often inside a comment
+        comments = tree.xpath("//comment()")
+        for comment in comments:
+            if "div_stats" in comment.text:
+                parser = etree.HTMLParser(recover=True)
+                table_tree = etree.fromstring(comment.text, parser)
+
+                for player_elem in table_tree.xpath("//td[@data-stat='player']/a"):
+                    player_name = player_elem.text
+                    player_url = player_elem.get("href")
+                    if player_name and player_url:
+                        player_urls[player_name] = f"https://fbref.com{player_url}"
+                return player_urls
+
+        # If not inside a comment, try normal extraction
+        for player_elem in tree.xpath("//td[@data-stat='player']/a"):
+            player_name = player_elem.text
+            player_url = player_elem.get("href")
+            if player_name and player_url:
+                player_urls[player_name] = f"https://fbref.com{player_url}"
+        return player_urls
+
+    def read_player_season_stats(  # noqa: C901
+        self, stat_type: str = "standard", extract_players_url: bool = False
+    ) -> pd.DataFrame:
         """Retrieve players from the datasource for the selected leagues and seasons.
 
         The following stat types are available:
@@ -553,6 +581,8 @@ class FBref(BaseRequestsReader):
         ----------
         stat_type :str
             Type of stats to retrieve.
+        extract_players_url :bool
+            If True, the URL to player profiles will be extracted.
 
         Raises
         ------
@@ -633,6 +663,13 @@ class FBref(BaseRequestsReader):
                 df_table[("Unnamed: league", "league")] = lkey
                 df_table[("Unnamed: season", "season")] = skey
             df_table = _fix_nation_col(df_table)
+
+            if extract_players_url:
+                player_links = self._extract_players_url(tree)
+                df_table["player_url"] = df_table[("Unnamed: 1_level_0", "Player")].map(
+                    player_links
+                )
+
             players.append(df_table)
 
         # return dataframe

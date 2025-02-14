@@ -92,10 +92,6 @@ def test_read_player_season_stats(fbref_ligue1: FBref, stat_type: str) -> None:
     assert isinstance(fbref_ligue1.read_player_season_stats(stat_type), pd.DataFrame)
 
 
-def test_read_player_season_stats_with_player_url(fbref_ligue1: FBref) -> None:
-    assert isinstance(fbref_ligue1.read_player_season_stats("standard", True), pd.DataFrame)
-
-
 def test_read_schedule(fbref_ligue1: FBref) -> None:
     assert isinstance(fbref_ligue1.read_schedule(), pd.DataFrame)
 

@@ -617,7 +617,7 @@ class FBref(BaseRequestsReader):
             for elem in tree.xpath("//td[@data-stat='comp_level']//span"):
                 elem.getparent().remove(elem)
             if big_five:
-                df_table = _parse_table(tree)
+                df_table = _parse_table(tree, with_player_id=True)
                 df_table[("Unnamed: league", "league")] = (
                     df_table.xs("Comp", axis=1, level=1).squeeze().map(BIG_FIVE_DICT)
                 )
@@ -629,10 +629,11 @@ class FBref(BaseRequestsReader):
                 (html_table,) = etree.fromstring(el.text, parser).xpath(
                     f"//table[contains(@id, 'stats_{stat_type}')]"
                 )
-                df_table = _parse_table(html_table)
+                df_table = _parse_table(html_table, with_player_id=True)
                 df_table[("Unnamed: league", "league")] = lkey
                 df_table[("Unnamed: season", "season")] = skey
             df_table = _fix_nation_col(df_table)
+
             players.append(df_table)
 
         # return dataframe
@@ -1139,13 +1140,15 @@ class FBref(BaseRequestsReader):
         )
 
 
-def _parse_table(html_table: html.HtmlElement) -> pd.DataFrame:
+def _parse_table(html_table: html.HtmlElement, with_player_id: bool = False) -> pd.DataFrame:
     """Parse HTML table into a dataframe.
 
     Parameters
     ----------
     html_table : lxml.html.HtmlElement
         HTML table to clean up.
+    with_player_id : bool
+        If True, will extract player IDs.
 
     Returns
     -------
@@ -1162,6 +1165,15 @@ def _parse_table(html_table: html.HtmlElement) -> pd.DataFrame:
         elem.getparent().remove(elem)
     # parse HTML to dataframe
     (df_table,) = pd.read_html(html.tostring(html_table), flavor="lxml")
+
+    if with_player_id:
+        player_ids = [
+            elem.get("data-append-csv") for elem in html_table.xpath("//td[@data-append-csv]")
+        ]
+        df_table["player_id"] = player_ids
+
+    return df_table.convert_dtypes()
+
     return df_table.convert_dtypes()
 
 

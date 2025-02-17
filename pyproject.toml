@@ -29,7 +29,7 @@ requests = "^2.23"
 rich = "^13.0.0"
 undetected-chromedriver = "^3.5.0"
 unicode = "^2.7"
-lxml = "^4.9.3"
+lxml = "^5.0.0"
 socceraction = {version="^1.5.3", optional=true}
 packaging = "^24.1"
 

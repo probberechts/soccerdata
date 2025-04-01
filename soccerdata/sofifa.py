@@ -476,21 +476,21 @@ class SoFIFA(BaseRequestsReader):
                 **version.to_dict(),
             }
 
-        # Try each XPath until one returns a result
-        for s in score_labels:
-            value = None
-            xpaths = [
-                f"//p[.//text()[contains(.,'{s}')]]/span/em",
-                f"//div[contains(.,'{s}')]/em",
-                f"//li[not(self::script)][.//text()[contains(.,'{s}')]]/em",
-            ]
-            for xpath in xpaths:
-                nodes = tree.xpath(xpath)
-                if nodes:  # If at least one match is found
-                    value = nodes[0].text.strip()  # Take only the first match
-                    break  # Stop checking other XPaths once we find a valid value
+            # Try each XPath until one returns a result
+            for s in score_labels:
+                value = None
+                xpaths = [
+                    f"//p[.//text()[contains(.,'{s}')]]/span/em",
+                    f"//div[contains(.,'{s}')]/em",
+                    f"//li[not(self::script)][.//text()[contains(.,'{s}')]]/em",
+                ]
+                for xpath in xpaths:
+                    nodes = tree.xpath(xpath)
+                    if nodes:  # If at least one match is found
+                        value = nodes[0].text.strip()  # Take only the first match
+                        break  # Stop checking other XPaths once we find a valid value
 
-            scores[s] = value if value is not None else None  # Assign only once
-        ratings.append(scores)
+                scores[s] = value if value is not None else None  # Assign only once
+            ratings.append(scores)
         # return data frame
         return pd.DataFrame(ratings).pipe(standardize_colnames).set_index(["player"]).sort_index()

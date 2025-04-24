@@ -684,6 +684,13 @@ class FBref(BaseRequestsReader):
             tree = html.parse(reader)
             html_table = tree.xpath("//table[contains(@id, 'sched')]")[0]
             df_table = _parse_table(html_table)
+
+            home_team_links = html_table.xpath(".//td[@data-stat='home_team']/a")
+            away_team_links = html_table.xpath(".//td[@data-stat='away_team']/a")
+
+            df_table["home_team_id"] = [url.get("href").split("/")[3] for url in home_team_links]
+            df_table["away_team_id"] = [url.get("href").split("/")[3] for url in away_team_links]
+
             df_table["Match Report"] = [
                 (
                     mlink.xpath("./a/@href")[0]
@@ -831,6 +838,7 @@ class FBref(BaseRequestsReader):
                 df_table["league"] = game["league"]
                 df_table["season"] = game["season"]
                 df_table["game_id"] = game["game_id"]
+                df_table["team_id"] = home_team["id"]
                 stats.append(df_table)
             else:
                 logger.warning("No stats found for home team for game with id=%s", game["game_id"])
@@ -842,6 +850,7 @@ class FBref(BaseRequestsReader):
                 df_table["league"] = game["league"]
                 df_table["season"] = game["season"]
                 df_table["game_id"] = game["game_id"]
+                df_table["team_id"] = away_team["id"]
                 stats.append(df_table)
             else:
                 logger.warning("No stats found for away team for game with id=%s", game["game_id"])
@@ -1162,6 +1171,24 @@ def _parse_table(html_table: html.HtmlElement) -> pd.DataFrame:
         elem.getparent().remove(elem)
     # parse HTML to dataframe
     (df_table,) = pd.read_html(html.tostring(html_table), flavor="lxml")
+
+    # Get player IDs
+    player_ids = []
+    logger.info("Checking for player IDs in table")
+
+    # Check if player IDs are available
+    if html_table.xpath("./tbody/tr/th[@data-stat='player']"):
+        for players in html_table.xpath("./tbody/tr/th[@data-stat='player']"):
+            logger.info("Found player IDs in table")
+            logger.info(players.get("data-append-csv"))
+
+            # Append the attribute if found
+            player_ids.append(players.get("data-append-csv"))
+        player_ids.append(None)
+
+        if len(player_ids) > 0 and len(df_table) == len(player_ids):
+            df_table["player_id"] = player_ids
+
     return df_table.convert_dtypes()
 
 

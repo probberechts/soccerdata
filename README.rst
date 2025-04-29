@@ -38,7 +38,7 @@
 .. badges-end
 
 SoccerData is a collection of scrapers to gather soccer data from popular
-websites, including `Club Elo`_, `ESPN`_, `FBref`_, `FiveThirtyEight`_,
+websites, including `Club Elo`_, `ESPN`_, `FBref`_,
 `Football-Data.co.uk`_, `FotMob`_, `Sofascore`_, `SoFIFA`_, `Understat`_ and `WhoScored`_.
 You get Pandas DataFrames with sensible, matching column names and identifiers
 across datasets. Data is downloaded when needed and cached locally.
@@ -47,13 +47,13 @@ across datasets. Data is downloaded when needed and cached locally.
 
    import soccerdata as sd
 
-   # Create a scraper class instance for the 2018/19 Premier League
-   five38 = sd.FiveThirtyEight('ENG-Premier League', '1819')
+   # Create a scraper class instance for the 2020/21 Premier League
+   fbref = sd.FBref('ENG-Premier League', '2021')
 
    # Fetch data
-   games = five38.read_games()
-   forecasts = five38.read_forecasts()
-   clinches = five38.read_clinches()
+   games = fbref.read_schedule()
+   team_season_stats = fbref.read_team_season_stats(stat_type="passing")
+   player_season_stats = fbref.read_player_season_stats(stat_type="standard")
 
 To learn how to install, configure and use SoccerData, see the
 `Quickstart guide <https://soccerdata.readthedocs.io/en/latest/intro.html>`__. For documentation on each of the
@@ -76,7 +76,7 @@ websites you intend to scrape. The software is provided as-is, without any warra
 developers disclaim any responsibility for misuse, legal consequences, or damages resulting from its use. It is
 your responsibility to use the software in accordance with the laws and regulations of your jurisdiction.
 
-**Contribution and Issues:** As soccerdata relies on web scraping, any changes to the
+**Contribution and Issues:** As SoccerData relies on web scraping, any changes to the
 scraped websites will break the package. Hence, do not expect that all code
 will work all the time. If you spot any bugs, then please `fork it and start
 a pull request <https://github.com/probberechts/soccerdata/blob/master/CONTRIBUTING.rst>`__.

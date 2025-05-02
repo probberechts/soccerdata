@@ -1179,10 +1179,6 @@ def _parse_table(html_table: html.HtmlElement) -> pd.DataFrame:
     # Check if player IDs are available
     if html_table.xpath("./tbody/tr/th[@data-stat='player']"):
         for players in html_table.xpath("./tbody/tr/th[@data-stat='player']"):
-            logger.info("Found player IDs in table")
-            logger.info(players.get("data-append-csv"))
-
-            # Append the attribute if found
             player_ids.append(players.get("data-append-csv"))
         player_ids.append(None)
 

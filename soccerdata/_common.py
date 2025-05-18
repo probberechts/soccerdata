@@ -12,11 +12,11 @@ from enum import Enum
 from pathlib import Path
 from typing import IO, Callable, Optional, Union
 
-import cloudscraper
 import numpy as np
 import pandas as pd
 import requests
 import selenium
+import tls_requests
 import undetected_chromedriver as uc
 from dateutil.relativedelta import relativedelta
 from packaging import version
@@ -504,12 +504,14 @@ class BaseRequestsReader(BaseReader):
 
         self._session = self._init_session()
 
-    def _init_session(self) -> requests.Session:
-        session = cloudscraper.create_scraper(
-            browser={"browser": "chrome", "platform": "linux", "mobile": False}
-        )
-        session.proxies.update(self.proxy())
-        return session
+    def _init_session(self) -> tls_requests.Client:
+        proxy = self.proxy()
+        proxy_url = None
+        for protocol in ["https", "http"]:
+            if protocol in proxy:
+                proxy_url = proxy[protocol]
+                break
+        return tls_requests.Client(proxy=proxy_url)
 
     def _download_and_save(
         self,
@@ -520,7 +522,7 @@ class BaseRequestsReader(BaseReader):
         """Download file at url to filepath. Overwrites if filepath exists."""
         for i in range(5):
             try:
-                response = self._session.get(url, stream=True)
+                response = self._session.get(url)
                 time.sleep(self.rate_limit + random.random() * self.max_delay)
                 response.raise_for_status()
                 if var is not None:

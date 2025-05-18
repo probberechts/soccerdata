@@ -22,7 +22,6 @@ Changelog = "https://github.com/probberechts/soccerdata/releases"
 python = ">=3.9,<3.13"
 PySocks = "^1.7.1"
 Unidecode = "^1.2.0"
-cloudscraper = "^1.2.71"
 html5lib = "^1.1"
 pandas = "^2.0.0, !=2.1.0"
 requests = "^2.23"
@@ -32,6 +31,8 @@ unicode = "^2.7"
 lxml = "^4.9.3"
 socceraction = {version="^1.5.3", optional=true}
 packaging = "^24.1"
+wrapper-tls-requests = "^1.1.4"
+tqdm = "^4.67.1"
 
 [tool.poetry.extras]
 socceraction = ["socceraction"]

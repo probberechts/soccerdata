@@ -12,11 +12,11 @@ from enum import Enum
 from pathlib import Path
 from typing import IO, Callable, Optional, Union
 
-import cloudscraper
 import numpy as np
 import pandas as pd
 import requests
 import selenium
+import tls_requests
 import undetected_chromedriver as uc
 from dateutil.relativedelta import relativedelta
 from packaging import version
@@ -205,14 +205,7 @@ class BaseReader(ABC):
         Use a proxy to hide your IP address. Valid options are:
             - "tor": Uses the Tor network. Tor should be running in
               the background on port 9050.
-            - dict: A dictionary with the proxy to use. The dict should be
-              a mapping of supported protocols to proxy addresses. For example::
-
-                  {
-                      'http': 'http://10.10.1.10:3128',
-                      'https': 'http://10.10.1.10:1080',
-                  }
-
+            - str: The proxy address to use. For example, 'http://10.10.1.10:3128'.
             - list(dict): A list of proxies to choose from. A different proxy will
               be selected from this list after failed requests, allowing rotating
               proxies.
@@ -238,18 +231,15 @@ class BaseReader(ABC):
     ):
         """Create a new data reader."""
         if isinstance(proxy, str) and proxy.lower() == "tor":
-            self.proxy = lambda: {
-                "http": "socks5://127.0.0.1:9050",
-                "https": "socks5://127.0.0.1:9050",
-            }
-        elif isinstance(proxy, dict):
+            self.proxy = lambda: "socks5://127.0.0.1:9050"
+        elif isinstance(proxy, str):
             self.proxy = lambda: proxy
         elif isinstance(proxy, list):
             self.proxy = lambda: random.choice(proxy)
         elif callable(proxy):
             self.proxy = proxy
         else:
-            self.proxy = dict
+            self.proxy = lambda : None
 
         self._selected_leagues = leagues  # type: ignore
         self.no_cache = no_cache
@@ -504,11 +494,8 @@ class BaseRequestsReader(BaseReader):
 
         self._session = self._init_session()
 
-    def _init_session(self) -> requests.Session:
-        session = cloudscraper.create_scraper(
-            browser={"browser": "chrome", "platform": "linux", "mobile": False}
-        )
-        session.proxies.update(self.proxy())
+    def _init_session(self) -> tls_requests.Client:
+        session = tls_requests.Client(proxy=self.proxy())
         return session
 
     def _download_and_save(
@@ -520,7 +507,7 @@ class BaseRequestsReader(BaseReader):
         """Download file at url to filepath. Overwrites if filepath exists."""
         for i in range(5):
             try:
-                response = self._session.get(url, stream=True)
+                response = self._session.get(url)
                 time.sleep(self.rate_limit + random.random() * self.max_delay)
                 response.raise_for_status()
                 if var is not None:

@@ -223,7 +223,7 @@ class BaseReader(ABC):
         self,
         leagues: Optional[Union[str, list[str]]] = None,
         proxy: Optional[
-            Union[str, dict[str, str], list[dict[str, str]], Callable[[], dict[str, str]]]
+            Union[str, list[str], Callable[[], str]]
         ] = None,
         no_cache: bool = False,
         no_store: bool = False,

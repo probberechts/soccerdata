@@ -6,18 +6,6 @@ import soccerdata as sd
 
 
 @pytest.fixture()
-def five38() -> sd.FiveThirtyEight:
-    """Return a correctly initialized instance of FiveThirtyEight."""
-    return sd.FiveThirtyEight(seasons="20-21")
-
-
-@pytest.fixture()
-def five38_laliga() -> sd.FiveThirtyEight:
-    """Return a correctly initialized instance of FiveThirtyEight filtered by league: La Liga."""
-    return sd.FiveThirtyEight("ESP-La Liga", "20-21")
-
-
-@pytest.fixture()
 def espn_seriea() -> sd.ESPN:
     """Return a correctly initialized instance of ESPN filtered by league: Serie A."""
     return sd.ESPN("ITA-Serie A", "20-21")

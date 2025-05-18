@@ -205,7 +205,14 @@ class BaseReader(ABC):
         Use a proxy to hide your IP address. Valid options are:
             - "tor": Uses the Tor network. Tor should be running in
               the background on port 9050.
-            - str: The proxy address to use. For example, 'http://10.10.1.10:3128'.
+            - dict: A dictionary with the proxy to use. The dict should be
+              a mapping of supported protocols to proxy addresses. For example::
+
+                  {
+                      'http': 'http://10.10.1.10:3128',
+                      'https': 'http://10.10.1.10:1080',
+                  }
+
             - list(dict): A list of proxies to choose from. A different proxy will
               be selected from this list after failed requests, allowing rotating
               proxies.
@@ -222,22 +229,27 @@ class BaseReader(ABC):
     def __init__(
         self,
         leagues: Optional[Union[str, list[str]]] = None,
-        proxy: Optional[Union[str, list[str], Callable[[], str]]] = None,
+        proxy: Optional[
+            Union[str, dict[str, str], list[dict[str, str]], Callable[[], dict[str, str]]]
+        ] = None,
         no_cache: bool = False,
         no_store: bool = False,
         data_dir: Path = DATA_DIR,
     ):
         """Create a new data reader."""
         if isinstance(proxy, str) and proxy.lower() == "tor":
-            self.proxy = lambda: "socks5://127.0.0.1:9050"
-        elif isinstance(proxy, str):
+            self.proxy = lambda: {
+                "http": "socks5://127.0.0.1:9050",
+                "https": "socks5://127.0.0.1:9050",
+            }
+        elif isinstance(proxy, dict):
             self.proxy = lambda: proxy
         elif isinstance(proxy, list):
             self.proxy = lambda: random.choice(proxy)
         elif callable(proxy):
             self.proxy = proxy
         else:
-            self.proxy = lambda: None
+            self.proxy = dict
 
         self._selected_leagues = leagues  # type: ignore
         self.no_cache = no_cache
@@ -493,7 +505,14 @@ class BaseRequestsReader(BaseReader):
         self._session = self._init_session()
 
     def _init_session(self) -> tls_requests.Client:
-        return tls_requests.Client(proxy=self.proxy())
+        proxy = self.proxy()
+        proxy_url = None
+        for protocol in ["https", "http"]:
+            if protocol in proxy:
+                proxy_url = proxy[protocol]
+                break
+        session = tls_requests.Client(proxy=proxy_url)
+        return session
 
     def _download_and_save(
         self,
@@ -504,7 +523,7 @@ class BaseRequestsReader(BaseReader):
         """Download file at url to filepath. Overwrites if filepath exists."""
         for i in range(5):
             try:
-                response = self._session.get(url)
+                response = self._session.get(url, stream=True)
                 time.sleep(self.rate_limit + random.random() * self.max_delay)
                 response.raise_for_status()
                 if var is not None:

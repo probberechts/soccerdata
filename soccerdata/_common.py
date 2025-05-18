@@ -239,7 +239,7 @@ class BaseReader(ABC):
         elif callable(proxy):
             self.proxy = proxy
         else:
-            self.proxy = lambda : None
+            self.proxy = lambda: None
 
         self._selected_leagues = leagues  # type: ignore
         self.no_cache = no_cache
@@ -495,8 +495,7 @@ class BaseRequestsReader(BaseReader):
         self._session = self._init_session()
 
     def _init_session(self) -> tls_requests.Client:
-        session = tls_requests.Client(proxy=self.proxy())
-        return session
+        return tls_requests.Client(proxy=self.proxy())
 
     def _download_and_save(
         self,

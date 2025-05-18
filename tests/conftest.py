@@ -44,7 +44,7 @@ def match_epl_5y() -> sd.MatchHistory:
 @pytest.fixture()
 def whoscored() -> sd.WhoScored:
     """Return a correctly initialized instance of WhoScored."""
-    return sd.WhoScored("ENG-Premier League", "20-21", headless=True)
+    return sd.WhoScored("ENG-Premier League", "20-21", headless=False)
 
 
 @pytest.fixture()

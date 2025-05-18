@@ -511,8 +511,7 @@ class BaseRequestsReader(BaseReader):
             if protocol in proxy:
                 proxy_url = proxy[protocol]
                 break
-        session = tls_requests.Client(proxy=proxy_url)
-        return session
+        return tls_requests.Client(proxy=proxy_url)
 
     def _download_and_save(
         self,

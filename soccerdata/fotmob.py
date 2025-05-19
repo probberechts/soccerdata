@@ -340,6 +340,7 @@ class FotMob(BaseRequestsReader):
             * 'Top stats'
             * 'Shots'
             * 'Expected goals (xG)'
+            * 'Expected goals on target (xGOT)'
             * 'Passes'
             * 'Defence'
             * 'Duels'
@@ -410,12 +411,25 @@ class FotMob(BaseRequestsReader):
 
             # Get stats types
             all_stats = game_data["content"]["stats"]["Periods"]["All"]["stats"]
+
+            # create an alias for nested stats
+            alias_map = {
+                "Expected goals on target (xGOT)": "Expected goals (xG)",
+            }
+            parent_type = alias_map.get(stat_type, stat_type)
+
             try:
-                selected_stats = next(stat for stat in all_stats if stat["title"] == stat_type)
+                selected_stats = next(stat for stat in all_stats if stat["title"] == parent_type)
             except StopIteration:
                 raise ValueError(f"Invalid stat type: {stat_type}")
 
             df_raw_stats = pd.DataFrame(selected_stats["stats"])
+
+            # xGOT filter
+            if stat_type == "Expected goals on target (xGOT)":
+                title_filter = "Expected goals on target (xGOT)"
+                df_raw_stats = df_raw_stats[df_raw_stats["title"] == title_filter]
+
             game_teams = [game.home_team, game.away_team]
             for i, team in enumerate(game_teams):
                 df_team_stats = df_raw_stats.copy()

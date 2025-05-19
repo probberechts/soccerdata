@@ -591,20 +591,27 @@ class BaseSeleniumReader(BaseReader):
                 e,
             )
 
-    def _init_webdriver(self) -> "uc.Chrome":
+    def _init_webdriver(self) -> "sb.Driver":
         """Start the Selenium driver."""
         # Quit existing driver
         if hasattr(self, "_driver"):
             self._driver.quit()
         # Start a new driver
         proxy = self.proxy()
-        if len(proxy):
-            proxy_str = ";".join(f"{prot}={url}" for prot, url in proxy.items())
+        proxy_str = None
+        resolver_rules = None
+        for protocol in ["https", "http"]:
+            if protocol in proxy:
+                proxy_str = proxy[protocol]
+                break
             resolver_rules = "MAP * ~NOTFOUND , EXCLUDE 127.0.0.1"
-        else:
-            proxy_str = None
-            resolver_rules = None
-        return sb.Driver(uc=True, headless=self.headless, binary_location=self.path_to_browser, host_resolver_rules=resolver_rules, proxy=proxy_str)
+        return sb.Driver(
+            uc=True,
+            headless=self.headless,
+            binary_location=self.path_to_browser,
+            host_resolver_rules=resolver_rules,
+            proxy=proxy_str,
+        )
 
     def _download_and_save(
         self,
@@ -798,3 +805,11 @@ def check_proxy(proxy: dict) -> bool:
     except Exception as error:
         logger.error(f"BAD PROXY: Reason: {error!s}\n")
         return False
+
+
+def safe_xpath_text(node, xpath_expr, warn=None):
+    result = node.xpath(xpath_expr)
+    if not result and warn is not None:
+        warnings.warn(warn, stacklevel=2)
+        return None
+    return result[0].strip()

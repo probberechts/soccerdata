@@ -107,7 +107,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5.6.0
         with:
-          python-version: "3.11"
+          python-version: "3.13"
       - name: Upgrade pip
         run: |
           pip install --constraint=.github/workflows/constraints.txt pip

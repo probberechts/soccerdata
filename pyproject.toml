@@ -22,7 +22,7 @@ Changelog = "https://github.com/probberechts/soccerdata/releases"
 python = ">=3.9,<3.13"
 html5lib = "^1.1"
 pandas = "^2.0.0, !=2.1.0"
-lxml = "^4.9.3"
+lxml = "^5.0.0"
 socceraction = {version="^1.5.3", optional=true}
 wrapper-tls-requests = "^1.1.4"
 tqdm = "^4.67.1"

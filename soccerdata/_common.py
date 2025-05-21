@@ -203,15 +203,8 @@ class BaseReader(ABC):
         Use a proxy to hide your IP address. Valid options are:
             - "tor": Uses the Tor network. Tor should be running in
               the background on port 9050.
-            - dict: A dictionary with the proxy to use. The dict should be
-              a mapping of supported protocols to proxy addresses. For example::
-
-                  {
-                      'http': 'http://10.10.1.10:3128',
-                      'https': 'http://10.10.1.10:1080',
-                  }
-
-            - list(dict): A list of proxies to choose from. A different proxy will
+            - str: The address of the proxy server to use.
+            - list(str): A list of proxies to choose from. A different proxy will
               be selected from this list after failed requests, allowing rotating
               proxies.
             - callable: A function that returns a valid proxy. This function will
@@ -227,27 +220,22 @@ class BaseReader(ABC):
     def __init__(
         self,
         leagues: Optional[Union[str, list[str]]] = None,
-        proxy: Optional[
-            Union[str, dict[str, str], list[dict[str, str]], Callable[[], dict[str, str]]]
-        ] = None,
+        proxy: Optional[Union[str, list[str], Callable[[], str]]] = None,
         no_cache: bool = False,
         no_store: bool = False,
         data_dir: Path = DATA_DIR,
     ):
         """Create a new data reader."""
         if isinstance(proxy, str) and proxy.lower() == "tor":
-            self.proxy = lambda: {
-                "http": "socks5://127.0.0.1:9050",
-                "https": "socks5://127.0.0.1:9050",
-            }
-        elif isinstance(proxy, dict):
+            self.proxy = lambda: "socks5://127.0.0.1:9050"
+        elif isinstance(proxy, str):
             self.proxy = lambda: proxy
         elif isinstance(proxy, list):
             self.proxy = lambda: random.choice(proxy)
         elif callable(proxy):
             self.proxy = proxy
         else:
-            self.proxy = dict
+            self.proxy = lambda: None  # type: ignore
 
         self._selected_leagues = leagues  # type: ignore
         self.no_cache = no_cache
@@ -484,9 +472,7 @@ class BaseRequestsReader(BaseReader):
     def __init__(
         self,
         leagues: Optional[Union[str, list[str]]] = None,
-        proxy: Optional[
-            Union[str, dict[str, str], list[dict[str, str]], Callable[[], dict[str, str]]]
-        ] = None,
+        proxy: Optional[Union[str, list[str], Callable[[], str]]] = None,
         no_cache: bool = False,
         no_store: bool = False,
         data_dir: Path = DATA_DIR,
@@ -503,13 +489,7 @@ class BaseRequestsReader(BaseReader):
         self._session = self._init_session()
 
     def _init_session(self) -> tls_requests.Client:
-        proxy = self.proxy()
-        proxy_url = None
-        for protocol in ["https", "http"]:
-            if protocol in proxy:
-                proxy_url = proxy[protocol]
-                break
-        return tls_requests.Client(proxy=proxy_url)
+        return tls_requests.Client(proxy=self.proxy())
 
     def _download_and_save(
         self,
@@ -559,9 +539,7 @@ class BaseSeleniumReader(BaseReader):
     def __init__(
         self,
         leagues: Optional[Union[str, list[str]]] = None,
-        proxy: Optional[
-            Union[str, dict[str, str], list[dict[str, str]], Callable[[], dict[str, str]]]
-        ] = None,
+        proxy: Optional[Union[str, list[str], Callable[[], str]]] = None,
         no_cache: bool = False,
         no_store: bool = False,
         data_dir: Path = DATA_DIR,
@@ -597,13 +575,9 @@ class BaseSeleniumReader(BaseReader):
         if hasattr(self, "_driver"):
             self._driver.quit()
         # Start a new driver
-        proxy = self.proxy()
-        proxy_str = None
+        proxy_str = self.proxy()
         resolver_rules = None
-        for protocol in ["https", "http"]:
-            if protocol in proxy:
-                proxy_str = proxy[protocol]
-                break
+        if proxy_str is not None:
             resolver_rules = "MAP * ~NOTFOUND , EXCLUDE 127.0.0.1"
         return sb.Driver(
             uc=True,

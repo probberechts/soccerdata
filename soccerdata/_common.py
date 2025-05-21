@@ -14,10 +14,10 @@ from typing import IO, Callable, Optional, Union
 
 import numpy as np
 import pandas as pd
-import requests
 import seleniumbase as sb
 import tls_requests
 from dateutil.relativedelta import relativedelta
+from lxml.etree import _Element
 from selenium.common.exceptions import JavascriptException, WebDriverException
 
 from ._config import DATA_DIR, LEAGUE_DICT, MAXAGE, TEAMNAME_REPLACEMENTS, logger
@@ -766,7 +766,7 @@ def get_proxy() -> dict[str, str]:
     # extracting json data from this list of proxies
     full_proxy_list = []
     for proxy_url in list_of_proxy_content:
-        proxy_json = json.loads(requests.get(proxy_url).text)["data"]
+        proxy_json = json.loads(tls_requests.get(proxy_url).text)["data"]
         full_proxy_list.extend(proxy_json)
 
         if not full_proxy_list:
@@ -800,14 +800,14 @@ def get_proxy() -> dict[str, str]:
 def check_proxy(proxy: dict) -> bool:
     """Check if proxy is working."""
     try:
-        r0 = requests.get("https://ipinfo.io/json", proxies=proxy, timeout=15)
+        r0 = tls_requests.get("https://ipinfo.io/json", proxies=proxy, timeout=15)
         return r0.status_code == 200
     except Exception as error:
         logger.error(f"BAD PROXY: Reason: {error!s}\n")
         return False
 
 
-def safe_xpath_text(node, xpath_expr, warn=None):
+def safe_xpath_text(node: _Element, xpath_expr: str, warn: Optional[str] = None) -> Optional[str]:
     result = node.xpath(xpath_expr)
     if not result and warn is not None:
         warnings.warn(warn, stacklevel=2)

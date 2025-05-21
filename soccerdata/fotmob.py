@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Callable, Optional, Union
 
 import pandas as pd
-import requests
+import tls_requests
 
 from ._common import BaseRequestsReader, add_standardized_team_name, make_game_id
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
@@ -79,12 +79,12 @@ class FotMob(BaseRequestsReader):
             (self.data_dir / "seasons").mkdir(parents=True, exist_ok=True)
             (self.data_dir / "matches").mkdir(parents=True, exist_ok=True)
 
-    def _init_session(self) -> requests.Session:
+    def _init_session(self) -> tls_requests.Client:
         session = super()._init_session()
         try:
-            r = requests.get("http://46.101.91.154:6006/")
+            r = tls_requests.get("http://46.101.91.154:6006/")
             r.raise_for_status()
-        except requests.exceptions.ConnectionError:
+        except tls_requests.exceptions.HTTPError:
             raise ConnectionError("Unable to connect to the session cookie server.")
         result = r.json()
         session.headers.update(result)

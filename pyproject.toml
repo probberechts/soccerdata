@@ -19,7 +19,7 @@ classifiers = [
 Changelog = "https://github.com/probberechts/soccerdata/releases"
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.13"
+python = ">=3.13,<3.14"
 html5lib = "^1.1"
 pandas = "^2.0.0, !=2.1.0"
 lxml = "^4.9.3"

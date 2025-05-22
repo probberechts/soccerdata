@@ -29,7 +29,7 @@ tqdm = "^4.67.1"
 rich = "^14.0.0"
 seleniumbase = "^4.38.2"
 unidecode = "^1.4.0"
-urllib3 = "<2"
+urllib3 = "<3"
 
 [tool.poetry.extras]
 socceraction = ["socceraction"]

@@ -13,6 +13,7 @@ from lxml import html
 from ._common import (
     BaseRequestsReader,
     add_standardized_team_name,
+    safe_xpath_text,
     standardize_colnames,
 )
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
@@ -229,7 +230,7 @@ class SoFIFA(BaseRequestsReader):
         """
         # build url
         urlmask = SO_FIFA_API + "/team/{}/?r={}&set=true"
-        filemask = str(self.data_dir / "players_{}_{}.html")
+        filemask = "players_{}_{}.html"
 
         # get list of teams
         df_teams = self.read_teams()
@@ -352,7 +353,11 @@ class SoFIFA(BaseRequestsReader):
                         "league": lkey,
                         "team": node.xpath(".//td[2]//a")[0].text,
                         **{
-                            desc: node.xpath(f".//td[@data-col='{key}']//text()")[0]
+                            desc: safe_xpath_text(
+                                node,
+                                f".//td[@data-col='{key}']//text()",
+                                warn=f"Could not parse {desc} ({key}) stat.",
+                            )
                             for key, desc in ratings.items()
                         },
                         **version.to_dict(),
@@ -483,5 +488,6 @@ class SoFIFA(BaseRequestsReader):
 
                 scores[s] = value if value is not None else None  # Assign only once
             ratings.append(scores)
+
         # return data frame
         return pd.DataFrame(ratings).pipe(standardize_colnames).set_index(["player"]).sort_index()

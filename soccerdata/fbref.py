@@ -79,7 +79,7 @@ class FBref(BaseRequestsReader):
             no_store=no_store,
             data_dir=data_dir,
         )
-        self.rate_limit = 6
+        self.rate_limit = 7
         self.seasons = seasons  # type: ignore
         # check if all top 5 leagues are selected
         if (

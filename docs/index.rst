@@ -26,13 +26,13 @@ websites, including `Club Elo`_, `ESPN`_, `FBref`_, `FiveThirtyEight`_,
 
    import soccerdata as sd
 
-   # Create a scraper class instance for the 2018/19 Premier League
-   five38 = sd.FiveThirtyEight('ENG-Premier League', '1819')
+   # Create a scraper class instance for the 2020/21 Premier League
+   fbref = sd.FBref('ENG-Premier League', '2021')
 
    # Fetch data
-   games = five38.read_games()
-   forecasts = five38.read_forecasts()
-   clinches = five38.read_clinches()
+   games = fbref.read_schedule()
+   team_season_stats = fbref.read_team_season_stats(stat_type="passing")
+   player_season_stats = fbref.read_player_season_stats(stat_type="standard")
 
 
 -------------------

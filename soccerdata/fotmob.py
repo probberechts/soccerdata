@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Callable, Optional, Union
 
 import pandas as pd
-import requests
+import tls_requests
 
 from ._common import BaseRequestsReader, add_standardized_team_name, make_game_id
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
@@ -29,19 +29,12 @@ class FotMob(BaseRequestsReader):
     seasons : string, int or list, optional
         Seasons to include. Supports multiple formats.
         Examples: '16-17'; 2016; '2016-17'; [14, 15, 16]
-    proxy : 'tor' or dict or list(dict) or callable, optional
+    proxy : 'tor' or or dict or list(dict) or callable, optional
         Use a proxy to hide your IP address. Valid options are:
-            - 'tor': Uses the Tor network. Tor should be running in
+            - "tor": Uses the Tor network. Tor should be running in
               the background on port 9050.
-            - dict: A dictionary with the proxy to use. The dict should be
-              a mapping of supported protocols to proxy addresses. For example::
-
-                  {
-                      'http': 'http://10.10.1.10:3128',
-                      'https': 'http://10.10.1.10:1080',
-                  }
-
-            - list(dict): A list of proxies to choose from. A different proxy will
+            - str: The address of the proxy server to use.
+            - list(str): A list of proxies to choose from. A different proxy will
               be selected from this list after failed requests, allowing rotating
               proxies.
             - callable: A function that returns a valid proxy. This function will
@@ -58,9 +51,7 @@ class FotMob(BaseRequestsReader):
         self,
         leagues: Optional[Union[str, list[str]]] = None,
         seasons: Optional[Union[str, int, Iterable[Union[str, int]]]] = None,
-        proxy: Optional[
-            Union[str, dict[str, str], list[dict[str, str]], Callable[[], dict[str, str]]]
-        ] = None,
+        proxy: Optional[Union[str, list[str], Callable[[], str]]] = None,
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
         data_dir: Path = FOTMOB_DATADIR,
@@ -79,12 +70,12 @@ class FotMob(BaseRequestsReader):
             (self.data_dir / "seasons").mkdir(parents=True, exist_ok=True)
             (self.data_dir / "matches").mkdir(parents=True, exist_ok=True)
 
-    def _init_session(self) -> requests.Session:
+    def _init_session(self) -> tls_requests.Client:
         session = super()._init_session()
         try:
-            r = requests.get("http://46.101.91.154:6006/")
+            r = tls_requests.get("http://46.101.91.154:6006/")
             r.raise_for_status()
-        except requests.exceptions.ConnectionError:
+        except tls_requests.exceptions.HTTPError:
             raise ConnectionError("Unable to connect to the session cookie server.")
         result = r.json()
         session.headers.update(result)

@@ -20,18 +20,16 @@ Changelog = "https://github.com/probberechts/soccerdata/releases"
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.13"
-PySocks = "^1.7.1"
-Unidecode = "^1.2.0"
-cloudscraper = "^1.2.71"
 html5lib = "^1.1"
 pandas = "^2.0.0, !=2.1.0"
-requests = "^2.23"
-rich = "^13.0.0"
-undetected-chromedriver = "^3.5.0"
-unicode = "^2.7"
 lxml = "^4.9.3"
 socceraction = {version="^1.5.3", optional=true}
-packaging = "^24.1"
+wrapper-tls-requests = "^1.1.4"
+tqdm = "^4.67.1"
+rich = "^14.0.0"
+seleniumbase = "^4.38.2"
+unidecode = "^1.4.0"
+urllib3 = "<2"
 
 [tool.poetry.extras]
 socceraction = ["socceraction"]
@@ -49,7 +47,7 @@ bumpversion = "^0.6.0"
 darglint = "^1.8.1"
 ruff = "*"
 mypy = "*"
-pep8-naming = "^0.14.0"
+pep8-naming = "^0.15.0"
 pre-commit = "^4.0.0"
 pre-commit-hooks = "^5.0.0"
 

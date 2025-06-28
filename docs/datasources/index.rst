@@ -66,19 +66,6 @@ FotMob
 
 -----
 
-FiveThirtyEight
-    `URL <https://projects.fivethirtyeight.com/soccer-predictions/>`__ |
-    :doc:`Example usage <FiveThirtyEight>` |
-    :doc:`API reference </reference/fivethirtyeight>`
-
-    .. code::
-
-      from soccerdata import FiveThirtyEight
-
-    Team's relative strengths as SPI ratings, predictions and results for the top European and American leagues.
-
------
-
 Football-Data.co.uk
     `URL <https://www.football-data.co.uk/data.php>`__ |
     :doc:`Example usage <MatchHistory>` |

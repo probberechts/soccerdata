@@ -12,14 +12,12 @@ from enum import Enum
 from pathlib import Path
 from typing import IO, Callable, Optional, Union
 
-import cloudscraper
 import numpy as np
 import pandas as pd
-import requests
-import selenium
-import undetected_chromedriver as uc
+import seleniumbase as sb
+import tls_requests
 from dateutil.relativedelta import relativedelta
-from packaging import version
+from lxml.etree import _Element
 from selenium.common.exceptions import JavascriptException, WebDriverException
 
 from ._config import DATA_DIR, LEAGUE_DICT, MAXAGE, TEAMNAME_REPLACEMENTS, logger
@@ -205,15 +203,8 @@ class BaseReader(ABC):
         Use a proxy to hide your IP address. Valid options are:
             - "tor": Uses the Tor network. Tor should be running in
               the background on port 9050.
-            - dict: A dictionary with the proxy to use. The dict should be
-              a mapping of supported protocols to proxy addresses. For example::
-
-                  {
-                      'http': 'http://10.10.1.10:3128',
-                      'https': 'http://10.10.1.10:1080',
-                  }
-
-            - list(dict): A list of proxies to choose from. A different proxy will
+            - str: The address of the proxy server to use.
+            - list(str): A list of proxies to choose from. A different proxy will
               be selected from this list after failed requests, allowing rotating
               proxies.
             - callable: A function that returns a valid proxy. This function will
@@ -229,27 +220,22 @@ class BaseReader(ABC):
     def __init__(
         self,
         leagues: Optional[Union[str, list[str]]] = None,
-        proxy: Optional[
-            Union[str, dict[str, str], list[dict[str, str]], Callable[[], dict[str, str]]]
-        ] = None,
+        proxy: Optional[Union[str, list[str], Callable[[], str]]] = None,
         no_cache: bool = False,
         no_store: bool = False,
         data_dir: Path = DATA_DIR,
     ):
         """Create a new data reader."""
         if isinstance(proxy, str) and proxy.lower() == "tor":
-            self.proxy = lambda: {
-                "http": "socks5://127.0.0.1:9050",
-                "https": "socks5://127.0.0.1:9050",
-            }
-        elif isinstance(proxy, dict):
+            self.proxy = lambda: "socks5://127.0.0.1:9050"
+        elif isinstance(proxy, str):
             self.proxy = lambda: proxy
         elif isinstance(proxy, list):
             self.proxy = lambda: random.choice(proxy)
         elif callable(proxy):
             self.proxy = proxy
         else:
-            self.proxy = dict
+            self.proxy = lambda: None  # type: ignore
 
         self._selected_leagues = leagues  # type: ignore
         self.no_cache = no_cache
@@ -486,9 +472,7 @@ class BaseRequestsReader(BaseReader):
     def __init__(
         self,
         leagues: Optional[Union[str, list[str]]] = None,
-        proxy: Optional[
-            Union[str, dict[str, str], list[dict[str, str]], Callable[[], dict[str, str]]]
-        ] = None,
+        proxy: Optional[Union[str, list[str], Callable[[], str]]] = None,
         no_cache: bool = False,
         no_store: bool = False,
         data_dir: Path = DATA_DIR,
@@ -504,12 +488,8 @@ class BaseRequestsReader(BaseReader):
 
         self._session = self._init_session()
 
-    def _init_session(self) -> requests.Session:
-        session = cloudscraper.create_scraper(
-            browser={"browser": "chrome", "platform": "linux", "mobile": False}
-        )
-        session.proxies.update(self.proxy())
-        return session
+    def _init_session(self) -> tls_requests.Client:
+        return tls_requests.Client(proxy=self.proxy())
 
     def _download_and_save(
         self,
@@ -520,7 +500,7 @@ class BaseRequestsReader(BaseReader):
         """Download file at url to filepath. Overwrites if filepath exists."""
         for i in range(5):
             try:
-                response = self._session.get(url, stream=True)
+                response = self._session.get(url)
                 time.sleep(self.rate_limit + random.random() * self.max_delay)
                 response.raise_for_status()
                 if var is not None:
@@ -559,9 +539,7 @@ class BaseSeleniumReader(BaseReader):
     def __init__(
         self,
         leagues: Optional[Union[str, list[str]]] = None,
-        proxy: Optional[
-            Union[str, dict[str, str], list[dict[str, str]], Callable[[], dict[str, str]]]
-        ] = None,
+        proxy: Optional[Union[str, list[str], Callable[[], str]]] = None,
         no_cache: bool = False,
         no_store: bool = False,
         data_dir: Path = DATA_DIR,
@@ -591,33 +569,23 @@ class BaseSeleniumReader(BaseReader):
                 e,
             )
 
-    def _init_webdriver(self) -> "uc.Chrome":
+    def _init_webdriver(self) -> "sb.Driver":
         """Start the Selenium driver."""
         # Quit existing driver
         if hasattr(self, "_driver"):
             self._driver.quit()
         # Start a new driver
-        chrome_options = uc.ChromeOptions()
-        if self.headless:
-            print("Starting ChromeDriver in headless mode.", selenium.__version__)
-            if version.parse(selenium.__version__) >= version.parse("4.13.0"):
-                raise ValueError(
-                    "Headless mode is not supported for Selenium 4.13.0 and above. "
-                    "Please downgrade to a lower version of Selenium or set "
-                    "'headless=False'."
-                )
-            chrome_options.add_argument("--headless")
-        else:
-            chrome_options.headless = False
-        if self.path_to_browser is not None:
-            chrome_options.add_argument("--binary-location=" + str(self.path_to_browser))
-        proxy = self.proxy()
-        if len(proxy):
-            proxy_str = ";".join(f"{prot}={url}" for prot, url in proxy.items())
+        proxy_str = self.proxy()
+        resolver_rules = None
+        if proxy_str is not None:
             resolver_rules = "MAP * ~NOTFOUND , EXCLUDE 127.0.0.1"
-            chrome_options.add_argument("--proxy-server=" + proxy_str)
-            chrome_options.add_argument("--host-resolver-rules=" + resolver_rules)
-        return uc.Chrome(options=chrome_options)
+        return sb.Driver(
+            uc=True,
+            headless=self.headless,
+            binary_location=self.path_to_browser,
+            host_resolver_rules=resolver_rules,
+            proxy=proxy_str,
+        )
 
     def _download_and_save(
         self,
@@ -772,7 +740,7 @@ def get_proxy() -> dict[str, str]:
     # extracting json data from this list of proxies
     full_proxy_list = []
     for proxy_url in list_of_proxy_content:
-        proxy_json = json.loads(requests.get(proxy_url).text)["data"]
+        proxy_json = json.loads(tls_requests.get(proxy_url).text)["data"]
         full_proxy_list.extend(proxy_json)
 
         if not full_proxy_list:
@@ -806,8 +774,16 @@ def get_proxy() -> dict[str, str]:
 def check_proxy(proxy: dict) -> bool:
     """Check if proxy is working."""
     try:
-        r0 = requests.get("https://ipinfo.io/json", proxies=proxy, timeout=15)
+        r0 = tls_requests.get("https://ipinfo.io/json", proxies=proxy, timeout=15)
         return r0.status_code == 200
     except Exception as error:
         logger.error(f"BAD PROXY: Reason: {error!s}\n")
         return False
+
+
+def safe_xpath_text(node: _Element, xpath_expr: str, warn: Optional[str] = None) -> Optional[str]:
+    result = node.xpath(xpath_expr)
+    if not result and warn is not None:
+        warnings.warn(warn, stacklevel=2)
+        return None
+    return result[0].strip()

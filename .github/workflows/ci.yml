@@ -33,7 +33,7 @@ jobs:
           path: tests/appdata/data
           key: cache-data-${{ runner.os }}-${{ matrix.python }}
       - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v5.4.0
+        uses: actions/setup-python@v5.6.0
         with:
           python-version: ${{ matrix.python }}
       - name: Upgrade pip
@@ -72,7 +72,7 @@ jobs:
 
           print("::set-output name=result::{}".format(result))
       - name: Restore pre-commit cache
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@v4.2.3
         if: matrix.session == 'pre-commit'
         with:
           path: ~/.cache/pre-commit
@@ -105,7 +105,7 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v4.2.2
       - name: Set up Python
-        uses: actions/setup-python@v5.4.0
+        uses: actions/setup-python@v5.6.0
         with:
           python-version: "3.11"
       - name: Upgrade pip
@@ -133,4 +133,4 @@ jobs:
         run: |
           nox --force-color --session=coverage -- xml
       - name: Upload coverage report
-        uses: codecov/codecov-action@v5.3.1
+        uses: codecov/codecov-action@v5.4.2

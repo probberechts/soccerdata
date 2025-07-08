@@ -2,7 +2,7 @@
 
 import json
 import re
-from datetime import timedelta
+from datetime import timedelta, datetime
 from itertools import product
 from pathlib import Path
 from typing import Callable, Optional, Union
@@ -16,7 +16,7 @@ from ._common import (
     safe_xpath_text,
     standardize_colnames,
 )
-from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
+from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger, MAXAGE
 
 SO_FIFA_DATADIR = DATA_DIR / "SoFIFA"
 SO_FIFA_API = "https://sofifa.com"
@@ -115,7 +115,7 @@ class SoFIFA(BaseRequestsReader):
             .loc[self._selected_leagues.keys()]
         )
 
-    def read_versions(self, max_age: Union[int, timedelta] = 1) -> pd.DataFrame:
+    def read_versions(self, max_age: Union[int, timedelta] = MAXAGE) -> pd.DataFrame:
         """Retrieve available FIFA releases and rating updates.
 
         Parameters
@@ -409,6 +409,8 @@ class SoFIFA(BaseRequestsReader):
         score_labels = [
             "Overall rating",
             "Potential",
+            "Value",
+            "Wage",
             "Crossing",
             "Finishing",
             "Heading accuracy",
@@ -472,6 +474,36 @@ class SoFIFA(BaseRequestsReader):
                 **version.to_dict(),
             }
 
+            # region basic info
+            basic_info_p=tree.xpath("//div[contains(@class, 'profile')]/p/text()")
+            basic_info=next((b for b in basic_info_p if b.strip()), None)
+            if not basic_info:
+                raise ValueError(f"Basic information not found for player {player}")
+            basic_info_match = re.match(
+    r"^(\d+)y\.o\..*?\((\w+\s\d{1,2},\s\d{4})[^)]*\)\s(\d+)cm.*\s(\d+)kg.*?$",
+    basic_info,
+)
+            if not basic_info_match:
+                raise ValueError(f"Basic information '{basic_info}' not recognized for player {player}")
+
+            scores["age"] = int(basic_info_match.group(1))
+            scores["birthdate"] = datetime.strptime(basic_info_match.group(2), "%b %d, %Y").strftime("%m-%d")
+            scores["height"] = int(basic_info_match.group(3))
+            scores["weight"] = int(basic_info_match.group(4))
+
+            scores["pos"]=tree.xpath("//div[contains(@class, 'profile')]/p/span/text()")[0]
+            scores["avatar"] = tree.xpath("//div[contains(@class, 'profile')]/img/@data-src")[0]
+            name_line=tree.xpath("//*[@id='head']/title/text()")[0]
+            scores["name"]=name_line.split("-")[0].strip()
+
+            capa=tree.xpath(r"//*[@id='body']/script[2]/text()")[0]
+            scores["pac"] =re.search(r"POINT_PAC=(\d+)", capa).group(1)
+            scores["sho"] = re.search(r"POINT_SHO=(\d+)", capa).group(1)
+            scores["pas"] = re.search(r"POINT_PAS=(\d+)", capa).group(1)
+            scores["dri"] = re.search(r"POINT_DRI=(\d+)", capa).group(1)
+            scores["def"] = re.search(r"POINT_DEF=(\d+)", capa).group(1)
+            scores["phy"] = re.search(r"POINT_PHY=(\d+)", capa).group(1)
+
             # Try each XPath until one returns a result
             for s in score_labels:
                 value = None
@@ -487,7 +519,20 @@ class SoFIFA(BaseRequestsReader):
                         break  # Stop checking other XPaths once we find a valid value
 
                 scores[s] = value if value is not None else None  # Assign only once
-            ratings.append(scores)
+            scores["Wage"] = remove_currency(scores["Wage"])
+            scores["Value"] = remove_currency(scores["Value"])
 
+            ratings.append(scores)
+            # endregion
         # return data frame
         return pd.DataFrame(ratings).pipe(standardize_colnames).set_index(["player"]).sort_index()
+
+def remove_currency(s):
+    digital_part = re.sub(r'[^\d\.]', '', s)
+    val = float(digital_part)
+    if 'M' in s:
+        return str(int(val * 1000000))
+    elif 'K' in s:
+        return str(int(val * 1000))
+    else:
+        return str(int(val))

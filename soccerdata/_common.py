@@ -237,7 +237,7 @@ class BaseReader(ABC):
         else:
             self.proxy = lambda: None  # type: ignore
 
-        self._selected_leagues = leagues  # type: ignore
+        self._selected_leagues = leagues
         self.no_cache = no_cache
         self.no_store = no_store
         self.data_dir = data_dir

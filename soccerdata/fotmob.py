@@ -64,7 +64,7 @@ class FotMob(BaseRequestsReader):
             no_store=no_store,
             data_dir=data_dir,
         )
-        self.seasons = seasons  # type: ignore
+        self.seasons = seasons
         if not self.no_store:
             (self.data_dir / "leagues").mkdir(parents=True, exist_ok=True)
             (self.data_dir / "seasons").mkdir(parents=True, exist_ok=True)

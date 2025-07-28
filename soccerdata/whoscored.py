@@ -166,7 +166,7 @@ class WhoScored(BaseSeleniumReader):
             path_to_browser=path_to_browser,
             headless=headless,
         )
-        self.seasons = seasons  # type: ignore
+        self.seasons = seasons
         self.rate_limit = 5
         self.max_delay = 5
         if not self.no_store:
@@ -379,7 +379,9 @@ class WhoScored(BaseSeleniumReader):
             it = [(year, month) for year in mask for month in mask[year]]
             for i, (year, month) in enumerate(it):
                 filepath = self.data_dir / filemask_schedule.format(lkey, skey, stage_id, month)
-                url = WHOSCORED_URL + f"/tournaments/{stage_id}/data/?d={year}{(int(month)+1):02d}"
+                url = (
+                    WHOSCORED_URL + f"/tournaments/{stage_id}/data/?d={year}{(int(month) + 1):02d}"
+                )
 
                 if stage_name is not None:
                     logger.info(

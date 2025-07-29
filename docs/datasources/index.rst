@@ -135,9 +135,9 @@ WhoScored
    ClubElo
    ESPN
    FBref
-   FiveThirtyEight
    FotMob
    MatchHistory
+   Sofascore
    SoFIFA
    Understat
    WhoScored

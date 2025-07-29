@@ -703,7 +703,7 @@ class WhoScored(BaseSeleniumReader):
                     no_cache=live,
                 )
                 reader_value = reader.read()
-                if retry_missing and reader_value == b"null" or reader_value == b"":
+                if (retry_missing and reader_value == b"null") or reader_value == b"":
                     reader = self.get(
                         url,
                         filepath,

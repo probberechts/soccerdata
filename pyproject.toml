@@ -1,86 +1,85 @@
-[tool.poetry]
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━ Build System ━━━━━━━━━━━━━━━━━━━━━━━━━━ #
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Project ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ #
+
+[project]
 name = "soccerdata"
 version = "1.8.7"
-description = "A collection of wrappers over soccer data from various websites / APIs."
-authors = ["Pieter Robberechts <pieter.robberechts@kuleuven.be>"]
+description = "A collection of scrapers for soccer data from various websites / APIs."
+authors = [
+    { name = "Pieter Robberechts", email = "pieter.robberechts@kuleuven.be"}
+]
 license = "Apache-2.0"
 readme = 'README.rst'
-homepage = "https://github.com/probberechts/soccerdata"
-repository = "https://github.com/probberechts/soccerdata"
-documentation = "https://soccerdata.readthedocs.io"
 keywords = ["soccer", "football", "soccer data", "web scraping", "soccer analytics"]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent"
 ]
 
-[tool.poetry.urls]
+# ━━━━━━━━━━━━━━━━━━━━━━ Primary Dependencies ━━━━━━━━━━━━━━━━━━━━━━ #
+
+requires-python = ">=3.9,<3.13"
+dependencies = [
+    "html5lib>=1.1,<2.0.0",
+    "pandas>=2.0.0,!=2.1.0,<3.0.0",
+    "lxml>=4.9.3,<5.0.0",
+    "wrapper-tls-requests>=1.1.4,<2.0.0",
+    "tqdm>=4.67.1,<5.0.0",
+    "rich>=14.0.0,<15.0.0",
+    "seleniumbase>=4.38.2,<5.0.0",
+    "unidecode>=1.4.0,<2.0.0",
+    "urllib3<2",
+]
+
+[project.optional-dependencies]
+socceraction = [
+    "socceraction",
+]
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ URLs ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ #
+[project.urls]
+Homepage = "https://github.com/probberechts/soccerdata"
+Repository = "https://github.com/probberechts/soccerdata"
+Documentation = "https://soccerdata.readthedocs.io"
 Changelog = "https://github.com/probberechts/soccerdata/releases"
 
-[tool.poetry.dependencies]
-python = ">=3.9,<3.13"
-html5lib = "^1.1"
-pandas = "^2.0.0, !=2.1.0"
-lxml = "^4.9.3"
-socceraction = {version="^1.5.3", optional=true}
-wrapper-tls-requests = "^1.1.4"
-tqdm = "^4.67.1"
-rich = "^14.0.0"
-seleniumbase = "^4.38.2"
-unidecode = "^1.4.0"
-urllib3 = "<2"
+# ━━━━━━━━━━━━━━━━━━━━━━━ Extra Dependencies ━━━━━━━━━━━━━━━━━━━━━━━ #
 
-[tool.poetry.extras]
-socceraction = ["socceraction"]
+[dependency-groups]
+dev = [ # Development tools
+    "ruff", # latest version, unpinned
+    "mypy", # latest version, unpinned
+    "pre-commit>=4.0.0,<5.0.0",
+    "pytest>=8.0.0,<9.0.0",
+    "pytest-mock>=3.10.0,<4.0.0",
+    "coverage[toml]>=7.0,<8.0",
+    "time-machine>=2.8.2,<3.0.0",
+    "pyright>=1.1.403",
+    "bump-my-version>=1.2.1",
+]
 
-[tool.poetry.group.test.dependencies]
-pytest = "^8.0.0"
-pytest-deadfixtures = "^2.2.1"
-pytest-mock = "^3.10.0"
-coverage = {version = "^7.0", extras = ["toml"]}
-time-machine = "^2.8.2"
+dev-doc = [ # Documentation tools
+    "Sphinx>=7.0.0,<8.0.0",
+    "furo>=2024.0.0,<2025.0.0",
+    "nbsphinx>=0.9.0,<1.0.0",
+    "sphinx-autobuild>=2024.0.0,<2025.0.0",
+    "ipykernel>=6.29.5",
+    "matplotlib>=3.9.4",
+    "seaborn>=0.13.2",
+]
 
-[tool.poetry.group.dev.dependencies]
-Pygments = "^2.13.0"
-bumpversion = "^0.6.0"
-darglint = "^1.8.1"
-ruff = "*"
-mypy = "*"
-pep8-naming = "^0.15.0"
-pre-commit = "^4.0.0"
-pre-commit-hooks = "^5.0.0"
+[tool.uv]
+default-groups = [
+  # "dev",
+]
 
-[tool.poetry.group.docs.dependencies]
-Sphinx = "^7.0.0"
-furo = "^2024.0.0"
-nbsphinx = "^0.9.0"
-sphinx-autobuild = "^2024.0.0"
-
-[tool.coverage.paths]
-source = ["soccerdata", "*/site-packages"]
-tests = ["tests", "*/tests"]
-
-[tool.coverage.run]
-branch = true
-source = ["soccerdata", "tests"]
-
-[tool.coverage.report]
-show_missing = true
-ignore_errors = true
-
-[tool.mypy]
-ignore_missing_imports = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-no_implicit_optional = true
-check_untyped_defs = true
-show_error_codes = true
-warn_unused_ignores = true
-
-[[tool.mypy.overrides]]
-module = ["tests.*"]
-disallow_untyped_defs = false
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Ruff ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ #
 
 [tool.ruff]
 src = ['soccerdata', 'tests']
@@ -88,32 +87,6 @@ line-length = 99
 target-version = 'py39'
 
 [tool.ruff.lint]
-select = [
-  'A',
-  'ARG',
-  'B',
-  'B9',
-  'C',
-  'C4',
-  'D',
-  'DTZ',
-  'E',
-  'F',
-  'I',
-  'N',
-  'PIE',
-  'PT',
-  'PTH',
-  'Q',
-  'RET',
-  'RUF',
-  'SIM',
-  'SLF',
-  'T10',
-  'TCH',
-  'UP',
-  'W',
-]
 ignore = ['B904']
 
 [tool.ruff.lint.per-file-ignores]
@@ -138,6 +111,82 @@ convention = 'numpy'
 [tool.ruff.lint.isort]
 known-first-party = ["soccerdata", "tests"]
 
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Pytest ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ #
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+log_file = "./logs/pytest.log"
+addopts = """
+--tb=long
+--code-highlight=yes
+"""
+
+[tool.coverage.paths]
+source = ["soccerdata", "*/site-packages"]
+tests = ["tests", "*/tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["soccerdata", "tests"]
+
+[tool.coverage.report]
+show_missing = true
+ignore_errors = true
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ MyPy ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ #
+
+[tool.mypy]
+ignore_missing_imports = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+no_implicit_optional = true
+check_untyped_defs = true
+show_error_codes = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Pyright ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ #
+
+[tool.pyright]
+include = ["soccerdata"]
+exclude = [
+  "**/__pycache__",
+  ".venv",
+]
+venvPath = "."
+venv = ".venv"
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ bumpversion ━━━━━━━━━━━━━━━━━━━━━━━━━━━ #
+
+[tool.bumpversion]
+current_version = "1.8.7"
+parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
+serialize = ["{major}.{minor}.{patch}"]
+search = "{current_version}"
+replace = "{new_version}"
+regex = false
+ignore_missing_version = false
+ignore_missing_files = false
+tag = false
+sign_tags = false
+tag_name = "v{new_version}"
+tag_message = "Bump version: {current_version} → {new_version}"
+allow_dirty = false
+commit = true
+message = "Bump version: {current_version} → {new_version}"
+moveable_tags = []
+commit_args = ""
+setup_hooks = []
+pre_commit_hooks = []
+post_commit_hooks = []
+
+
+[[tool.bumpversion.files]]
+filename = "soccerdata/__init__.py"
+
+[[tool.bumpversion.files]]
+filename = "docs/conf.py"

@@ -76,7 +76,8 @@ dev-doc = [ # Documentation tools
 
 [tool.uv]
 default-groups = [
-  # "dev",
+    "dev",
+    "dev-doc",
 ]
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Ruff ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ #

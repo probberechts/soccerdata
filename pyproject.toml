@@ -58,10 +58,10 @@ dev = [ # Development tools
     "pre-commit>=4.0.0,<5.0.0",
     "pytest>=8.0.0,<9.0.0",
     "pytest-mock>=3.10.0,<4.0.0",
-    "coverage[toml]>=7.0,<8.0",
     "time-machine>=2.8.2,<3.0.0",
     "pyright>=1.1.403",
     "bump-my-version>=1.2.1",
+    "pytest-cov>=6.2.1",
 ]
 
 dev-doc = [ # Documentation tools

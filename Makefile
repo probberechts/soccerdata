@@ -46,9 +46,8 @@ _clean-python: ## Clean all compiled Python files
 
 test: ## Run all tests
 	SOCCERDATA_DIR=$(SOCCERDATA_DIR) MAX_AGE=604800 \
-		       coverage run --parallel -m pytest \
-		        -vvv --durations=0 \
-			-m "not e2e and not fails_gha"
+		       pytest \
+			--cov=$(MODULE_NAME)
 
 test-fastest: ## Run tests with fail-fast option
 	SOCCERDATA_DIR=$(SOCCERDATA_DIR) MAX_AGE=604800 \

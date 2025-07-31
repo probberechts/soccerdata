@@ -91,6 +91,12 @@ repos:
       - id: uv-export
         name: "⚡️ uv · Export dependencies to requirements.txt"
         args: ["--no-hashes", "--output-file=requirements.txt"]
+      - id: uv-export
+        name: "⚡️ uv · Export dev requirements"
+        args: ["--no-hashes", "--output-file=requirements.txt"]
+      - id: uv-export
+        name: "⚡️ uv · Export docs requirements"
+        args: ["--no-hashes", "--only-group=docs", "--output-file=docs/requirements.txt"]
 
   # ---------------------------- 📁 Filesystem Tools --------------------------- #
   - repo: https://github.com/pre-commit/pre-commit-hooks

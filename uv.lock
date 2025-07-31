@@ -3039,26 +3039,32 @@ socceraction = [
 ]
 
 [package.dev-dependencies]
-dev = [
-    { name = "bump-my-version" },
+docs = [
+    { name = "furo" },
+    { name = "nbsphinx" },
+    { name = "sphinx" },
+    { name = "sphinx-autobuild" },
+]
+lint = [
     { name = "mypy" },
     { name = "pre-commit" },
     { name = "pyright" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "pytest-mock" },
     { name = "ruff" },
-    { name = "time-machine" },
 ]
-dev-doc = [
-    { name = "furo" },
+notebooks = [
     { name = "ipykernel" },
     { name = "matplotlib", version = "3.9.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "matplotlib", version = "3.10.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
-    { name = "nbsphinx" },
     { name = "seaborn" },
-    { name = "sphinx" },
-    { name = "sphinx-autobuild" },
+]
+release = [
+    { name = "bump-my-version" },
+]
+test = [
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "pytest-mock" },
+    { name = "time-machine" },
 ]
 
 [package.metadata]
@@ -3077,25 +3083,29 @@ requires-dist = [
 provides-extras = ["socceraction"]
 
 [package.metadata.requires-dev]
-dev = [
-    { name = "bump-my-version", specifier = ">=1.2.1" },
+docs = [
+    { name = "furo", specifier = ">=2024.0.0,<2025.0.0" },
+    { name = "nbsphinx", specifier = ">=0.9.0,<1.0.0" },
+    { name = "sphinx", specifier = ">=7.0.0,<8.0.0" },
+    { name = "sphinx-autobuild", specifier = ">=2024.0.0,<2025.0.0" },
+]
+lint = [
     { name = "mypy" },
     { name = "pre-commit", specifier = ">=4.0.0,<5.0.0" },
     { name = "pyright", specifier = ">=1.1.403" },
+    { name = "ruff" },
+]
+notebooks = [
+    { name = "ipykernel", specifier = ">=6.29.5" },
+    { name = "matplotlib", specifier = ">=3.9.4" },
+    { name = "seaborn", specifier = ">=0.13.2" },
+]
+release = [{ name = "bump-my-version", specifier = ">=1.2.1" }]
+test = [
     { name = "pytest", specifier = ">=8.0.0,<9.0.0" },
     { name = "pytest-cov", specifier = ">=6.2.1" },
     { name = "pytest-mock", specifier = ">=3.10.0,<4.0.0" },
-    { name = "ruff" },
     { name = "time-machine", specifier = ">=2.8.2,<3.0.0" },
-]
-dev-doc = [
-    { name = "furo", specifier = ">=2024.0.0,<2025.0.0" },
-    { name = "ipykernel", specifier = ">=6.29.5" },
-    { name = "matplotlib", specifier = ">=3.9.4" },
-    { name = "nbsphinx", specifier = ">=0.9.0,<1.0.0" },
-    { name = "seaborn", specifier = ">=0.13.2" },
-    { name = "sphinx", specifier = ">=7.0.0,<8.0.0" },
-    { name = "sphinx-autobuild", specifier = ">=2024.0.0,<2025.0.0" },
 ]
 
 [[package]]

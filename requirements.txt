@@ -198,7 +198,7 @@ kiwisolver==1.4.7 ; python_full_version < '3.10'
     # via matplotlib
 kiwisolver==1.4.8 ; python_full_version >= '3.10'
     # via matplotlib
-lxml==4.9.4
+lxml==6.0.0
     # via soccerdata
 markdown-it-py==3.0.0
     # via

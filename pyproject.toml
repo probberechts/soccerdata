@@ -28,13 +28,14 @@ requires-python = ">=3.9,<3.14"
 dependencies = [
     "html5lib>=1.1,<2.0.0",
     "pandas>=2.0.0,!=2.1.0,<3.0.0",
-    "lxml>=4.9.3,<5.0.0",
     "wrapper-tls-requests>=1.1.4,<2.0.0",
     "tqdm>=4.67.1,<5.0.0",
     "rich>=14.0.0,<15.0.0",
     "seleniumbase>=4.38.2,<5.0.0",
     "unidecode>=1.4.0,<2.0.0",
     "urllib3<2",
+    "lxml>=5.0.0; python_version >= '3.13'",
+    "lxml>=4.9.4; python_version < '3.13'"
 ]
 
 [project.optional-dependencies]

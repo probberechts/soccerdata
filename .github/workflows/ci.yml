@@ -43,6 +43,8 @@ jobs:
 
       - name: Run tests
         run: uv run python -m pytest tests --cov --cov-config=pyproject.toml --cov-report=xml
+        env:
+          SOCCERDATA_DIR: tests/appdata
 
       - name: Check typing
         run: uv run mypy

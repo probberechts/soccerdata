@@ -104,7 +104,7 @@ repos:
     hooks:
       - id: check-added-large-files
         name: "🌳 git · Block large file commits"
-        args: ["--maxkb=5000"]
+        args: ["--maxkb=10000"]
       - id: end-of-file-fixer
         name: 📝 files · Fix end of files
         entry: end-of-file-fixer

@@ -116,15 +116,15 @@ def test_make_game_id():
 def test_add_alt_team_names():
     # "Valencia" is replaced by "Valencia CF"
     assert add_alt_team_names("Valencia CF") == {"Valencia", "Valencia CF"}
-    # "Real Madrid" is not replaced
-    assert add_alt_team_names("Real Madrid") == {"Real Madrid"}
+    # "Arsenal" is not replaced
+    assert add_alt_team_names("Arsenal") == {"Arsenal"}
 
 
 def test_add_standardize_team_name():
     # "Valencia" is replaced by "Valencia CF"
     assert add_standardized_team_name("Valencia") == {"Valencia", "Valencia CF"}
     # "Real Madrid" is not replaced
-    assert add_standardized_team_name("Real Madrid") == {"Real Madrid"}
+    assert add_standardized_team_name("Arsenal") == {"Arsenal"}
 
 
 # standardize_colnames

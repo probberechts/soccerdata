@@ -29,7 +29,7 @@ help: ## Show this help message
 
 .PHONY: clean _clean-mac _clean-python
 
-clean: _clean-mac _clean-python ## Delete all compiled Python files and LaTeX build artifacts
+clean: _clean-mac _clean-python ## Delete all compiled Python files and macOS-related files
 	find . -type d -name ".cache" -delete
 
 _clean-mac: ## Clean macOS-related files
@@ -49,13 +49,13 @@ test: ## Run all tests
 		       pytest \
 			--cov=$(MODULE_NAME)
 
-test-fastest: ## Run tests with fail-fast option
+test-class: ## Run tests in a specific class
 	SOCCERDATA_DIR=$(SOCCERDATA_DIR) MAX_AGE=604800 \
-		pytest -FFF
+		pytest -k "$(filter-out $@,$(MAKECMDGOALS))" --cov=$(MODULE_NAME)
 
 test-continuous: ## Run tests in watch mode using pytest-watcher
 	SOCCERDATA_DIR=$(SOCCERDATA_DIR) MAX_AGE=604800 \
-		ptw . --now --runner pytest --config-file pyproject.toml -vvv -FFF
+		ptw . --now --runner pytest --config-file pyproject.toml
 
 test-debug-last: ## Debug last failed test with pdb
 	SOCCERDATA_DIR=$(SOCCERDATA_DIR) MAX_AGE=604800 \

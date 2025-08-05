@@ -60,3 +60,9 @@ def test_read_team_history_bad_params(elo: ClubElo) -> None:
     """It should raise an error if the parameters are invalid."""
     with pytest.raises(TypeError, match="'max_age' must be of type int or datetime.timedelta"):
         elo.read_team_history("Feyenoord", max_age=datetime.now(tz=timezone.utc))  # type: ignore
+
+
+def test_read_team_history_special_charachters(elo: ClubElo) -> None:
+    """It should be able to deal with special characters in team names."""
+    with pytest.raises(ValueError, match="No data found for team Team & City"):
+        assert isinstance(elo.read_team_history("Team & City"), pd.DataFrame)

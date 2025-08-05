@@ -4,7 +4,6 @@ import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import IO, Callable, Optional, Union
-
 import pandas as pd
 from unidecode import unidecode
 
@@ -144,7 +143,7 @@ class ClubElo(BaseRequestsReader):
 
         for _team in teams_to_check:
             filepath = self.data_dir / f"{_team}.csv"
-            url = f"{CLUB_ELO_API}/{_team}"
+            url = f"{CLUB_ELO_API}/{re.sub(r'[^a-zA-Z]', '', _team)}"
             data = self.get(url, filepath, max_age)
 
             df = (

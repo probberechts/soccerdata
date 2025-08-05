@@ -47,7 +47,7 @@ jobs:
           SOCCERDATA_DIR: tests/appdata
 
       - name: Check typing
-        run: uv run mypy
+        run: uv run mypy --install-types --non-interactive --config-file pyproject.toml soccerdata tests
 
       - name: Upload coverage reports to Codecov with GitHub Action on Python 3.11 for Ubuntu
         uses: codecov/codecov-action@v3

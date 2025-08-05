@@ -24,7 +24,7 @@ classifiers = [
 
 # ━━━━━━━━━━━━━━━━━━━━━━ Primary Dependencies ━━━━━━━━━━━━━━━━━━━━━━ #
 
-requires-python = ">=3.9,<3.13"
+requires-python = ">=3.9,<3.14"
 dependencies = [
     "html5lib>=1.1,<2.0.0",
     "pandas>=2.0.0,!=2.1.0,<3.0.0",

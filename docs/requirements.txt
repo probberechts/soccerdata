@@ -2,7 +2,7 @@
 #    uv export --no-hashes --only-group=docs --output-file=docs/requirements.txt
 alabaster==0.7.16
     # via sphinx
-anyio==4.9.0
+anyio==4.10.0
     # via
     #   starlette
     #   watchfiles
@@ -18,7 +18,7 @@ beautifulsoup4==4.13.4
     #   nbconvert
 bleach==6.2.0
     # via nbconvert
-certifi==2025.7.14
+certifi==2025.8.3
     # via requests
 cffi==1.17.1 ; implementation_name == 'pypy'
     # via pyzmq
@@ -111,7 +111,7 @@ python-dateutil==2.9.0.post0
     # via jupyter-client
 pywin32==311 ; platform_python_implementation != 'PyPy' and sys_platform == 'win32'
     # via jupyter-core
-pyzmq==27.0.0
+pyzmq==27.0.1
     # via jupyter-client
 referencing==0.36.2
     # via

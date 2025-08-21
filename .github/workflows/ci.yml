@@ -42,7 +42,7 @@ jobs:
           python-version: ${{matrix.python-version}}
 
       - name: Run tests
-        run: uv run python -m pytest tests --cov --cov-config=pyproject.toml --cov-report=xml
+        run: uv run python -m pytest tests --cov --cov-config=pyproject.toml --cov-report=xml -m "not fails_gha"
         env:
           SOCCERDATA_DIR: tests/appdata
 

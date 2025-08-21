@@ -6,6 +6,7 @@ import logging.config
 import os
 import sys
 from pathlib import Path
+from typing import Dict, List
 
 from rich.logging import RichHandler
 
@@ -76,7 +77,7 @@ logger = logging.getLogger("root")
 logger.handlers[0] = RichHandler(markup=True)
 
 # Team name replacements
-TEAMNAME_REPLACEMENTS = {}
+TEAMNAME_REPLACEMENTS: Dict[str, List[str]] = {}
 _f_custom_teamnname_replacements = CONFIG_DIR / "teamname_replacements.json"
 if _f_custom_teamnname_replacements.is_file():
     with _f_custom_teamnname_replacements.open(encoding="utf8") as json_file:

@@ -4,6 +4,7 @@ import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import IO, Callable, Optional, Union
+
 import pandas as pd
 from unidecode import unidecode
 
@@ -109,9 +110,7 @@ class ClubElo(BaseRequestsReader):
             .set_index("team")
         )
 
-    def read_team_history(
-        self, team: str, max_age: Union[int, timedelta] = 1
-    ) -> Optional[pd.DataFrame]:
+    def read_team_history(self, team: str, max_age: Union[int, timedelta] = 1) -> pd.DataFrame:
         """Retrieve full ELO history for one club.
 
         For the exact spelling of a club's name, check the result of

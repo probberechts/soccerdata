@@ -8,6 +8,9 @@ jobs:
     steps:
       - name: Check out
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
 
       - uses: actions/cache@v4
         with:
@@ -24,11 +27,13 @@ jobs:
 
       - name: Commit changes if needed
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add requirements.txt docs/requirements.txt
-          git diff --staged --quiet || git commit -m "chore: update requirements.txt files"
-          git push
+          if ! git diff --quiet requirements.txt docs/requirements.txt; then
+            git config --local user.email "action@github.com"
+            git config --local user.name "GitHub Action"
+            git add requirements.txt docs/requirements.txt
+            git diff --staged --quiet || git commit -m "chore: update requirements.txt files"
+            git push
+          fi
 
       - name: Run pre-commit
         run: uv run pre-commit run -a --show-diff-on-failure

@@ -1,5 +1,15 @@
 {
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:base", ":automergePatch"],
   "stabilityDays": 7,
-  "addLabels": ["dependencies"]
+  "addLabels": ["dependencies"],
+
+  "postUpgradeTasks": {
+    "commands": [
+      "uv export --no-hashes --output-file=requirements.txt",
+      "uv export --no-hashes --only-group=docs --output-file=docs/requirements.txt"
+    ],
+    "fileFilters": ["requirements.txt", "docs/requirements.txt"],
+    "executionMode": "branch"
+  }
 }

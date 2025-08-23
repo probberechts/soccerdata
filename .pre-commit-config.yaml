@@ -89,10 +89,7 @@ repos:
       - id: uv-lock
         name: "⚡️ uv · Update dependency lockfile"
       - id: uv-export
-        name: "⚡️ uv · Export dependencies to requirements.txt"
-        args: ["--no-hashes", "--output-file=requirements.txt"]
-      - id: uv-export
-        name: "⚡️ uv · Export dev requirements"
+        name: "⚡️ uv · Export dev dependencies to requirements.txt"
         args: ["--no-hashes", "--output-file=requirements.txt"]
       - id: uv-export
         name: "⚡️ uv · Export docs requirements"

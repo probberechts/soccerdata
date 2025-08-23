@@ -91,7 +91,7 @@ cfgv==3.4.0
     # via pre-commit
 chardet==5.2.0
     # via seleniumbase
-charset-normalizer==3.4.2
+charset-normalizer==3.4.3
     # via
     #   requests
     #   seleniumbase

@@ -22,7 +22,7 @@ certifi==2025.8.3
     # via requests
 cffi==1.17.1 ; implementation_name == 'pypy'
     # via pyzmq
-charset-normalizer==3.4.2
+charset-normalizer==3.4.3
     # via requests
 click==8.1.8 ; python_full_version < '3.10'
     # via uvicorn

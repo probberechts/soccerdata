@@ -17,6 +17,19 @@ jobs:
       - name: Set up the environment
         uses: ./.github/actions/setup-python-env
 
+      - name: Regenerate requirements.txt
+        run: |
+          uv export --no-hashes --output-file=requirements.txt
+          uv export --no-hashes --only-group=docs --output-file=docs/requirements.txt
+
+      - name: Commit changes if needed
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add requirements.txt docs/requirements.txt
+          git diff --staged --quiet || git commit -m "chore: update requirements.txt files"
+          git push
+
       - name: Run pre-commit
         run: uv run pre-commit run -a --show-diff-on-failure
 

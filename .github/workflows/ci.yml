@@ -68,7 +68,7 @@ jobs:
         run: uv run dvc remote modify --local myremote credentialpath credentials.json
 
       - name: Cache DVC
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: .dvc/cache
           key: dvc-cache-${{ hashFiles('**/dvc.lock') }}

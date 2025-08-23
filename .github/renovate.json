@@ -3,13 +3,5 @@
   "extends": ["config:base", ":automergePatch"],
   "stabilityDays": 7,
   "addLabels": ["dependencies"],
-
-  "postUpgradeTasks": {
-    "commands": [
-      "uv export --no-hashes --output-file=requirements.txt",
-      "uv export --no-hashes --only-group=docs --output-file=docs/requirements.txt"
-    ],
-    "fileFilters": ["requirements.txt", "docs/requirements.txt"],
-    "executionMode": "branch"
-  }
+  "ignorePaths": ["requirements.txt", "docs/requirements.txt"]
 }

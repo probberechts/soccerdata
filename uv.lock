@@ -5208,9 +5208,6 @@ socceraction = [
 ]
 
 [package.dev-dependencies]
-dev = [
-    { name = "dvc", extra = ["gs"] },
-]
 docs = [
     { name = "furo" },
     { name = "nbsphinx" },
@@ -5233,6 +5230,7 @@ release = [
     { name = "bump-my-version" },
 ]
 test = [
+    { name = "dvc", extra = ["gs"] },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-mock" },
@@ -5256,7 +5254,6 @@ requires-dist = [
 provides-extras = ["socceraction"]
 
 [package.metadata.requires-dev]
-dev = [{ name = "dvc", extras = ["gs"], specifier = ">=3.62.0" }]
 docs = [
     { name = "furo", specifier = ">=2024.0.0,<2025.0.0" },
     { name = "nbsphinx", specifier = ">=0.9.0,<1.0.0" },
@@ -5276,6 +5273,7 @@ notebooks = [
 ]
 release = [{ name = "bump-my-version", specifier = ">=1.2.1" }]
 test = [
+    { name = "dvc", extras = ["gs"], specifier = ">=3.62.0" },
     { name = "pytest", specifier = ">=8.0.0,<9.0.0" },
     { name = "pytest-cov", specifier = ">=6.2.1" },
     { name = "pytest-mock", specifier = ">=3.10.0,<4.0.0" },

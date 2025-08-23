@@ -67,6 +67,7 @@ test = [
     "pytest-mock>=3.10.0,<4.0.0",
     "pytest-cov>=6.2.1",
     "time-machine>=2.8.2,<3.0.0",
+    "dvc[gs]>=3.62.0",
 ]
 
 # Versioning and automation
@@ -87,9 +88,6 @@ notebooks = [
     "ipykernel>=6.29.5",
     "matplotlib>=3.9.4",
     "seaborn>=0.13.2",
-]
-dev = [
-    "dvc[gs]>=3.62.0",
 ]
 
 [tool.uv]

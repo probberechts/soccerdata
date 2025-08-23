@@ -136,9 +136,9 @@ comm==0.2.3
     # via ipykernel
 configobj==5.0.9
     # via dvc
-contourpy==1.3.3 ; python_full_version < '3.10'
+contourpy==1.3.0 ; python_full_version < '3.10'
     # via matplotlib
-contourpy==1.3.3 ; python_full_version == '3.10.*'
+contourpy==1.3.2 ; python_full_version == '3.10.*'
     # via matplotlib
 contourpy==1.3.3 ; python_full_version >= '3.11'
     # via matplotlib

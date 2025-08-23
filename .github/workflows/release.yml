@@ -35,7 +35,8 @@ jobs:
       - name: Bump version for developmental release
         if: "! steps.check-version.outputs.tag"
         run: |
-          uv run bump-my-version dev
+          next=$(uv run bump-my-version show new_version --increment patch)
+          uv run bump-my-version bump --new-version "${next}.dev.$(date +%s)"
 
       - name: Build package
         run: |

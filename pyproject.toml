@@ -184,27 +184,20 @@ venv = ".venv"
 
 [tool.bumpversion]
 current_version = "1.8.7"
-parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
-serialize = ["{major}.{minor}.{patch}"]
-search = "{current_version}"
-replace = "{new_version}"
-regex = false
-ignore_missing_version = false
-ignore_missing_files = false
-tag = false
-sign_tags = false
-tag_name = "v{new_version}"
-tag_message = "Bump version: {current_version} → {new_version}"
-allow_dirty = false
-commit = true
-message = "Bump version: {current_version} → {new_version}"
-moveable_tags = []
-commit_args = ""
-setup_hooks = []
-pre_commit_hooks = []
-post_commit_hooks = []
+parse = """(?x)
+(?P<major>0|[1-9]\\d*)\\.
+(?P<minor>0|[1-9]\\d*)\\.
+(?P<patch>0|[1-9]\\d*)
+(?:\\.dev(?P<dev>0|[1-9]\\d*))?
+"""
+serialize = [
+  "{major}.{minor}.{patch}.dev{dev}",
+  "{major}.{minor}.{patch}"
+]
 
-
+[tool.bumpversion.parts.dev]
+type = "int"
+optional = true
 [[tool.bumpversion.files]]
 filename = "soccerdata/__init__.py"
 

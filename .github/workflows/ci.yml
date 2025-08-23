@@ -49,6 +49,14 @@ jobs:
       - name: Modify DVC Remote
         run: uv run dvc remote modify --local myremote credentialpath credentials.json
 
+      - name: Cache DVC
+        uses: actions/cache@v3
+        with:
+          path: .dvc/cache
+          key: dvc-cache-${{ hashFiles('**/dvc.lock') }}
+          restore-keys: |
+            dvc-cache-
+
       - name: DVC Pull Data
         run: uv run dvc pull -v
 
@@ -73,7 +81,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'  # match what's in .readthedocs.yml
+          python-version: "3.11" # match what's in .readthedocs.yml
 
       - name: Install system dependencies
         run: |

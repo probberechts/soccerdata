@@ -237,7 +237,7 @@ class BaseReader(ABC):
         else:
             self.proxy = lambda: None  # type: ignore
 
-        self._selected_leagues = leagues  # type: ignore
+        self._selected_leagues = leagues
         self.no_cache = no_cache
         self.no_store = no_store
         self.data_dir = data_dir
@@ -699,11 +699,11 @@ def add_standardized_team_name(team: Union[str, list[str]]) -> set[str]:
     """
     teams = [team] if isinstance(team, str) else team
     std_teams = set()
-    for team in teams:
+    for _team in teams:
         for alt_name, norm_name in TEAMNAME_REPLACEMENTS.items():
-            if alt_name == team:
+            if alt_name == _team:
                 std_teams.add(norm_name)
-        std_teams.add(team)
+        std_teams.add(_team)
     return std_teams
 
 

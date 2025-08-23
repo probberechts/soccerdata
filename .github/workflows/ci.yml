@@ -3,134 +3,97 @@ on:
   - push
   - pull_request
 jobs:
-  tests:
-    name: ${{ matrix.session }} ${{ matrix.python }} / ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - {python: "3.11", os: "ubuntu-latest", session: "pre-commit"}
-          - {python: "3.11", os: "ubuntu-latest", session: "mypy"}
-          - {python: "3.11", os: "ubuntu-latest", session: "tests"}
-          - {python: "3.10", os: "ubuntu-latest", session: "tests"}
-          - {python: "3.9", os: "ubuntu-latest", session: "tests"}
-          - {python: "3.11", os: "windows-latest", session: "tests"}
-          - {python: "3.11", os: "macos-latest", session: "tests"}
-          - {python: "3.11", os: "ubuntu-latest", session: "docs-build"}
-    env:
-      NOXSESSION: ${{ matrix.session }}
-      FORCE_COLOR: "1"
-      PRE_COMMIT_COLOR: "always"
+  quality:
+    runs-on: ubuntu-latest
     steps:
-      - name: Check out the repository
-        uses: actions/checkout@v4.2.2
-      - name: Restore data cache
-        if: matrix.session == 'tests'
-        id: cache-data
-        uses: actions/cache@v4
-        with:
-          path: tests/appdata/data
-          key: cache-data-${{ runner.os }}-${{ matrix.python }}
-      - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v5.6.0
-        with:
-          python-version: ${{ matrix.python }}
-      - name: Upgrade pip
-        run: |
-          pip install --constraint=.github/workflows/constraints.txt pip
-          pip --version
-      - name: Upgrade pip in virtual environments
-        shell: python
-        run: |
-          import os
-          import pip
+      - name: Check out
+        uses: actions/checkout@v4
 
-          with open(os.environ["GITHUB_ENV"], mode="a") as io:
-              print(f"VIRTUALENV_PIP={pip.__version__}", file=io)
-      - name: Install Poetry
-        run: |
-          pipx install --pip-args=--constraint=${{ github.workspace }}/.github/workflows/constraints.txt poetry
-          poetry --version
-      - name: Install Nox
-        run: |
-          pipx install --pip-args=--constraint=${{ github.workspace }}/.github/workflows/constraints.txt nox
-          pipx inject --pip-args=--constraint=${{ github.workspace }}/.github/workflows/constraints.txt nox nox-poetry
-          nox --version
-      - name: Compute pre-commit cache key
-        if: matrix.session == 'pre-commit'
-        id: pre-commit-cache
-        shell: python
-        run: |
-          import hashlib
-          import sys
-
-          python = "py{}.{}".format(*sys.version_info[:2])
-          payload = sys.version.encode() + sys.executable.encode()
-          digest = hashlib.sha256(payload).hexdigest()
-          result = "${{ runner.os }}-{}-{}-pre-commit".format(python, digest[:8])
-
-          print("::set-output name=result::{}".format(result))
-      - name: Restore pre-commit cache
-        uses: actions/cache@v4.2.3
-        if: matrix.session == 'pre-commit'
+      - uses: actions/cache@v4
         with:
           path: ~/.cache/pre-commit
-          key: ${{ steps.pre-commit-cache.outputs.result }}-${{ hashFiles('.pre-commit-config.yaml') }}
-          restore-keys: |
-            ${{ steps.pre-commit-cache.outputs.result }}-
-      - name: Install pandoc
-        if: matrix.session == 'docs-build'
-        run: sudo apt-get install -y pandoc
-      - name: Run Nox
-        run: |
-          nox --force-color --python=${{ matrix.python }}
-      - name: Upload coverage data
-        if: always() && matrix.session == 'tests'
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-data-${{ matrix.os }}-${{ matrix.python }}
-          path: ".coverage.*"
-          include-hidden-files: true
-      - name: Upload documentation
-        if: matrix.session == 'docs-build'
-        uses: actions/upload-artifact@v4
-        with:
-          name: docs
-          path: docs/_build
-  coverage:
+          key: pre-commit-${{hashFiles('.pre-commit-config.yaml')}}
+
+      - name: Set up the environment
+        uses: ./.github/actions/setup-python-env
+
+      - name: Run pre-commit
+        run: uv run pre-commit run -a --show-diff-on-failure
+
+      - name: Check lock file consistency
+        run: uv sync --locked
+
+  tests-and-type-check:
     runs-on: ubuntu-latest
-    needs: tests
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+      fail-fast: false
+    defaults:
+      run:
+        shell: bash
     steps:
-      - name: Check out the repository
-        uses: actions/checkout@v4.2.2
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up the environment
+        uses: ./.github/actions/setup-python-env
+        with:
+          python-version: ${{matrix.python-version}}
+
+      - name: Create credentials.json for DVC Remote
+        env:
+          GDRIVE_CREDENTIALS_DATA: ${{ secrets.GDRIVE_CREDENTIALS_DATA }}
+        run: echo $GDRIVE_CREDENTIALS_DATA > credentials.json
+
+      - name: Modify DVC Remote
+        run: uv run dvc remote modify --local myremote credentialpath credentials.json
+
+      - name: Cache DVC
+        uses: actions/cache@v3
+        with:
+          path: .dvc/cache
+          key: dvc-cache-${{ hashFiles('**/dvc.lock') }}
+          restore-keys: |
+            dvc-cache-
+
+      - name: DVC Pull Data
+        run: uv run dvc pull -v
+
+      - name: Run tests
+        run: uv run python -m pytest tests --cov --cov-config=pyproject.toml --cov-report=xml -m "not fails_gha"
+        env:
+          SOCCERDATA_DIR: tests/appdata
+
+      - name: Check typing
+        run: uv run mypy --install-types --non-interactive --config-file pyproject.toml soccerdata tests
+
+      - name: Upload coverage reports to Codecov with GitHub Action on Python 3.11 for Ubuntu
+        uses: codecov/codecov-action@v3
+        if: ${{matrix.python-version == '3.11'}}
+
+  check-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
       - name: Set up Python
-        uses: actions/setup-python@v5.6.0
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-      - name: Upgrade pip
+          python-version: "3.11" # match what's in .readthedocs.yml
+
+      - name: Install system dependencies
         run: |
-          pip install --constraint=.github/workflows/constraints.txt pip
-          pip --version
-      - name: Install Poetry
+          sudo apt-get update
+          sudo apt-get install -y pandoc
+
+      - name: Set up Python environment as in RTD
         run: |
-          pipx install --pip-args=--constraint=${{ github.workspace }}/.github/workflows/constraints.txt poetry
-          poetry --version
-      - name: Install Nox
+          python -m pip install --upgrade pip
+          pip install .
+          pip install -r docs/requirements.txt  # as defined in .readthedocs.yml
+
+      - name: Build the documentation
         run: |
-          pipx install --pip-args=--constraint=${{ github.workspace }}/.github/workflows/constraints.txt nox
-          pipx inject --pip-args=--constraint=${{ github.workspace }}/.github/workflows/constraints.txt nox nox-poetry
-          nox --version
-      - name: Download coverage data
-        uses: actions/download-artifact@v4
-        with:
-          pattern: coverage-data-*
-          merge-multiple: true
-      - name: Combine coverage data and display human readable report
-        run: |
-          nox --force-color --session=coverage
-      - name: Create coverage report
-        run: |
-          nox --force-color --session=coverage -- xml
-      - name: Upload coverage report
-        uses: codecov/codecov-action@v5.4.2
+          sphinx-build -b html docs docs/_build/html

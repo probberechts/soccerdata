@@ -14,7 +14,6 @@ data scrapers.
    clubelo
    espn
    fbref
-   fivethirtyeight
    fotmob
    matchhistory
    sofascore

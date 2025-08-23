@@ -110,9 +110,7 @@ class ClubElo(BaseRequestsReader):
             .set_index("team")
         )
 
-    def read_team_history(
-        self, team: str, max_age: Union[int, timedelta] = 1
-    ) -> Optional[pd.DataFrame]:
+    def read_team_history(self, team: str, max_age: Union[int, timedelta] = 1) -> pd.DataFrame:
         """Retrieve full ELO history for one club.
 
         For the exact spelling of a club's name, check the result of
@@ -144,7 +142,7 @@ class ClubElo(BaseRequestsReader):
 
         for _team in teams_to_check:
             filepath = self.data_dir / f"{_team}.csv"
-            url = f"{CLUB_ELO_API}/{_team}"
+            url = f"{CLUB_ELO_API}/{re.sub(r'[^a-zA-Z]', '', _team)}"
             data = self.get(url, filepath, max_age)
 
             df = (

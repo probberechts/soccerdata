@@ -3,13 +3,13 @@
 __version__ = "1.8.7"
 
 __all__ = [
-    "ClubElo",
     "ESPN",
+    "ClubElo",
     "FBref",
     "FotMob",
     "MatchHistory",
-    "Sofascore",
     "SoFIFA",
+    "Sofascore",
     "Understat",
     "WhoScored",
 ]

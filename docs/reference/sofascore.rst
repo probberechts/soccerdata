@@ -1,7 +1,7 @@
 .. _api-sofascore:
 
 Sofascore
-======
+=========
 
 .. autoclass:: soccerdata.Sofascore
    :members: read_leagues, read_seasons,

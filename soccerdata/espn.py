@@ -69,7 +69,7 @@ class ESPN(BaseRequestsReader):
             no_store=no_store,
             data_dir=data_dir,
         )
-        self.seasons = seasons  # type: ignore
+        self.seasons = seasons
 
     def read_schedule(self, force_cache: bool = False) -> pd.DataFrame:
         """Retrieve the game schedule for the selected leagues and seasons.

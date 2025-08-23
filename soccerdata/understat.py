@@ -81,7 +81,7 @@ class Understat(BaseRequestsReader):
             no_store=no_store,
             data_dir=data_dir,
         )
-        self.seasons = seasons  # type: ignore
+        self.seasons = seasons
 
     def read_leagues(self) -> pd.DataFrame:
         """Retrieve the selected leagues from the datasource.

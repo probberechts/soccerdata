@@ -62,12 +62,12 @@ def test_read_team_match_stats(fbref_ligue1: FBref, stat_type: str) -> None:
 def test_read_team_match_stats_alt_names(fbref_ligue1: FBref) -> None:
     # Test with FBref team name
     assert isinstance(
-        fbref_ligue1.read_team_match_stats(stat_type="schedule", team="Olympique Marseille"),
+        fbref_ligue1.read_team_match_stats(stat_type="schedule", team="Marseille"),
         pd.DataFrame,
     )
     # Test with standardized team name
     assert isinstance(
-        fbref_ligue1.read_team_match_stats(stat_type="schedule", team="Marseille"),
+        fbref_ligue1.read_team_match_stats(stat_type="schedule", team="Olympique de Marseille"),
         pd.DataFrame,
     )
 

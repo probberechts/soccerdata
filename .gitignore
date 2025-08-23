@@ -1,6 +1,6 @@
-data
-logs
-config
+data/
+logs/
+config/
 notebooks/data
 notebooks_priv
 

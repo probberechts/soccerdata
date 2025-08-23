@@ -47,7 +47,7 @@ jobs:
         run: echo $GDRIVE_CREDENTIALS_DATA > credentials.json
 
       - name: Modify DVC Remote
-        run: uv run dvc remote modify - local myremote credentialpath credentials.json
+        run: uv run dvc remote modify --local myremote credentialpath credentials.json
 
       - name: DVC Pull Data
         run: uv run dvc pull -v

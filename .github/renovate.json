@@ -1,7 +1,15 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:base", ":automergePatch"],
-  "stabilityDays": 7,
-  "addLabels": ["dependencies"],
-  "ignorePaths": ["requirements.txt", "docs/requirements.txt"]
+  "extends": [
+    "config:recommended",
+    ":automergePatch"
+  ],
+  "minimumReleaseAge": "7 days",
+  "addLabels": [
+    "dependencies"
+  ],
+  "ignorePaths": [
+    "requirements.txt",
+    "docs/requirements.txt"
+  ]
 }

@@ -41,6 +41,17 @@ jobs:
         with:
           python-version: ${{matrix.python-version}}
 
+      - name: Create credentials.json for DVC Remote
+        env:
+          GDRIVE_CREDENTIALS_DATA: ${{ secrets.GDRIVE_CREDENTIALS_DATA }}
+        run: echo $GDRIVE_CREDENTIALS_DATA > credentials.json
+
+      - name: Modify DVC Remote
+        run: dvc remote modify - local myremote credentialpath credentials.json
+
+      - name: DVC Pull Data
+        run: dvc pull -v
+
       - name: Run tests
         run: uv run python -m pytest tests --cov --cov-config=pyproject.toml --cov-report=xml -m "not fails_gha"
         env:

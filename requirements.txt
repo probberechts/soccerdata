@@ -844,7 +844,14 @@ tzdata==2025.2
     #   pandas
 unidecode==1.4.0
     # via soccerdata
-urllib3==1.26.20
+urllib3==1.26.20 ; python_full_version < '3.10'
+    # via
+    #   dulwich
+    #   requests
+    #   selenium
+    #   seleniumbase
+    #   soccerdata
+urllib3==2.4.0 ; python_full_version >= '3.10'
     # via
     #   dulwich
     #   requests

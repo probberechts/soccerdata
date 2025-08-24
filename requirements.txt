@@ -729,7 +729,7 @@ soupsieve==2.7
     # via
     #   beautifulsoup4
     #   seleniumbase
-sphinx==8.2.3
+sphinx==7.4.7
     # via
     #   furo
     #   nbsphinx

@@ -110,7 +110,8 @@ def test_read_schedule(fbref_ligue1: FBref) -> None:
 )
 def test_read_player_match_stats(fbref_ligue1: FBref, stat_type: str) -> None:
     assert isinstance(
-        fbref_ligue1.read_player_match_stats(stat_type, match_id="796787da"), pd.DataFrame
+        fbref_ligue1.read_player_match_stats(stat_type, match_id="796787da"),
+        pd.DataFrame,
     )
 
 
@@ -143,17 +144,29 @@ def test_read_lineup(fbref_ligue1: FBref) -> None:
 def test_concat() -> None:
     df1 = pd.DataFrame(
         columns=pd.MultiIndex.from_tuples(
-            [("Unnamed: a", "player"), ("Performance", "Goals"), ("Performance", "Assists")]
+            [
+                ("Unnamed: a", "player"),
+                ("Performance", "Goals"),
+                ("Performance", "Assists"),
+            ]
         )
     )
     df2 = pd.DataFrame(
         columns=pd.MultiIndex.from_tuples(
-            [("Unnamed: a", "player"), ("Unnamed: b", "Goals"), ("Performance", "Assists")]
+            [
+                ("Unnamed: a", "player"),
+                ("Unnamed: b", "Goals"),
+                ("Performance", "Assists"),
+            ]
         )
     )
     df3 = pd.DataFrame(
         columns=pd.MultiIndex.from_tuples(
-            [("Unnamed: a", "player"), ("Goals", "Unnamed: b"), ("Performance", "Assists")]
+            [
+                ("Unnamed: a", "player"),
+                ("Goals", "Unnamed: b"),
+                ("Performance", "Assists"),
+            ]
         )
     )
     res = _concat([df1, df2, df3], key=["player"])

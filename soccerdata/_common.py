@@ -67,7 +67,11 @@ class SeasonCode(Enum):
             select_league_dict.get("season_end", "May"),
             "%b",
         ).month
-        return SeasonCode.MULTI_YEAR if (end_month - start_month) < 0 else SeasonCode.SINGLE_YEAR
+        return (
+            SeasonCode.MULTI_YEAR
+            if (end_month - start_month) < 0
+            else SeasonCode.SINGLE_YEAR
+        )
 
     @staticmethod
     def from_leagues(leagues: list[str]) -> "SeasonCode":
@@ -237,7 +241,7 @@ class BaseReader(ABC):
         else:
             self.proxy = lambda: None  # type: ignore
 
-        self._selected_leagues = leagues
+        self._selected_leagues = leagues  # type: ignore
         self.no_cache = no_cache
         self.no_store = no_store
         self.data_dir = data_dir
@@ -333,7 +337,9 @@ class BaseReader(ABC):
         cache_invalid = False
         # Check if cached file is too old
         if _max_age is not None and filepath is not None and filepath.exists():
-            last_modified = datetime.fromtimestamp(filepath.stat().st_mtime, tz=timezone.utc)
+            last_modified = datetime.fromtimestamp(
+                filepath.stat().st_mtime, tz=timezone.utc
+            )
             now = datetime.now(timezone.utc)
             if (now - last_modified) > _max_age:
                 cache_invalid = True
@@ -456,9 +462,13 @@ class BaseReader(ABC):
         return self._season_ids
 
     @seasons.setter
-    def seasons(self, seasons: Optional[Union[str, int, Iterable[Union[str, int]]]]) -> None:
+    def seasons(
+        self, seasons: Optional[Union[str, int, Iterable[Union[str, int]]]]
+    ) -> None:
         if seasons is None:
-            logger.info("No seasons provided. Will retrieve data for the last 5 seasons.")
+            logger.info(
+                "No seasons provided. Will retrieve data for the last 5 seasons."
+            )
             year = datetime.now(tz=timezone.utc).year
             seasons = [f"{y - 1}-{y}" for y in range(year, year - 6, -1)]
         if isinstance(seasons, (str, int)):
@@ -487,6 +497,9 @@ class BaseRequestsReader(BaseReader):
         )
 
         self._session = self._init_session()
+        self.headers = {
+            "sec-ch-ua": '"Not A Brand";v="99", "Chromium";v="138", "Google Chrome";v="138"'
+        }
 
     def _init_session(self) -> tls_requests.Client:
         return tls_requests.Client(proxy=self.proxy())
@@ -500,7 +513,7 @@ class BaseRequestsReader(BaseReader):
         """Download file at url to filepath. Overwrites if filepath exists."""
         for i in range(5):
             try:
-                response = self._session.get(url)
+                response = self._session.get(url, headers=self.headers)
                 time.sleep(self.rate_limit + random.random() * self.max_delay)
                 response.raise_for_status()
                 if var is not None:
@@ -508,10 +521,14 @@ class BaseRequestsReader(BaseReader):
                         var = [var]
                     var_names = "|".join(var)
                     template_understat = rb"(%b)+[\s\t]*=[\s\t]*JSON\.parse\('(.*)'\)"
-                    pattern_understat = template_understat % bytes(var_names, encoding="utf-8")
+                    pattern_understat = template_understat % bytes(
+                        var_names, encoding="utf-8"
+                    )
                     results = re.findall(pattern_understat, response.content)
                     data = {
-                        key.decode("unicode_escape"): json.loads(value.decode("unicode_escape"))
+                        key.decode("unicode_escape"): json.loads(
+                            value.decode("unicode_escape")
+                        )
                         for key, value in results
                     }
                     payload = json.dumps(data).encode("utf-8")
@@ -596,7 +613,7 @@ class BaseSeleniumReader(BaseReader):
         """Download file at url to filepath. Overwrites if filepath exists."""
         for i in range(5):
             try:
-                self._driver.get(url)
+                self._driver.get(url, headers=self.headers)
                 time.sleep(self.rate_limit + random.random() * self.max_delay)
                 if "Incapsula incident ID" in self._driver.page_source:
                     raise WebDriverException(
@@ -610,11 +627,13 @@ class BaseSeleniumReader(BaseReader):
                         raise Exception("Empty response.")
                 else:
                     if not isinstance(var, str):
-                        raise NotImplementedError("Only implemented for single variables.")
-                    try:
-                        response = json.dumps(self._driver.execute_script("return " + var)).encode(
-                            "utf-8"
+                        raise NotImplementedError(
+                            "Only implemented for single variables."
                         )
+                    try:
+                        response = json.dumps(
+                            self._driver.execute_script("return " + var)
+                        ).encode("utf-8")
                     except JavascriptException:
                         response = json.dumps(None).encode("utf-8")
                 if not self.no_store and filepath is not None:
@@ -699,15 +718,17 @@ def add_standardized_team_name(team: Union[str, list[str]]) -> set[str]:
     """
     teams = [team] if isinstance(team, str) else team
     std_teams = set()
-    for _team in teams:
+    for team in teams:
         for alt_name, norm_name in TEAMNAME_REPLACEMENTS.items():
-            if alt_name == _team:
+            if alt_name == team:
                 std_teams.add(norm_name)
-        std_teams.add(_team)
+        std_teams.add(team)
     return std_teams
 
 
-def standardize_colnames(df: pd.DataFrame, cols: Optional[list[str]] = None) -> pd.DataFrame:
+def standardize_colnames(
+    df: pd.DataFrame, cols: Optional[list[str]] = None
+) -> pd.DataFrame:
     """Convert DataFrame column names to snake case."""
 
     def to_snake(name: str) -> str:
@@ -781,7 +802,9 @@ def check_proxy(proxy: dict) -> bool:
         return False
 
 
-def safe_xpath_text(node: _Element, xpath_expr: str, warn: Optional[str] = None) -> Optional[str]:
+def safe_xpath_text(
+    node: _Element, xpath_expr: str, warn: Optional[str] = None
+) -> Optional[str]:
     result = node.xpath(xpath_expr)
     if not result and warn is not None:
         warnings.warn(warn, stacklevel=2)

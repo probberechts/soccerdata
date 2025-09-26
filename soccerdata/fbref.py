@@ -80,7 +80,7 @@ class FBref(BaseRequestsReader):
             data_dir=data_dir,
         )
         self.rate_limit = 7
-        self.seasons = seasons  # type: ignore
+        self.seasons = seasons
         # check if all top 5 leagues are selected
         if (
             set(BIG_FIVE_DICT.values()).issubset(self.leagues)

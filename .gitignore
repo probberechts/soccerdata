@@ -1,6 +1,6 @@
-data
-logs
-config
+data/
+logs/
+config/
 notebooks/data
 notebooks_priv
 
@@ -47,4 +47,5 @@ docs/modules/generated/
 
 # ...except these
 !.gitignore
-!.travis.yml
+!.dvc
+!.github

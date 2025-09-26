@@ -1,8 +1,15 @@
 {
-  "extends": ["config:base", ":automergePatch"],
-  "stabilityDays": 7,
-  "addLabels": ["dependencies"],
-  "pip_requirements": {
-    "fileMatch": ["constraints.txt"]
-  }
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":automergePatch"
+  ],
+  "minimumReleaseAge": "7 days",
+  "addLabels": [
+    "dependencies"
+  ],
+  "ignorePaths": [
+    "requirements.txt",
+    "docs/requirements.txt"
+  ]
 }

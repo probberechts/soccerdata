@@ -74,7 +74,7 @@ class MatchHistory(BaseRequestsReader):
         super().__init__(
             leagues=leagues, proxy=proxy, no_cache=no_cache, no_store=no_store, data_dir=data_dir
         )
-        self.seasons = seasons  # type: ignore
+        self.seasons = seasons
 
     def read_games(self) -> pd.DataFrame:
         """Retrieve game history for the selected leagues and seasons.

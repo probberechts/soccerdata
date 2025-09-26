@@ -13,7 +13,7 @@ import soccerdata as foo
 # Scores per game equal for all common leagues over classes
 
 
-@pytest.mark.e2e()
+@pytest.mark.e2e
 def test_mh_vs_elo():
     """We should be able to retrieve the Elo history for all teams in these leagues."""
     league_sel = [

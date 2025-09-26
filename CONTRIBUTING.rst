@@ -53,15 +53,15 @@ the ``docs/`` directory of the codebase. They're written in
 `reStructuredText`_, and use `Sphinx`_ to generate the full suite of
 documentation.
 
-You do not have to setup a development environment to make small changes to
+You do not have to set up a development environment to make small changes to
 the docs. Instead, you can `edit files directly on GitHub`_ and suggest changes.
 
 When contributing documentation, please do your best to follow the style of the
 documentation files. This means a soft-limit of 79 characters wide in your text
 files and a semi-formal, yet friendly and approachable, prose style.
 
-When presenting Python code, use single-quoted strings (``'hello'`` instead of
-``"hello"``).
+When presenting Python code, use double-quoted strings (``"hello"`` instead of
+``'hello'``).
 
 .. _reStructuredText: http://docutils.sourceforge.net/rst.html
 .. _Sphinx: http://sphinx-doc.org/index.html
@@ -81,28 +81,40 @@ project.
 Setting up your development environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You need Python 3.7.1+ and the following tools:
-
-- Poetry_
-- Nox_
-- nox-poetry_
-
-Install the package with development requirements:
+To test out code changes, you'll need to set up a Python environment with all
+required dependencies. It's recommended to use uv_ to set up your environment.
+On macOS and Linux, you can use `curl` to the download the installation script
+and execute it:
 
 .. code:: console
 
-   $ poetry install
-   $ poetry self add poetry-plugin-export
+   $ curl -LsSf https://astral.sh/uv/install.sh | sh
 
-You can now run an interactive Python session.
+
+Information about installation options and instructions for Windows can be found in
+`uv's installation guide <https://docs.astral.sh/uv/getting-started/installation/>`_.
+
+Next, create and activate a virtual environment using uv with a Python version
+that soccerdata supports:
 
 .. code:: console
 
-   $ poetry run python
+    $ uv venv --python 3.9
+    $ source .venv/bin/activate
 
-.. _Poetry: https://python-poetry.org/
-.. _Nox: https://nox.thea.codes/
-.. _nox-poetry: https://nox-poetry.readthedocs.io/
+Alternatively, you can use `pip`. You'll need to have at least the minimum
+Python version that soccerdata supports. Next, install the required
+dependencies in a virtual environment as follows:
+
+.. code:: console
+
+    $ python3 -m venv .venv
+    $ source .venv/bin/activate
+    $ python -m pip install -e .
+    $ python -m pip install -r requirements.txt
+
+
+.. _uv: https://docs.astral.sh/uv
 
 Steps for submitting Code
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -129,20 +141,15 @@ Run the full test suite:
 
 .. code:: console
 
-   $ nox
+   $ make test
 
-List the available Nox sessions:
-
-.. code:: console
-
-   $ nox --list-sessions
-
-You can also run a specific Nox session.
-For example, invoke the unit test suite like this:
+You can also run tests for a specific data source.
+For example, invoke the unit test suite like this to run tests for ClubElo
+only:
 
 .. code:: console
 
-   $ nox --session=tests
+   $ make test-class clubelo
 
 Unit tests are located in the ``tests`` directory,
 and are written using the pytest_ testing framework.
@@ -164,7 +171,7 @@ pre-commit hooks.
 
 .. code:: console
 
-   $ nox --session=pre-commit
+   $ make pre-commit-test
 
 Docstrings are to follow the `numpydoc guidelines`_.
 
@@ -178,7 +185,7 @@ Open a `pull request`_ to submit changes to this project.
 
 Your pull request needs to meet the following guidelines for acceptance:
 
-- The Nox test suite must pass without errors and warnings.
+- The test suite must pass without errors and warnings.
 - Include unit tests.
 - If your changes add functionality, update the documentation accordingly.
 
@@ -189,7 +196,14 @@ can install pre-commit as a Git hook by running the following command:
 
 .. code:: console
 
-   $ nox --session=pre-commit -- install
+   $ make pre-commit-test
+
+To automatically run the pre-commit checks before committing, you can
+run
+
+.. code:: console
+
+   $ make pre-commit-update
 
 It is recommended to open an issue before starting work on anything.
 

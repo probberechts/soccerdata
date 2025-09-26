@@ -51,16 +51,16 @@ def test_read_teamnname_replacements(monkeypatch, tmp_path):
     monkeypatch.setenv("SOCCERDATA_DIR", str(tmp_path))
     # no teamname_replacements.json
     reload(conf)
-    assert {} == conf.TEAMNAME_REPLACEMENTS
+    assert conf.TEAMNAME_REPLACEMENTS == {}
     fp = tmp_path / "config" / "teamname_replacements.json"
     with fp.open("w", encoding="utf8") as outfile:
         json.dump({"Celta de Vigo": ["Celta Vigo", "Celta"]}, outfile)
     # correctly parse teamname_replacements.json
     reload(conf)
-    assert {
+    assert conf.TEAMNAME_REPLACEMENTS == {
         "Celta Vigo": "Celta de Vigo",
         "Celta": "Celta de Vigo",
-    } == conf.TEAMNAME_REPLACEMENTS
+    }
 
 
 def test_read_league_dict(monkeypatch, tmp_path):

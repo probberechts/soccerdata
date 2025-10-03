@@ -47,7 +47,7 @@ class Sofascore(BaseRequestsReader):
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
         data_dir: Path = SOFASCORE_DATADIR,
-        regions: Optional[list[str]] = None,  # 👈 NEW: allow passing regions
+        regions: Optional[list[str]] = None,  # Added: allow passing custom regions
     ):
         """Initialize the Sofascore reader."""
         super().__init__(
@@ -58,7 +58,8 @@ class Sofascore(BaseRequestsReader):
             data_dir=data_dir,
         )
         self.seasons = seasons
-        self.regions = regions or ["EN", "CZ"]  # 👈 default to EN + CZ, can extend
+        # Changed: default to supporting both EN and CZ regions
+        self.regions = regions or ["EN", "CZ"]
 
         if not self.no_store:
             (self.data_dir / "leagues").mkdir(parents=True, exist_ok=True)
@@ -73,6 +74,7 @@ class Sofascore(BaseRequestsReader):
         pd.DataFrame
         """
         leagues = []
+        # Changed: iterate through multiple regions instead of hardcoding "EN"
         for region in self.regions:
             url = SOFASCORE_API + f"config/unique-tournaments/{region}/football"
             filepath = self.data_dir / f"leagues_{region}.json"
@@ -83,7 +85,8 @@ class Sofascore(BaseRequestsReader):
                 leagues.append(
                     {
                         "league_id": k["id"],
-                        "league": f"{region}-{k['name']}",  # prefix avoids duplicates
+                        # Changed: prefix with region so league names are unique
+                        "league": f"{region}-{k['name']}",
                     }
                 )
 

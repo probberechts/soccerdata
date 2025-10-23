@@ -30,15 +30,7 @@ class Sofascore(BaseRequestsReader):
         Seasons to include. Supports multiple formats.
         Examples: '16-17'; 2016; '2016-17'; [14, 15, 16]
     proxy : 'tor' or or dict or list(dict) or callable, optional
-        Use a proxy to hide your IP address. Valid options are:
-            - "tor": Uses the Tor network. Tor should be running in
-              the background on port 9050.
-            - str: The address of the proxy server to use.
-            - list(str): A list of proxies to choose from. A different proxy will
-              be selected from this list after failed requests, allowing rotating
-              proxies.
-            - callable: A function that returns a valid proxy. This function will
-              be called after failed requests, allowing rotating proxies.
+        Use a proxy to hide your IP address.
     no_cache : bool
         If True, will not use cached data.
     no_store : bool
@@ -55,6 +47,7 @@ class Sofascore(BaseRequestsReader):
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
         data_dir: Path = SOFASCORE_DATADIR,
+        regions: Optional[list[str]] = None,  # Added: allow passing custom regions
     ):
         """Initialize the Sofascore reader."""
         super().__init__(
@@ -65,6 +58,9 @@ class Sofascore(BaseRequestsReader):
             data_dir=data_dir,
         )
         self.seasons = seasons
+        # Changed: default to supporting both EN and CZ regions
+        self.regions = regions or ["EN", "CZ"]
+
         if not self.no_store:
             (self.data_dir / "leagues").mkdir(parents=True, exist_ok=True)
             (self.data_dir / "seasons").mkdir(parents=True, exist_ok=True)
@@ -77,18 +73,23 @@ class Sofascore(BaseRequestsReader):
         -------
         pd.DataFrame
         """
-        url = SOFASCORE_API + "config/unique-tournaments/EN/football"
-        filepath = self.data_dir / "leagues.json"
-        reader = self.get(url, filepath)
-        data = json.load(reader)
         leagues = []
-        for k in data["uniqueTournaments"]:
-            leagues.append(
-                {
-                    "league_id": k["id"],
-                    "league": k["name"],
-                }
-            )
+        # Changed: iterate through multiple regions instead of hardcoding "EN"
+        for region in self.regions:
+            url = SOFASCORE_API + f"config/unique-tournaments/{region}/football"
+            filepath = self.data_dir / f"leagues_{region}.json"
+            reader = self.get(url, filepath)
+            data = json.load(reader)
+
+            for k in data["uniqueTournaments"]:
+                leagues.append(
+                    {
+                        "league_id": k["id"],
+                        # Changed: prefix with region so league names are unique
+                        "league": f"{region}-{k['name']}",
+                    }
+                )
+
         df = (
             pd.DataFrame(leagues)
             .pipe(self._translate_league)
@@ -100,12 +101,7 @@ class Sofascore(BaseRequestsReader):
         return df[df.index.isin(self.leagues)]
 
     def read_seasons(self) -> pd.DataFrame:
-        """Retrieve the selected seasons for the selected leagues.
-
-        Returns
-        -------
-        pd.DataFrame
-        """
+        """Retrieve the selected seasons for the selected leagues."""
         filemask = "leagues/{}.json"
         seasons = []
         df_leagues = self.read_leagues()
@@ -124,22 +120,10 @@ class Sofascore(BaseRequestsReader):
                     }
                 )
         df = pd.DataFrame(seasons).set_index(["league", "season"]).sort_index()
-
         return df.loc[df.index.isin(list(itertools.product(self.leagues, self.seasons)))]
 
     def read_league_table(self, force_cache: bool = False) -> pd.DataFrame:
-        """Retrieve the league table for the selected leagues.
-
-        Parameters
-        ----------
-        force_cache : bool
-             By default no cached data is used for the current season.
-             If True, will force the use of cached data anyway.
-
-        Returns
-        -------
-        pd.DataFrame
-        """
+        """Retrieve the league table for the selected leagues."""
         filemask = "seasons/{}_{}.html"
         urlmask = SOFASCORE_API + "unique-tournament/{}/season/{}/standings/total"
 
@@ -147,7 +131,6 @@ class Sofascore(BaseRequestsReader):
         cols = ["team", "MP", "W", "D", "L", "GF", "GA", "GD", "Pts"]
 
         seasons = self.read_seasons()
-        # collect league tables
         mult_tables = []
         for (lkey, skey), season in seasons.iterrows():
             filepath = self.data_dir / filemask.format(lkey, skey)
@@ -171,27 +154,16 @@ class Sofascore(BaseRequestsReader):
                         "Pts": row["points"],
                     }
                 )
-            df = (
-                pd.DataFrame(mult_tables)
-                .set_index(idx)
-                .replace({"team": TEAMNAME_REPLACEMENTS})
-                .sort_index()[cols]
-            )
+        df = (
+            pd.DataFrame(mult_tables)
+            .set_index(idx)
+            .replace({"team": TEAMNAME_REPLACEMENTS})
+            .sort_index()[cols]
+        )
         return df
 
     def read_schedule(self, force_cache: bool = False) -> pd.DataFrame:
-        """Retrieve the game schedule for the selected leagues and seasons.
-
-        Parameters
-        ----------
-        force_cache : bool
-             By default no cached data is used for the current season.
-             If True, will force the use of cached data anyway.
-
-        Returns
-        -------
-        pd.DataFrame
-        """
+        """Retrieve the game schedule for the selected leagues and seasons."""
         urlmask1 = SOFASCORE_API + "unique-tournament/{}/season/{}/rounds"
         urlmask2 = SOFASCORE_API + "unique-tournament/{}/season/{}/events/round/{}"
         filemask1 = "matches/rounds_{}_{}.json"
@@ -224,13 +196,13 @@ class Sofascore(BaseRequestsReader):
                 reader2 = self.get(url2, filepath2, no_cache=current_season and not force_cache)
                 match_data = json.load(reader2)
                 for _match in match_data["events"]:
-                    if _match["status"]["code"] == 100 or _match["status"]["code"] == 0:
+                    if _match["status"]["code"] in (0, 100):
                         if _match["status"]["code"] == 100:
                             home_score = int(_match["homeScore"]["current"])
                             away_score = int(_match["awayScore"]["current"])
                         else:
-                            home_score = float("nan")  # type: ignore
-                            away_score = float("nan")  # type: ignore
+                            home_score = float("nan")
+                            away_score = float("nan")
 
                         all_schedules.append(
                             {

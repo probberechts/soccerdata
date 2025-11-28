@@ -1,0 +1,11 @@
+# Additional Requirements for Football Statistics Database
+
+# Database
+psycopg2-binary>=2.9.0
+
+# Configuration
+python-dotenv>=1.0.0
+PyYAML>=6.0
+
+# Note: This extends the main requirements.txt file
+# Install both with: pip install -r requirements.txt -r requirements-database.txt

@@ -1,0 +1,33 @@
+# Leagues Configuration
+# Maps standardized league names to soccerdata library IDs
+
+leagues:
+  - name: "ENG-Premier League"
+    soccerdata_id: "ENG-Premier League"
+    country: "England"
+    tier: 1
+    enabled: true
+
+  - name: "ESP-La Liga"
+    soccerdata_id: "ESP-La Liga"
+    country: "Spain"
+    tier: 1
+    enabled: true
+
+  - name: "GER-Bundesliga"
+    soccerdata_id: "GER-Bundesliga"
+    country: "Germany"
+    tier: 1
+    enabled: true
+
+  - name: "ITA-Serie A"
+    soccerdata_id: "ITA-Serie A"
+    country: "Italy"
+    tier: 1
+    enabled: true
+
+  - name: "FRA-Ligue 1"
+    soccerdata_id: "FRA-Ligue 1"
+    country: "France"
+    tier: 1
+    enabled: true

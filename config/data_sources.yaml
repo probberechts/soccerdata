@@ -1,0 +1,81 @@
+# Data Sources Configuration
+# Defines which data sources are enabled and extraction settings
+
+sources:
+  fbref:
+    enabled: true
+    priority: 1
+    description: "Football Reference (Opta data) - Most comprehensive statistics"
+    tables: 44
+
+  fotmob:
+    enabled: true
+    priority: 2
+    description: "FotMob - League tables and match statistics"
+    tables: 11
+
+  understat:
+    enabled: true
+    priority: 3
+    description: "Understat - Advanced xG metrics and shot coordinates"
+    tables: 7
+
+  whoscored:
+    enabled: true
+    priority: 4
+    description: "WhoScored - Detailed Opta event stream"
+    tables: 4
+
+  sofascore:
+    enabled: true
+    priority: 5
+    description: "Sofascore - Standings and schedules"
+    tables: 4
+
+  espn:
+    enabled: true
+    priority: 6
+    description: "ESPN - Schedules, matchsheets, and lineups"
+    tables: 3
+
+  clubelo:
+    enabled: true
+    priority: 7
+    description: "ClubElo - ELO ratings"
+    tables: 2
+
+  matchhistory:
+    enabled: true
+    priority: 8
+    description: "MatchHistory - Betting odds from 13+ bookmakers"
+    tables: 1
+
+  sofifa:
+    enabled: true
+    priority: 9
+    description: "SoFIFA - EA Sports FC player/team ratings"
+    tables: 6
+
+# Extraction settings
+extraction:
+  # Retry configuration for failed API calls
+  retry:
+    max_attempts: 3
+    initial_delay: 2  # seconds
+    max_delay: 60  # seconds
+    exponential_base: 2
+
+  # Rate limiting to avoid overloading APIs
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 20
+    delay_between_requests: 3  # seconds
+
+  # Batch processing
+  batch:
+    size: 100  # records per batch for database insertion
+
+  # Error handling
+  error_handling:
+    continue_on_error: true  # Continue with next source if one fails
+    max_consecutive_failures: 5  # Stop after this many consecutive failures

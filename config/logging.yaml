@@ -1,0 +1,19 @@
+# Logging Configuration
+
+# Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+log_level: INFO
+
+# Directory for log files
+log_dir: logs
+
+# Enable file logging
+log_to_file: true
+
+# Enable console logging
+log_to_console: true
+
+# Log rotation (optional - implement in future)
+rotation:
+  enabled: false
+  max_bytes: 10485760  # 10 MB
+  backup_count: 5

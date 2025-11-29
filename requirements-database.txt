@@ -1,4 +1,8 @@
-# Additional Requirements for Football Statistics Database
+# Requirements for Football Statistics Database
+
+# Data Fetching Library
+# The soccerdata library provides scrapers for all football data sources
+soccerdata>=1.7.0
 
 # Database
 psycopg2-binary>=2.9.0
@@ -7,5 +11,8 @@ psycopg2-binary>=2.9.0
 python-dotenv>=1.0.0
 PyYAML>=6.0
 
-# Note: This extends the main requirements.txt file
-# Install both with: pip install -r requirements.txt -r requirements-database.txt
+# Data Processing (required by soccerdata)
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Note: Install with: pip install -r requirements-database.txt

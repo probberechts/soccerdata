@@ -80,7 +80,7 @@ class WhoScoredExtractor(BaseExtractor):
         method = getattr(self, extraction_method)
         return method(league, season)
 
-    def _get_whoscored_reader(self, league: str, season: str) -> sd.WhoScored:
+    def _get_whoscored_reader(self, league: str, season: str):
         """Get configured WhoScored reader instance"""
         soccerdata_league = self.get_soccerdata_league_id(league)
 

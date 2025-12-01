@@ -63,7 +63,7 @@ class ClubEloExtractor(BaseExtractor):
         method = getattr(self, extraction_method)
         return method(league, season)
 
-    def _get_clubelo_reader(self) -> sd.ClubElo:
+    def _get_clubelo_reader(self):
         """Get configured ClubElo reader instance"""
         return sd.ClubElo()
 

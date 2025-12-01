@@ -134,7 +134,7 @@ class FotMobExtractor(BaseExtractor):
         else:
             return method(league, season)
 
-    def _get_fotmob_reader(self, league: str, season: str) -> sd.FotMob:
+    def _get_fotmob_reader(self, league: str, season: str):
         """
         Get configured FotMob reader instance
 

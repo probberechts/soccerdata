@@ -69,7 +69,7 @@ class ESPNExtractor(BaseExtractor):
         method = getattr(self, extraction_method)
         return method(league, season)
 
-    def _get_espn_reader(self, league: str, season: str) -> sd.ESPN:
+    def _get_espn_reader(self, league: str, season: str):
         """Get configured ESPN reader instance"""
         soccerdata_league = self.get_soccerdata_league_id(league)
 

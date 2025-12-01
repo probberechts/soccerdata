@@ -189,7 +189,7 @@ class FBrefExtractor(BaseExtractor):
         else:
             return method(league, season)
 
-    def _get_fbref_reader(self, league: str, season: str) -> sd.FBref:
+    def _get_fbref_reader(self, league: str, season: str):
         """
         Get configured FBref reader instance
 

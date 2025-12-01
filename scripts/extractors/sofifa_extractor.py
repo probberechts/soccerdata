@@ -90,7 +90,7 @@ class SoFIFAExtractor(BaseExtractor):
         method = getattr(self, extraction_method)
         return method(league, season)
 
-    def _get_sofifa_reader(self, league: str) -> sd.SoFIFA:
+    def _get_sofifa_reader(self, league: str):
         """Get configured SoFIFA reader instance"""
         soccerdata_league = self.get_soccerdata_league_id(league)
 

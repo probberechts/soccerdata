@@ -55,7 +55,7 @@ class MatchHistoryExtractor(BaseExtractor):
         method = getattr(self, extraction_method)
         return method(league, season)
 
-    def _get_matchhistory_reader(self, league: str, season: str) -> sd.MatchHistory:
+    def _get_matchhistory_reader(self, league: str, season: str):
         """Get configured MatchHistory reader instance"""
         soccerdata_league = self.get_soccerdata_league_id(league)
 

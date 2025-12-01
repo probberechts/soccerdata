@@ -111,7 +111,7 @@ class UnderstatExtractor(BaseExtractor):
         method = getattr(self, extraction_method)
         return method(league, season)
 
-    def _get_understat_reader(self, league: str, season: str) -> sd.Understat:
+    def _get_understat_reader(self, league: str, season: str):
         """
         Get configured Understat reader instance
 

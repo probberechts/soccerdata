@@ -9,7 +9,7 @@ from datetime import datetime
 import time
 import traceback
 
-from scripts.utils import (
+from ..utils import (
     DatabaseManager,
     DataExtractionLogger,
     ConfigLoader,

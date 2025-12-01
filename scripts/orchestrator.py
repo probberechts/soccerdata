@@ -8,13 +8,13 @@ import sys
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
-from scripts.utils import (
+from .utils import (
     DatabaseManager,
     ConfigLoader,
     DataExtractionLogger,
     get_config_loader,
 )
-from scripts.extractors import (
+from .extractors import (
     FBrefExtractor,
     FotMobExtractor,
     UnderstatExtractor,

@@ -8,7 +8,7 @@ import sys
 from typing import List, Optional
 from datetime import datetime
 
-from scripts.orchestrator import Orchestrator
+from .orchestrator import Orchestrator
 
 
 class HistoricalLoader:

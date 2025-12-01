@@ -9,7 +9,7 @@ from datetime import datetime
 import soccerdata as sd
 
 from .base_extractor import BaseExtractor
-from scripts.utils import DatabaseManager, DataExtractionLogger, ConfigLoader
+from ..utils import DatabaseManager, DataExtractionLogger, ConfigLoader
 
 
 class FBrefExtractor(BaseExtractor):

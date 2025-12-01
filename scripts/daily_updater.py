@@ -8,7 +8,7 @@ import sys
 from datetime import datetime
 from typing import List, Optional
 
-from scripts.orchestrator import Orchestrator
+from .orchestrator import Orchestrator
 
 
 class DailyUpdater:

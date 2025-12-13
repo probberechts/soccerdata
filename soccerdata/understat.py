@@ -1,11 +1,13 @@
 """Scraper for understat.com."""
 
 import itertools
+import io
 import json
+import re
 from collections.abc import Iterable
 from html import unescape
 from pathlib import Path
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, IO, Optional, Union
 
 import pandas as pd
 
@@ -14,6 +16,7 @@ from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS
 
 UNDERSTAT_DATADIR = DATA_DIR / "Understat"
 UNDERSTAT_URL = "https://understat.com"
+UNDERSTAT_HEADERS = {"X-Requested-With": "XMLHttpRequest"}
 
 SHOT_SITUATIONS = {
     "OpenPlay": "Open Play",
@@ -82,6 +85,13 @@ class Understat(BaseRequestsReader):
             data_dir=data_dir,
         )
         self.seasons = seasons
+        self._cookies_initialized = False
+
+    def _ensure_cookies(self) -> None:
+        """Ensure the session has cookies from the homepage."""
+        if not self._cookies_initialized:
+            self._session.get(UNDERSTAT_URL)
+            self._cookies_initialized = True
 
     def read_leagues(self) -> pd.DataFrame:
         """Retrieve the selected leagues from the datasource.
@@ -637,32 +647,88 @@ class Understat(BaseRequestsReader):
         return df
 
     def _read_leagues(self, no_cache: bool = False) -> dict:
-        url = UNDERSTAT_URL
+        self._ensure_cookies()
+        url = UNDERSTAT_URL + "/getStatData"
         filepath = self.data_dir / "leagues.json"
-        response = self.get(url, filepath, no_cache=no_cache, var="statData")
-        return json.load(response)
+        reader = self._request_api(url, filepath, no_cache=no_cache)
+        data = json.load(reader)
+        return {"statData": data["stat"]}
 
     def _read_league_season(
         self, url: str, league_id: int, season_id: int, no_cache: bool = False
     ) -> dict:
+        self._ensure_cookies()
+        # Extract league slug and season from the HTML page URL
+        # URL format: https://understat.com/league/{league_slug}/{season_id}
+        parts = url.rstrip("/").split("/")
+        league_slug = parts[-2]
+        season = parts[-1]
+        api_url = UNDERSTAT_URL + f"/getLeagueData/{league_slug}/{season}"
         filepath = self.data_dir / f"league_{league_id}_season_{season_id}.json"
-        response = self.get(
-            url,
-            filepath,
-            no_cache=no_cache,
-            var=["datesData", "playersData", "teamsData"],
-        )
-        return json.load(response)
+        reader = self._request_api(api_url, filepath, no_cache=no_cache)
+        data = json.load(reader)
+        return {
+            "datesData": data["dates"],
+            "playersData": data["players"],
+            "teamsData": data["teams"],
+        }
 
     def _read_match(self, url: str, match_id: int) -> Optional[dict]:
+        self._ensure_cookies()
         try:
+            api_url = UNDERSTAT_URL + f"/getMatchData/{match_id}"
             filepath = self.data_dir / f"match_{match_id}.json"
-            response = self.get(url, filepath, var=["match_info", "rostersData", "shotsData"])
-            data = json.load(response)
-        except ConnectionError:
-            data = None
+            reader = self._request_api(api_url, filepath)
+            data = json.load(reader)
 
-        return data
+            # Construct match_info from tmpl and rosters
+            home_team_name = self._extract_team_name(data["tmpl"]["home"])
+            away_team_name = self._extract_team_name(data["tmpl"]["away"])
+            rosters = data["rosters"]
+            home_team_id = next(iter(rosters["h"].values()))["team_id"]
+            away_team_id = next(iter(rosters["a"].values()))["team_id"]
+
+            match_info = {
+                "h": home_team_id,
+                "a": away_team_id,
+                "team_h": home_team_name,
+                "team_a": away_team_name,
+            }
+
+            return {
+                "match_info": match_info,
+                "rostersData": rosters,
+                "shotsData": data["shots"],
+            }
+        except ConnectionError:
+            return None
+
+    def _request_api(
+        self, url: str, filepath: Optional[Path] = None, no_cache: bool = False
+    ) -> IO[bytes]:
+        """Make an API request with proper headers and caching."""
+        is_cached = filepath is not None and filepath.exists() and not no_cache and not self.no_cache
+        if is_cached and filepath is not None:
+            return filepath.open(mode="rb")
+
+        response = self._session.get(url, headers=UNDERSTAT_HEADERS)
+        response.raise_for_status()
+        payload = response.content
+
+        if not self.no_store and filepath is not None:
+            filepath.parent.mkdir(parents=True, exist_ok=True)
+            with filepath.open(mode="wb") as fh:
+                fh.write(payload)
+
+        return io.BytesIO(payload)
+
+    @staticmethod
+    def _extract_team_name(html: str) -> str:
+        """Extract team name from tmpl HTML."""
+        match = re.search(r'<h3><a[^>]*>([^<]+)</a></h3>', html)
+        if match:
+            return match.group(1)
+        return ""
 
 
 def _as_bool(value: Any) -> Optional[bool]:

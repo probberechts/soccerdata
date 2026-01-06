@@ -286,7 +286,7 @@ class FotMob(BaseRequestsReader):
             reader = self.get(url, filepath, no_cache=current_season and not force_cache)
             season_data = json.load(reader)
 
-            df = pd.json_normalize(season_data["matches"]["allMatches"])
+            df = pd.json_normalize(season_data["fixtures"]["allMatches"])
             df["league"] = lkey
             df["season"] = skey
             all_schedules.append(df)

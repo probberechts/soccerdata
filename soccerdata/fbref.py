@@ -20,6 +20,9 @@ from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
 
 FBREF_DATADIR = DATA_DIR / "FBref"
 FBREF_API = "https://fbref.com"
+FBREF_HEADERS = {
+    "sec-ch-ua": '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
+}
 
 BIG_FIVE_DICT = {
     "Serie A": "ITA-Serie A",
@@ -78,6 +81,7 @@ class FBref(BaseRequestsReader):
             no_cache=no_cache,
             no_store=no_store,
             data_dir=data_dir,
+            headers=FBREF_HEADERS,
         )
         self.rate_limit = 7
         self.seasons = seasons

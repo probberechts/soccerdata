@@ -476,6 +476,7 @@ class BaseRequestsReader(BaseReader):
         no_cache: bool = False,
         no_store: bool = False,
         data_dir: Path = DATA_DIR,
+        headers: Optional[dict[str, str]] = None,
     ):
         """Initialize the reader."""
         super().__init__(
@@ -486,10 +487,10 @@ class BaseRequestsReader(BaseReader):
             data_dir=data_dir,
         )
 
-        self._session = self._init_session()
+        self._session = self._init_session(headers)
 
-    def _init_session(self) -> tls_requests.Client:
-        return tls_requests.Client(proxy=self.proxy())
+    def _init_session(self, headers: Optional[dict[str, str]] = None) -> tls_requests.Client:
+        return tls_requests.Client(proxy=self.proxy(), headers=headers)
 
     def _download_and_save(
         self,

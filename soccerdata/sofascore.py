@@ -77,7 +77,7 @@ class Sofascore(BaseRequestsReader):
         -------
         pd.DataFrame
         """
-        url = SOFASCORE_API + "config/unique-tournaments/EN/football"
+        url = SOFASCORE_API + "config/default-unique-tournaments/EN/football"
         filepath = self.data_dir / "leagues.json"
         reader = self.get(url, filepath)
         data = json.load(reader)

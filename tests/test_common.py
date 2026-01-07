@@ -2,6 +2,7 @@
 
 import json
 from datetime import datetime, timezone
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
@@ -20,55 +21,133 @@ from soccerdata._common import (
 # _download_and_save
 
 
-def test_download_and_save_not_cached(tmp_path):
+@pytest.fixture
+def mock_tls_client():
+    # Patch the session's get method
+    # Change 'your_module' to the actual module name
+    with patch("tls_requests.Client.get") as mock_get:
+
+        def _return_csv(content="Rank,Club,Country\n1,Barcelona,ESP"):
+            mock_resp = MagicMock()
+            mock_resp.content = content.encode("utf-8")
+            mock_resp.status_code = 200
+            mock_resp.raise_for_status = lambda: None
+            mock_get.return_value = mock_resp
+            return mock_get
+
+        def _return_js_var(var_name="statData", data={"key": "value"}):
+            """
+            Mimics: var name = JSON.parse('\x7b\x22key\x22\x3a\x22value\x22\x7d')
+            The regex in the reader expects string-escaped content inside single quotes.
+            """
+            # 1. Convert dict to JSON string
+            json_str = json.dumps(data)
+            # 2. Escape double quotes so it survives being wrapped in single quotes
+            # and works with the reader's .decode("unicode_escape")
+            escaped_json = json_str.replace('"', '\\"')
+
+            html = f"var {var_name} = JSON.parse('{escaped_json}')"
+
+            mock_resp = MagicMock()
+            mock_resp.content = html.encode("utf-8")
+            mock_resp.status_code = 200
+            mock_resp.raise_for_status = lambda: None
+            mock_get.return_value = mock_resp
+            return mock_get
+
+        mock_get.return_csv = _return_csv
+        mock_get.return_js_var = _return_js_var
+        yield mock_get
+
+
+# --- Tests ---
+
+
+def test_download_and_save_not_cached(tmp_path, mock_tls_client):
+    # Setup mock
+    mock_tls_client.return_csv()
+
     reader = BaseRequestsReader()
     url = "http://api.clubelo.com/Barcelona"
     filepath = tmp_path / "Barcelona.csv"
-    data = reader._download_and_save(url, filepath)
+    data = reader.get(url, filepath)
+
     assert isinstance(pd.read_csv(data), pd.DataFrame)
+    assert filepath.exists()
 
 
-def test_download_and_save_cached(tmp_path):
+def test_download_and_save_cached(tmp_path, mock_tls_client):
+    # Setup mock
+    mock_tls_client.return_csv()
+
     reader = BaseRequestsReader()
     url = "http://api.clubelo.com/Barcelona"
     filepath = tmp_path / "Barcelona.csv"
-    data = reader._download_and_save(url, filepath)
-    data = reader._download_and_save(url, filepath)
+
+    # First call: triggers the mock/download
+    reader.get(url, filepath)
+    # Second call: should read from disk
+    data = reader.get(url, filepath)
+
     assert isinstance(pd.read_csv(data), pd.DataFrame)
+    # Verify the network was only hit once
+    assert mock_tls_client.call_count == 1
 
 
-def test_download_and_save_no_cache(tmp_path):
+def test_download_and_save_no_cache(tmp_path, mock_tls_client):
+    # Setup mock with at least 2 rows of data
+    mock_tls_client.return_csv("Col1,Col2\nVal1,Val2\nVal3,Val4")
+
     reader = BaseRequestsReader(no_cache=True)
     url = "http://api.clubelo.com/Barcelona"
     filepath = tmp_path / "Barcelona.csv"
+
+    # Pre-populate with bogus data
     filepath.write_text("bogus")
-    data = reader._download_and_save(url, filepath)
-    assert len(pd.read_csv(data)) > 1
+
+    data = reader.get(url, filepath)
+    # If no_cache=True, it should have overwritten "bogus" with our 2-row CSV
+    assert len(pd.read_csv(data)) >= 2
 
 
-def test_download_and_save_no_store_no_filepath():
+def test_download_and_save_no_store_no_filepath(mock_tls_client):
+    # Setup mock
+    mock_tls_client.return_csv()
+
     reader = BaseRequestsReader(no_store=True)
     url = "http://api.clubelo.com/Barcelona"
-    data = reader._download_and_save(url, filepath=None)
+    data = reader.get(url, filepath=None)
+
     assert isinstance(pd.read_csv(data), pd.DataFrame)
 
 
-def test_download_and_save_no_cache_filepath(tmp_path):
+def test_download_and_save_no_cache_filepath(tmp_path, mock_tls_client):
+    # Setup mock
+    mock_tls_client.return_csv()
+
     reader = BaseRequestsReader(no_store=True)
     url = "http://api.clubelo.com/Barcelona"
     filepath = tmp_path / "Barcelona.csv"
-    data = reader._download_and_save(url, filepath)
+
+    data = reader.get(url, filepath)
+
     assert isinstance(pd.read_csv(data), pd.DataFrame)
+    # no_store=True means the file should be deleted or never written
     assert not filepath.exists()
 
 
-def test_download_and_save_variable_no_store_no_filepath():
+def test_download_and_save_variable_no_store_no_filepath(mock_tls_client):
+    # Setup mock using the JS variable helper
+    mock_tls_client.return_js_var(var_name="statData", data={"player": "Messi", "goals": 10})
+
     reader = BaseRequestsReader(no_store=True)
     url = "https://understat.com/"
-    data = reader._download_and_save(url, filepath=None, var="statData")
+    data = reader.get(url, filepath=None, var="statData")
+
     stats = json.load(data)
     assert isinstance(stats, dict)
-    assert "statData" in stats
+    # the result is wrapped in {var_name: data}
+    assert stats["statData"]["player"] == "Messi"
 
 
 # def test_download_and_save_requests_tor(tmp_path):

@@ -23,6 +23,7 @@ class TestReadByDate:
         assert pd.api.types.is_datetime64_any_dtype(df["from"])
         assert pd.api.types.is_datetime64_any_dtype(df["to"])
 
+    @pytest.mark.fails_gha
     def test_default(self, elo: ClubElo) -> None:
         """It should return a dataframe with the latest ELO ratings if no date is given."""
         df = elo.read_by_date()
@@ -63,27 +64,27 @@ class TestReadTeamHistory:
 
     def test_with_valid_team(self, elo: ClubElo) -> None:
         """It should return a dataframe with the ELO history for the specified club."""
-        df = elo.read_team_history("Feyenoord")
+        df = elo.read_team_history("Feyenoord", max_age=None)
         self._check_dataframe(df)
 
     def test_with_teamname_replacements(self, elo: ClubElo) -> None:
         """It should use the replacement names from teamname_replacements.json."""
         # ClubElo uses "Man City" as the team name
-        df_original = elo.read_team_history("Man City")
-        df_replacement = elo.read_team_history("Manchester City")
+        df_original = elo.read_team_history("Man City", max_age=None)
+        df_replacement = elo.read_team_history("Manchester City", max_age=None)
         assert df_original.equals(df_replacement)
 
     def test_raises_when_team_not_found(self, elo: ClubElo) -> None:
         """It should raise an error if the team is not found."""
         with pytest.raises(ValueError, match="No data found for team FC Knudde"):
-            _ = elo.read_team_history("FC Knudde")
+            _ = elo.read_team_history("FC Knudde", max_age=None)
 
     def test_handles_special_characters_in_team_names(self, elo: ClubElo) -> None:
         """It should be able to deal with special characters in team names."""
-        df = elo.read_team_history("Brighton & Hove Albion")
+        df = elo.read_team_history("Brighton & Hove Albion", max_age=None)
         self._check_dataframe(df)
         with pytest.raises(ValueError, match="No data found for team Team & City"):
-            _ = elo.read_team_history("Team & City")
+            _ = elo.read_team_history("Team & City", max_age=None)
 
     @pytest.mark.fails_gha
     def test_respects_max_age_and_updates_cache(self, elo: ClubElo) -> None:

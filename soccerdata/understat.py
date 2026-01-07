@@ -707,7 +707,9 @@ class Understat(BaseRequestsReader):
         self, url: str, filepath: Optional[Path] = None, no_cache: bool = False
     ) -> IO[bytes]:
         """Make an API request with proper headers and caching."""
-        is_cached = filepath is not None and filepath.exists() and not no_cache and not self.no_cache
+        is_cached = (
+            filepath is not None and filepath.exists() and not no_cache and not self.no_cache
+        )
         if is_cached and filepath is not None:
             return filepath.open(mode="rb")
 
@@ -725,7 +727,7 @@ class Understat(BaseRequestsReader):
     @staticmethod
     def _extract_team_name(html: str) -> str:
         """Extract team name from tmpl HTML."""
-        match = re.search(r'<h3><a[^>]*>([^<]+)</a></h3>', html)
+        match = re.search(r"<h3><a[^>]*>([^<]+)</a></h3>", html)
         if match:
             return match.group(1)
         return ""

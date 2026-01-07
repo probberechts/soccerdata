@@ -7,8 +7,6 @@
 # Rules can depend on other rules which run first. Rules with _ prefix are internal helpers.
 
 MODULE_NAME = soccerdata
-PYTHON_VERSION = 3.9
-PYTHON_INTERPRETER = python
 DOCS_PORT ?= 8000
 SOCCERDATA_DIR ?= tests/appdata
 .DEFAULT_GOAL := help
@@ -96,9 +94,6 @@ create-env: ## Set up python interpreter environment
 .PHONY: requirements
 requirements: ## Install Python Dep
 	uv sync
-
-.PHONY: publish-all
-publish-all: format lint publish docs-publish ## Run format, lint, publish package and docs
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━ Pre-Commits ━━━━━━━━━━━━━━━━━━━━━━━━━━ #
 

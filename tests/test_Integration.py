@@ -1,9 +1,5 @@
 """Integration tests for soccerdata package."""
 
-import pandas as pd
-import pytest
-
-import soccerdata as foo
 
 # TODO: integration tests
 # Names of common leagues equal for all classes

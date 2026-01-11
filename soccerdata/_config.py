@@ -188,6 +188,10 @@ LEAGUE_DICT = {
         "WhoScored": "International - FIFA Women's World Cup",
         "season_code": "single-year",
     },
+    "USA-Major League Soccer": {
+        "FBref": "Major League Soccer",
+        "season_code": "single-year",
+    },
 }
 _f_custom_league_dict = CONFIG_DIR / "league_dict.json"
 if _f_custom_league_dict.is_file():

@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.9, <3.14"
 resolution-markers = [
     "python_full_version >= '3.13'",
@@ -1177,7 +1177,8 @@ version = "0.24.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "typing-extensions", marker = "python_full_version < '3.11'" },
-    { name = "urllib3" },
+    { name = "urllib3", version = "1.26.20", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "urllib3", version = "2.4.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/2b/f3/13a3425ddf04bd31f1caf3f4fa8de2352700c454cb0536ce3f4dbdc57a81/dulwich-0.24.1.tar.gz", hash = "sha256:e19fd864f10f02bb834bb86167d92dcca1c228451b04458761fc13dabd447758", size = 806136, upload-time = "2025-08-01T10:26:46.887Z" }
 wheels = [
@@ -4417,7 +4418,8 @@ dependencies = [
     { name = "certifi" },
     { name = "charset-normalizer" },
     { name = "idna" },
-    { name = "urllib3" },
+    { name = "urllib3", version = "1.26.20", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "urllib3", version = "2.4.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/63/70/2bf7780ad2d390a8d301ad0b550f1581eadbd9a20f896afe06353c2a2913/requests-2.32.3.tar.gz", hash = "sha256:55365417734eb18255590a9ff9eb97e9e1da868d4ccd6402399eaf68af20a760", size = 131218, upload-time = "2024-05-29T15:37:49.536Z" }
 wheels = [
@@ -4987,7 +4989,8 @@ dependencies = [
     { name = "trio" },
     { name = "trio-websocket" },
     { name = "typing-extensions" },
-    { name = "urllib3", extra = ["socks"] },
+    { name = "urllib3", version = "1.26.20", source = { registry = "https://pypi.org/simple" }, extra = ["socks"], marker = "python_full_version < '3.10'" },
+    { name = "urllib3", version = "2.4.0", source = { registry = "https://pypi.org/simple" }, extra = ["socks"], marker = "python_full_version >= '3.10'" },
     { name = "websocket-client" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/54/2d/fafffe946099033ccf22bf89e12eede14c1d3c5936110c5f6f2b9830722c/selenium-4.32.0.tar.gz", hash = "sha256:b9509bef4056f4083772abb1ae19ff57247d617a29255384b26be6956615b206", size = 870997, upload-time = "2025-05-02T20:35:27.325Z" }
@@ -5055,7 +5058,8 @@ dependencies = [
     { name = "trio" },
     { name = "trio-websocket" },
     { name = "typing-extensions" },
-    { name = "urllib3" },
+    { name = "urllib3", version = "1.26.20", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "urllib3", version = "2.4.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "websocket-client" },
     { name = "websockets" },
     { name = "wheel" },
@@ -5198,7 +5202,8 @@ dependencies = [
     { name = "seleniumbase" },
     { name = "tqdm" },
     { name = "unidecode" },
-    { name = "urllib3" },
+    { name = "urllib3", version = "1.26.20", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "urllib3", version = "2.4.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "wrapper-tls-requests" },
 ]
 
@@ -5248,7 +5253,7 @@ requires-dist = [
     { name = "socceraction", marker = "extra == 'socceraction'" },
     { name = "tqdm", specifier = ">=4.67.1,<5.0.0" },
     { name = "unidecode", specifier = ">=1.4.0,<2.0.0" },
-    { name = "urllib3", specifier = "<2" },
+    { name = "urllib3", specifier = "<3" },
     { name = "wrapper-tls-requests", specifier = ">=1.1.4,<2.0.0" },
 ]
 provides-extras = ["socceraction"]
@@ -5765,6 +5770,9 @@ wheels = [
 name = "urllib3"
 version = "1.26.20"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version < '3.10'",
+]
 sdist = { url = "https://files.pythonhosted.org/packages/e4/e8/6ff5e6bc22095cfc59b6ea711b687e2b7ed4bdb373f7eeec370a97d7392f/urllib3-1.26.20.tar.gz", hash = "sha256:40c2dc0c681e47eb8f90e7e27bf6ff7df2e677421fd46756da1161c39ca70d32", size = 307380, upload-time = "2024-08-29T15:43:11.37Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/33/cf/8435d5a7159e2a9c83a95896ed596f68cf798005fe107cc655b5c5c14704/urllib3-1.26.20-py2.py3-none-any.whl", hash = "sha256:0ed14ccfbf1c30a9072c7ca157e4319b70d65f623e91e7b32fadb2853431016e", size = 144225, upload-time = "2024-08-29T15:43:08.921Z" },
@@ -5772,7 +5780,27 @@ wheels = [
 
 [package.optional-dependencies]
 socks = [
-    { name = "pysocks" },
+    { name = "pysocks", marker = "python_full_version < '3.10'" },
+]
+
+[[package]]
+name = "urllib3"
+version = "2.4.0"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.13'",
+    "python_full_version == '3.12.*'",
+    "python_full_version == '3.11.*'",
+    "python_full_version == '3.10.*'",
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8a/78/16493d9c386d8e60e442a35feac5e00f0913c0f4b7c217c11e8ec2ff53e0/urllib3-2.4.0.tar.gz", hash = "sha256:414bc6535b787febd7567804cc015fee39daab8ad86268f1310a9250697de466", size = 390672, upload-time = "2025-04-10T15:23:39.232Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6b/11/cc635220681e93a0183390e26485430ca2c7b5f9d33b15c74c2861cb8091/urllib3-2.4.0-py3-none-any.whl", hash = "sha256:4e16665048960a0900c702d4a66415956a584919c03361cac9f1df5c5dd7e813", size = 128680, upload-time = "2025-04-10T15:23:37.377Z" },
+]
+
+[package.optional-dependencies]
+socks = [
+    { name = "pysocks", marker = "python_full_version >= '3.10'" },
 ]
 
 [[package]]

@@ -2,9 +2,10 @@
 
 import pandas as pd
 import pytest
+from lxml import html
 
 import soccerdata as sd
-from soccerdata.fbref import FBref, _concat
+from soccerdata.fbref import FBref, _concat, _parse_table
 
 
 def test_available_leagues() -> None:
@@ -93,7 +94,12 @@ def test_read_player_season_stats(fbref_ligue1: FBref, stat_type: str) -> None:
 
 
 def test_read_schedule(fbref_ligue1: FBref) -> None:
-    assert isinstance(fbref_ligue1.read_schedule(), pd.DataFrame)
+    df = fbref_ligue1.read_schedule()
+    assert isinstance(df, pd.DataFrame)
+    assert "home_team_id" in df.columns
+    assert "away_team_id" in df.columns
+    assert df["home_team_id"].notnull().all()
+    assert df["away_team_id"].notnull().all()
 
 
 @pytest.mark.parametrize(
@@ -109,9 +115,12 @@ def test_read_schedule(fbref_ligue1: FBref) -> None:
     ],
 )
 def test_read_player_match_stats(fbref_ligue1: FBref, stat_type: str) -> None:
-    assert isinstance(
-        fbref_ligue1.read_player_match_stats(stat_type, match_id="796787da"), pd.DataFrame
-    )
+    df = fbref_ligue1.read_player_match_stats(stat_type, match_id="796787da")
+    assert isinstance(df, pd.DataFrame)
+    assert "team_id" in df.columns
+    assert df["team_id"].notnull().all()
+    if "player_id" in df.columns:
+        assert df["player_id"].notnull().all()
 
 
 def test_read_events(fbref_ligue1: FBref) -> None:
@@ -247,3 +256,32 @@ def test_combine_big5_player_season_stats(fbref_ligue1: FBref, stat_type: str) -
         ligue1,
         bigfive,
     )
+
+
+def test_parse_table_player_ids():
+    html_str = """
+    <table>
+        <thead>
+            <tr><th data-stat="player">Player</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <th data-stat="player" data-append-csv="player123">Test1</th>
+                <td>Some Value</td>
+            </tr>
+            <tr>
+                <th data-stat="player" data-append-csv="player456">Test2</th>
+                <td>Another Value</td>
+            </tr>
+            <tr>
+                <th data-stat="test_player" data-append-csv="player789">Test3</th>
+                <td>Another Value</td>
+            </tr>
+        </tbody>
+    </table>
+    """
+    html_table = html.fromstring(html_str)
+
+    df = _parse_table(html_table)
+    assert "player_id" in df.columns
+    assert df["player_id"].tolist()[:2] == ["player123", "player456"]

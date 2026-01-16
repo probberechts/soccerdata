@@ -8,7 +8,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "soccerdata"
-version = "1.8.7"
+version = "1.8.8"
 description = "A collection of scrapers for soccer data from various websites / APIs."
 authors = [
     { name = "Pieter Robberechts", email = "pieter.robberechts@kuleuven.be"}
@@ -183,7 +183,7 @@ venv = ".venv"
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ bumpversion ━━━━━━━━━━━━━━━━━━━━━━━━━━━ #
 
 [tool.bumpversion]
-current_version = "1.8.7"
+current_version = "1.8.8"
 parse = """(?x)
 (?P<major>0|[1-9]\\d*)\\.
 (?P<minor>0|[1-9]\\d*)\\.

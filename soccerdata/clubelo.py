@@ -110,7 +110,9 @@ class ClubElo(BaseRequestsReader):
             .set_index("team")
         )
 
-    def read_team_history(self, team: str, max_age: Union[int, timedelta] = 1) -> pd.DataFrame:
+    def read_team_history(
+        self, team: str, max_age: Optional[Union[int, timedelta]] = 1
+    ) -> pd.DataFrame:
         """Retrieve full ELO history for one club.
 
         For the exact spelling of a club's name, check the result of
@@ -124,7 +126,8 @@ class ClubElo(BaseRequestsReader):
         team : str
             The club's name.
         max_age : int for age in days, or timedelta object
-            The max. age of locally cached file before re-download.
+            The max. age of locally cached file before re-download. To disable
+            re-downloading, set to None.
 
         Raises
         ------

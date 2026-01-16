@@ -38,7 +38,7 @@ jobs:
         if: "! steps.check-version.outputs.tag"
         run: |
           next=$(uv run bump-my-version show new_version --increment patch)
-          uv run bump-my-version bump --new-version "${next}.dev.$(date +%s)"
+          uv run bump-my-version bump --new-version "${next}.dev$(date +%s)"
 
       - name: Build package
         run: |

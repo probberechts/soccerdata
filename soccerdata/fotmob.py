@@ -70,16 +70,14 @@ class FotMob(BaseRequestsReader):
             (self.data_dir / "seasons").mkdir(parents=True, exist_ok=True)
             (self.data_dir / "matches").mkdir(parents=True, exist_ok=True)
 
-    def _init_session(self) -> tls_requests.Client:
-        session = super()._init_session()
+    def _init_session(self, headers: Optional[dict[str, str]] = None) -> tls_requests.Client:
         try:
             r = tls_requests.get("http://46.101.91.154:6006/")
             r.raise_for_status()
         except tls_requests.exceptions.HTTPError:
             raise ConnectionError("Unable to connect to the session cookie server.")
         result = r.json()
-        session.headers.update(result)
-        return session
+        return super()._init_session(headers=result)
 
     @property
     def leagues(self) -> list[str]:

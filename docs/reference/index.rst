@@ -14,7 +14,6 @@ data scrapers.
    clubelo
    espn
    fbref
-   fotmob
    matchhistory
    sofascore
    sofifa

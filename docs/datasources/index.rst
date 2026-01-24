@@ -53,19 +53,6 @@ FBref
 
 -----
 
-FotMob
-    `URL <https://www.fotmob.com/>`__ |
-    :doc:`Example usage <FotMob>` |
-    :doc:`API reference </reference/fotmob>`
-
-    .. code::
-
-      from soccerdata import FotMob
-
-    Historical results, lineups, and detailed aggregated statistics for teams and individual players based on Opta data.
-
------
-
 Football-Data.co.uk
     `URL <https://www.football-data.co.uk/data.php>`__ |
     :doc:`Example usage <MatchHistory>` |
@@ -135,7 +122,6 @@ WhoScored
    ClubElo
    ESPN
    FBref
-   FotMob
    MatchHistory
    Sofascore
    SoFIFA

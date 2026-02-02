@@ -99,7 +99,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.11" # match what's in .readthedocs.yml
+          python-version: "3.14" # match what's in .readthedocs.yml
 
       - name: Install system dependencies
         run: |

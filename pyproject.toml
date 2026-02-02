@@ -66,7 +66,7 @@ test = [
     "pytest>=8.0.0,<9.0.0",
     "pytest-mock>=3.10.0,<4.0.0",
     "pytest-cov>=6.2.1",
-    "time-machine>=2.8.2,<3.0.0",
+    "time-machine>=3.2.0,<3.3.0",
     "dvc[gs]>=3.62.0",
 ]
 

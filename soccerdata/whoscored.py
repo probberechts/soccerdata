@@ -640,11 +640,6 @@ class WhoScored(BaseSeleniumReader):
         """
         output_fmt = output_fmt.lower() if output_fmt is not None else None
         if output_fmt in ["loader", "spadl", "atomic-spadl"]:
-            if self.no_store:
-                raise ValueError(
-                    f"The '{output_fmt}' output format is not supported "
-                    "when using the 'no_store' option."
-                )
             try:
                 from socceraction.atomic.spadl import convert_to_atomic
                 from socceraction.data.opta import OptaLoader
@@ -653,6 +648,11 @@ class WhoScored(BaseSeleniumReader):
                 from socceraction.spadl.opta import convert_to_actions
 
                 if output_fmt == "loader":
+                    if self.no_store:
+                        raise ValueError(
+                            f"The '{output_fmt}' output format is not supported "
+                            "when using the 'no_store' option."
+                        )
                     import socceraction
                     from packaging import version
 
@@ -740,7 +740,7 @@ class WhoScored(BaseSeleniumReader):
                         events[game["game_id"]] = game_events
                     elif output_fmt in ["spadl", "atomic-spadl"]:
                         parser = WhoScoredParser(
-                            str(filepath),
+                            json_data if self.no_store else str(filepath),
                             competition_id=game["league"],
                             season_id=game["season"],
                             game_id=game["game_id"],

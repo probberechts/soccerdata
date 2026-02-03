@@ -5188,7 +5188,7 @@ wheels = [
 
 [[package]]
 name = "soccerdata"
-version = "1.8.7"
+version = "1.8.8"
 source = { editable = "." }
 dependencies = [
     { name = "html5lib" },

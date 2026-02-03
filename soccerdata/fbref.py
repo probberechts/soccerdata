@@ -63,6 +63,10 @@ class FBref(BaseRequestsReader):
         If True, will not store downloaded data.
     data_dir : Path
         Path to directory where data will be cached.
+    rate_limit : float
+        Minimum delay between requests in seconds.
+    max_delay : float
+        Maximum random delay added between requests in seconds.
     """
 
     def __init__(
@@ -73,6 +77,8 @@ class FBref(BaseRequestsReader):
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
         data_dir: Path = FBREF_DATADIR,
+        rate_limit: float = 7,
+        max_delay: float = 0,
     ):
         """Initialize FBref reader."""
         super().__init__(
@@ -82,8 +88,9 @@ class FBref(BaseRequestsReader):
             no_store=no_store,
             data_dir=data_dir,
             headers=FBREF_HEADERS,
+            rate_limit=rate_limit,
+            max_delay=max_delay,
         )
-        self.rate_limit = 7
         self.seasons = seasons
         # check if all top 5 leagues are selected
         if (

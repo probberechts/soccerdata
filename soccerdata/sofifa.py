@@ -53,6 +53,10 @@ class SoFIFA(BaseRequestsReader):
         If True, will not store downloaded data.
     data_dir : Path
         Path to directory where data will be cached.
+    rate_limit : float
+        Minimum delay between requests in seconds.
+    max_delay : float
+        Maximum random delay added between requests in seconds.
     """
 
     def __init__(
@@ -63,6 +67,8 @@ class SoFIFA(BaseRequestsReader):
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
         data_dir: Path = SO_FIFA_DATADIR,
+        rate_limit: float = 1,
+        max_delay: float = 0,
     ):
         """Initialize SoFIFA reader."""
         super().__init__(
@@ -71,8 +77,9 @@ class SoFIFA(BaseRequestsReader):
             no_cache=no_cache,
             no_store=no_store,
             data_dir=data_dir,
+            rate_limit=rate_limit,
+            max_delay=max_delay,
         )
-        self.rate_limit = 1
         if versions == "latest":
             self.versions = self.read_versions().tail(n=1)
         elif versions == "all":

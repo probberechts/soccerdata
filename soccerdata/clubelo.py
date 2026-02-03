@@ -48,6 +48,10 @@ class ClubElo(BaseRequestsReader):
         If True, will not store downloaded data.
     data_dir : Path
         Path to directory where data will be cached.
+    rate_limit : float
+        Minimum delay between requests in seconds.
+    max_delay : float
+        Maximum random delay added between requests in seconds.
     """
 
     def __init__(
@@ -56,9 +60,18 @@ class ClubElo(BaseRequestsReader):
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
         data_dir: Path = CLUB_ELO_DATADIR,
+        rate_limit: float = 0,
+        max_delay: float = 0,
     ):
         """Initialize a new ClubElo reader."""
-        super().__init__(proxy=proxy, no_cache=no_cache, no_store=no_store, data_dir=data_dir)
+        super().__init__(
+            proxy=proxy,
+            no_cache=no_cache,
+            no_store=no_store,
+            data_dir=data_dir,
+            rate_limit=rate_limit,
+            max_delay=max_delay,
+        )
 
     def read_by_date(self, date: Optional[Union[str, datetime]] = None) -> pd.DataFrame:
         """Retrieve ELO scores for all teams at specified date.

@@ -65,6 +65,10 @@ class Understat(BaseRequestsReader):
         If True, will not store downloaded data.
     data_dir : Path
         Path to directory where data will be cached.
+    rate_limit : float
+        Minimum delay between requests in seconds.
+    max_delay : float
+        Maximum random delay added between requests in seconds.
     """
 
     def __init__(
@@ -75,6 +79,8 @@ class Understat(BaseRequestsReader):
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
         data_dir: Path = UNDERSTAT_DATADIR,
+        rate_limit: float = 0,
+        max_delay: float = 0,
     ):
         """Initialize a new Understat reader."""
         super().__init__(
@@ -83,6 +89,8 @@ class Understat(BaseRequestsReader):
             no_cache=no_cache,
             no_store=no_store,
             data_dir=data_dir,
+            rate_limit=rate_limit,
+            max_delay=max_delay,
         )
         self.seasons = seasons
         self._cookies_initialized = False

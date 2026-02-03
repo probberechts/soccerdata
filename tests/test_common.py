@@ -1,5 +1,6 @@
 """Unittests for soccerdata._common."""
 
+import time
 import json
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
@@ -11,6 +12,7 @@ import time_machine
 import soccerdata
 from soccerdata._common import (
     BaseRequestsReader,
+    BaseSeleniumReader,
     SeasonCode,
     add_alt_team_names,
     add_standardized_team_name,
@@ -148,6 +150,34 @@ def test_download_and_save_variable_no_store_no_filepath(mock_tls_client):
     assert isinstance(stats, dict)
     # the result is wrapped in {var_name: data}
     assert stats["statData"]["player"] == "Messi"
+
+
+def test_requests_rate_limit(mock_tls_client):
+    # Setup mock
+    mock_tls_client.return_csv()
+
+    reader = BaseRequestsReader(no_store=True, no_cache=True, rate_limit=2.0)
+    url = "http://api.clubelo.com/Barcelona"
+    init_time = time.time()
+    data = reader.get(url, filepath=None)
+    data = reader.get(url, filepath=None)
+    end_time = time.time()
+    elapsed = end_time - init_time
+    assert elapsed >= 4.0
+
+
+def test_selenium_rate_limit(mock_tls_client):
+    # Setup mock
+    mock_tls_client.return_csv()
+
+    reader = BaseSeleniumReader(no_store=True, no_cache=True, rate_limit=2.0, headless=True)
+    url = "http://api.clubelo.com/Barcelona"
+    init_time = time.time()
+    data = reader.get(url, filepath=None)
+    data = reader.get(url, filepath=None)
+    end_time = time.time()
+    elapsed = end_time - init_time
+    assert elapsed >= 4.0
 
 
 # def test_download_and_save_requests_tor(tmp_path):

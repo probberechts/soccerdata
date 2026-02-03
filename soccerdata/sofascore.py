@@ -45,6 +45,10 @@ class Sofascore(BaseRequestsReader):
         If True, will not store downloaded data.
     data_dir : Path
         Path to directory where data will be cached.
+    rate_limit : float
+        Minimum delay between requests in seconds.
+    max_delay : float
+        Maximum random delay added between requests in seconds.
     """
 
     def __init__(
@@ -55,6 +59,8 @@ class Sofascore(BaseRequestsReader):
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
         data_dir: Path = SOFASCORE_DATADIR,
+        rate_limit: float = 0,
+        max_delay: float = 0,
     ):
         """Initialize the Sofascore reader."""
         super().__init__(
@@ -63,6 +69,8 @@ class Sofascore(BaseRequestsReader):
             no_cache=no_cache,
             no_store=no_store,
             data_dir=data_dir,
+            rate_limit=rate_limit,
+            max_delay=max_delay,
         )
         self.seasons = seasons
         if not self.no_store:

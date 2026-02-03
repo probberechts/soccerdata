@@ -60,6 +60,10 @@ class MatchHistory(BaseRequestsReader):
         If True, will not store downloaded data.
     data_dir : Path, optional
         Path to directory where data will be cached.
+    rate_limit : float
+        Minimum delay between requests in seconds.
+    max_delay : float
+        Maximum random delay added between requests in seconds.
     """
 
     def __init__(
@@ -70,9 +74,17 @@ class MatchHistory(BaseRequestsReader):
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
         data_dir: Path = MATCH_HISTORY_DATA_DIR,
+        rate_limit: float = 0,
+        max_delay: float = 0,
     ):
         super().__init__(
-            leagues=leagues, proxy=proxy, no_cache=no_cache, no_store=no_store, data_dir=data_dir
+            leagues=leagues,
+            proxy=proxy,
+            no_cache=no_cache,
+            no_store=no_store,
+            data_dir=data_dir,
+            rate_limit=rate_limit,
+            max_delay=max_delay,
         )
         self.seasons = seasons
 

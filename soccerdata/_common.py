@@ -215,6 +215,10 @@ class BaseReader(ABC):
         If True, will not store downloaded data.
     data_dir : Path
         Path to directory where data will be cached.
+    max_delay: float
+        Maximum random delay added between requests in seconds.
+    rate_limit: float
+        Minimum delay between requests in seconds.
     """
 
     def __init__(
@@ -224,6 +228,8 @@ class BaseReader(ABC):
         no_cache: bool = False,
         no_store: bool = False,
         data_dir: Path = DATA_DIR,
+        rate_limit: float = 0,
+        max_delay: float = 0,
     ):
         """Create a new data reader."""
         if isinstance(proxy, str) and proxy.lower() == "tor":
@@ -241,8 +247,8 @@ class BaseReader(ABC):
         self.no_cache = no_cache
         self.no_store = no_store
         self.data_dir = data_dir
-        self.rate_limit = 0
-        self.max_delay = 0
+        self.rate_limit = rate_limit
+        self.max_delay = max_delay
         if self.no_store:
             logger.info("Caching is disabled")
         else:
@@ -477,6 +483,8 @@ class BaseRequestsReader(BaseReader):
         no_store: bool = False,
         data_dir: Path = DATA_DIR,
         headers: Optional[dict[str, str]] = None,
+        rate_limit: float = 0,
+        max_delay: float = 0,
     ):
         """Initialize the reader."""
         super().__init__(
@@ -485,6 +493,8 @@ class BaseRequestsReader(BaseReader):
             leagues=leagues,
             proxy=proxy,
             data_dir=data_dir,
+            rate_limit=rate_limit,
+            max_delay=max_delay,
         )
 
         self._session = self._init_session(headers)
@@ -546,6 +556,8 @@ class BaseSeleniumReader(BaseReader):
         data_dir: Path = DATA_DIR,
         path_to_browser: Optional[Path] = None,
         headless: bool = True,
+        rate_limit: float = 0,
+        max_delay: float = 0,
     ):
         """Initialize the reader."""
         super().__init__(
@@ -554,6 +566,8 @@ class BaseSeleniumReader(BaseReader):
             leagues=leagues,
             proxy=proxy,
             data_dir=data_dir,
+            rate_limit=rate_limit,
+            max_delay=max_delay,
         )
         self.path_to_browser = path_to_browser
         self.headless = headless

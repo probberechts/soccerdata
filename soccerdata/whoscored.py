@@ -143,6 +143,10 @@ class WhoScored(BaseSeleniumReader):
     headless : bool, default: True
         If True, will run Chrome in headless mode. Setting this to False might
         help to avoid getting blocked. Only supported for Selenium <4.13.
+    rate_limit : float
+        Minimum delay between requests in seconds.
+    max_delay : float
+        Maximum random delay added between requests in seconds.
     """
 
     def __init__(
@@ -155,6 +159,8 @@ class WhoScored(BaseSeleniumReader):
         data_dir: Path = WHOSCORED_DATADIR,
         path_to_browser: Optional[Path] = None,
         headless: bool = False,
+        rate_limit: float = 5,
+        max_delay: float = 5,
     ):
         """Initialize the WhoScored reader."""
         super().__init__(
@@ -165,10 +171,10 @@ class WhoScored(BaseSeleniumReader):
             data_dir=data_dir,
             path_to_browser=path_to_browser,
             headless=headless,
+            rate_limit=rate_limit,
+            max_delay=max_delay,
         )
         self.seasons = seasons
-        self.rate_limit = 5
-        self.max_delay = 5
         if not self.no_store:
             (self.data_dir / "seasons").mkdir(parents=True, exist_ok=True)
             (self.data_dir / "matches").mkdir(parents=True, exist_ok=True)

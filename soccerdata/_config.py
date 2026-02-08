@@ -191,6 +191,9 @@ LEAGUE_DICT = {
     "USA-Major League Soccer": {
         "FBref": "Major League Soccer",
         "season_code": "single-year",
+        "WhoScored": "USA - Major League Soccer",
+        "season_start": "Feb",
+        "season_end": "Dec",
     },
 }
 _f_custom_league_dict = CONFIG_DIR / "league_dict.json"

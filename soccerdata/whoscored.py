@@ -14,6 +14,7 @@ from lxml import html
 from selenium.common.exceptions import (
     ElementClickInterceptedException,
     NoSuchElementException,
+    WebDriverException,
 )
 from selenium.webdriver.common.by import By
 
@@ -818,3 +819,27 @@ class WhoScored(BaseSeleniumReader):
             # with open("/tmp/error.html", "w") as f:
             # f.write(self._driver.page_source)
             raise ElementClickInterceptedException()
+
+    def _validate_page(self, url: str) -> str:
+        """Validate the page content.
+
+        Checks for the 'Incapsula incident ID' which indicates an IP block.
+
+        Parameters
+        ----------
+        url : str
+            The URL being downloaded.
+
+        Returns
+        -------
+        str
+            The validated page source.
+        """
+        page_html = self._driver.page_source
+        if "Incapsula incident ID" in page_html:
+            raise WebDriverException(
+                "Your IP is blocked. Use tor or a proxy to continue scraping."
+            )
+        if not page_html:
+            raise Exception("Empty response.")
+        return page_html

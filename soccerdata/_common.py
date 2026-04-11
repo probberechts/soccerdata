@@ -17,6 +17,7 @@ import pandas as pd
 import seleniumbase as sb
 import tls_requests
 from dateutil.relativedelta import relativedelta
+from lxml import html
 from lxml.etree import _Element
 from selenium.common.exceptions import JavascriptException, WebDriverException
 
@@ -546,6 +547,7 @@ class BaseSeleniumReader(BaseReader):
         data_dir: Path = DATA_DIR,
         path_to_browser: Optional[Path] = None,
         headless: bool = True,
+        headers: Optional[dict[str, str]] = None,
     ):
         """Initialize the reader."""
         super().__init__(
@@ -557,6 +559,7 @@ class BaseSeleniumReader(BaseReader):
         )
         self.path_to_browser = path_to_browser
         self.headless = headless
+        self.headers = headers
 
         try:
             self._driver = self._init_webdriver()
@@ -599,16 +602,9 @@ class BaseSeleniumReader(BaseReader):
             try:
                 self._driver.get(url)
                 time.sleep(self.rate_limit + random.random() * self.max_delay)
-                if "Incapsula incident ID" in self._driver.page_source:
-                    raise WebDriverException(
-                        "Your IP is blocked. Use tor or a proxy to continue scraping."
-                    )
+
                 if var is None:
-                    response = self._driver.execute_script(
-                        "return document.body.innerHTML;"
-                    ).encode("utf-8")
-                    if response == b"":
-                        raise Exception("Empty response.")
+                    response = self._validate_page(url).encode("utf-8")
                 else:
                     if not isinstance(var, str):
                         raise NotImplementedError("Only implemented for single variables.")
@@ -635,6 +631,33 @@ class BaseSeleniumReader(BaseReader):
                 continue
 
         raise ConnectionError(f"Could not download {url}.")
+
+    def _validate_page(self, url: str) -> str:
+        """Validate the page content.
+
+        This method can be overridden by subclasses to implement site-specific
+        validation or polling logic.
+
+        Parameters
+        ----------
+        url : str
+            The URL being downloaded.
+
+        Returns
+        -------
+        str
+            The validated page source.
+        """
+        page_html = self._driver.page_source
+        if not page_html:
+            raise Exception("Empty response.")
+        tree = html.fromstring(page_html)
+        body = tree.xpath("//body")
+        if not body:
+            raise Exception("No <body> tag found.")
+        # Wrap body in minimal HTML with charset hint for lxml
+        body_html = html.tostring(body[0], encoding="unicode")
+        return f"<html><head><meta charset='utf-8'></head>{body_html}</html>"
 
 
 def make_game_id(row: pd.Series) -> str:

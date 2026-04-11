@@ -111,13 +111,6 @@ source.
   value of the ``allRegions`` variable. The internal identifier has the format
   ``{region name} - {league name}``.
 
-**FotMob**
-  The internal identifier is identical in style to the general format:
-  ``[{region}]-{league name}``. Go to https://www.fotmob.com/api/allLeagues
-  to get the list of available leagues. The ``{region}`` corresponds to the
-  ``ccode`` field in the JSON response. The ``{league name}`` corresponds to
-  the ``name`` field.
-
 **Sofascore**
   Go to https://api.sofascore.com/api/v1/config/unique-tournaments/EN/football
   to get the list of major leagues and tournaments. Access ``uniqueTournaments``

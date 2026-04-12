@@ -26,13 +26,7 @@ def test_available_leagues() -> None:
     [
         "standard",
         "keeper",
-        "keeper_adv",
         "shooting",
-        "passing",
-        "passing_types",
-        "goal_shot_creation",
-        "defense",
-        "possession",
         "playing_time",
         "misc",
     ],
@@ -47,11 +41,6 @@ def test_read_team_season_stats(fbref_ligue1: FBref, stat_type: str) -> None:
         "schedule",
         "shooting",
         "keeper",
-        "passing",
-        "passing_types",
-        "goal_shot_creation",
-        "defense",
-        "possession",
         "misc",
     ],
 )
@@ -77,15 +66,9 @@ def test_read_team_match_stats_alt_names(fbref_ligue1: FBref) -> None:
     [
         "standard",
         "shooting",
-        "passing",
-        "passing_types",
-        "goal_shot_creation",
-        "defense",
-        "possession",
         "playing_time",
         "misc",
         "keeper",
-        "keeper_adv",
     ],
 )
 def test_read_player_season_stats(fbref_ligue1: FBref, stat_type: str) -> None:
@@ -101,11 +84,6 @@ def test_read_schedule(fbref_ligue1: FBref) -> None:
     [
         "summary",
         "keepers",
-        "passing",
-        "passing_types",
-        "defense",
-        "possession",
-        "misc",
     ],
 )
 def test_read_player_match_stats(fbref_ligue1: FBref, stat_type: str) -> None:
@@ -130,10 +108,6 @@ def test_missing_events() -> None:
     fbref = sd.FBref("FRA-Ligue 1", "19-20")
     events = fbref.read_events(match_id="1d845950")
     assert len(events) == 0
-
-
-def test_read_shot_events(fbref_ligue1: FBref) -> None:
-    assert isinstance(fbref_ligue1.read_shot_events(match_id="796787da"), pd.DataFrame)
 
 
 def test_read_lineup(fbref_ligue1: FBref) -> None:
@@ -196,13 +170,7 @@ def test_combine_big5() -> None:
     [
         "standard",
         "keeper",
-        # "keeper_adv",  disabled because of inconsistent data on FBref
         "shooting",
-        "passing",
-        "passing_types",
-        "goal_shot_creation",
-        "defense",
-        "possession",
         "playing_time",
         "misc",
     ],
@@ -225,15 +193,9 @@ def test_combine_big5_team_season_stats(fbref_ligue1: FBref, stat_type: str) -> 
     [
         "standard",
         "shooting",
-        "passing",
-        "passing_types",
-        "goal_shot_creation",
-        "defense",
-        "possession",
         "playing_time",
         "misc",
         "keeper",
-        "keeper_adv",
     ],
 )
 def test_combine_big5_player_season_stats(fbref_ligue1: FBref, stat_type: str) -> None:

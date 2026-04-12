@@ -1,5 +1,6 @@
 """Scraper for http://fbref.com."""
 
+import time
 import warnings
 from datetime import datetime, timezone
 from functools import reduce
@@ -10,7 +11,7 @@ import pandas as pd
 from lxml import etree, html
 
 from ._common import (
-    BaseRequestsReader,
+    BaseSeleniumReader,
     SeasonCode,
     add_alt_team_names,
     make_game_id,
@@ -29,11 +30,11 @@ BIG_FIVE_DICT = {
     "Ligue 1": "FRA-Ligue 1",
     "La Liga": "ESP-La Liga",
     "Premier League": "ENG-Premier League",
-    "Bundesliga": "GER-Bundesliga",
+    "Fußball-Bundesliga": "GER-Bundesliga",
 }
 
 
-class FBref(BaseRequestsReader):
+class FBref(BaseSeleniumReader):
     """Provides pd.DataFrames from data at http://fbref.com.
 
     Data will be downloaded as necessary and cached locally in
@@ -63,6 +64,11 @@ class FBref(BaseRequestsReader):
         If True, will not store downloaded data.
     data_dir : Path
         Path to directory where data will be cached.
+    path_to_browser : Path, optional
+        Path to the Chrome executable.
+    headless : bool, default: True
+        If True, will run Chrome in headless mode. Setting this to False might
+        help to avoid getting blocked. Only supported for Selenium <4.13.
     """
 
     def __init__(
@@ -73,6 +79,8 @@ class FBref(BaseRequestsReader):
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
         data_dir: Path = FBREF_DATADIR,
+        path_to_browser: Optional[Path] = None,
+        headless: bool = True,
     ):
         """Initialize FBref reader."""
         super().__init__(
@@ -81,6 +89,8 @@ class FBref(BaseRequestsReader):
             no_cache=no_cache,
             no_store=no_store,
             data_dir=data_dir,
+            path_to_browser=path_to_browser,
+            headless=headless,
             headers=FBREF_HEADERS,
         )
         self.rate_limit = 7
@@ -233,13 +243,7 @@ class FBref(BaseRequestsReader):
         The following stat types are available:
             * 'standard'
             * 'keeper'
-            * 'keeper_adv'
             * 'shooting'
-            * 'passing'
-            * 'passing_types'
-            * 'goal_shot_creation'
-            * 'defense'
-            * 'possession'
             * 'playing_time'
             * 'misc'
 
@@ -262,13 +266,7 @@ class FBref(BaseRequestsReader):
         team_stats = [
             "standard",
             "keeper",
-            "keeper_adv",
             "shooting",
-            "passing",
-            "passing_types",
-            "goal_shot_creation",
-            "defense",
-            "possession",
             "playing_time",
             "misc",
         ]
@@ -282,11 +280,6 @@ class FBref(BaseRequestsReader):
             page = "stats"
         elif stat_type == "keeper":
             page = "keepers"
-        elif stat_type == "keeper_adv":
-            page = "keepersadv"
-        elif stat_type == "goal_shot_creation":
-            page = "gca"
-            stat_type = "gca"
         elif stat_type == "playing_time":
             page = "playingtime"
         else:
@@ -355,11 +348,6 @@ class FBref(BaseRequestsReader):
             * 'schedule'
             * 'keeper'
             * 'shooting'
-            * 'passing'
-            * 'passing_types'
-            * 'goal_shot_creation'
-            * 'defense'
-            * 'possession'
             * 'misc'
 
         Parameters
@@ -387,11 +375,6 @@ class FBref(BaseRequestsReader):
             "schedule",
             "shooting",
             "keeper",
-            "passing",
-            "passing_types",
-            "goal_shot_creation",
-            "defense",
-            "possession",
             "misc",
         ]
 
@@ -402,9 +385,6 @@ class FBref(BaseRequestsReader):
 
         if stat_type == "schedule" and opponent_stats:
             raise ValueError("Opponent stats are not available for the 'schedule' stat type")
-
-        if stat_type == "goal_shot_creation":
-            stat_type = "gca"
 
         opp_type = "against" if opponent_stats else "for"
 
@@ -534,15 +514,9 @@ class FBref(BaseRequestsReader):
         The following stat types are available:
             * 'standard'
             * 'shooting'
-            * 'passing'
-            * 'passing_types'
-            * 'goal_shot_creation'
-            * 'defense'
-            * 'possession'
             * 'playing_time'
-            * 'misc'
             * 'keeper'
-            * 'keeper_adv'
+            * 'misc'
 
         Parameters
         ----------
@@ -561,13 +535,7 @@ class FBref(BaseRequestsReader):
         player_stats = [
             "standard",
             "keeper",
-            "keeper_adv",
             "shooting",
-            "passing",
-            "passing_types",
-            "goal_shot_creation",
-            "defense",
-            "possession",
             "playing_time",
             "misc",
         ]
@@ -579,15 +547,10 @@ class FBref(BaseRequestsReader):
 
         if stat_type == "standard":
             page = "stats"
-        elif stat_type == "goal_shot_creation":
-            page = "gca"
-            stat_type = "gca"
         elif stat_type == "playing_time":
             page = "playingtime"
         elif stat_type == "keeper":
             page = "keepers"
-        elif stat_type == "keeper_adv":
-            page = "keepersadv"
         else:
             page = stat_type
 
@@ -612,7 +575,8 @@ class FBref(BaseRequestsReader):
             for elem in tree.xpath("//td[@data-stat='comp_level']//span"):
                 elem.getparent().remove(elem)
             if big_five:
-                df_table = _parse_table(tree)
+                (html_table,) = tree.xpath(f"//table[@id='stats_{stat_type}']")
+                df_table = _parse_table(html_table)
                 df_table[("Unnamed: league", "league")] = (
                     df_table.xs("Comp", axis=1, level=1).squeeze().map(BIG_FIVE_DICT)
                 )
@@ -746,11 +710,6 @@ class FBref(BaseRequestsReader):
         The following stat types are available:
             * 'summary'
             * 'keepers'
-            * 'passing'
-            * 'passing_types'
-            * 'defense'
-            * 'possession'
-            * 'misc'
 
         Parameters
         ----------
@@ -777,11 +736,6 @@ class FBref(BaseRequestsReader):
         match_stats = [
             "summary",
             "keepers",
-            "passing",
-            "passing_types",
-            "defense",
-            "possession",
-            "misc",
         ]
 
         urlmask = FBREF_API + "/en/matches/{}"
@@ -1041,96 +995,41 @@ class FBref(BaseRequestsReader):
             .dropna(how="all")
         )
 
-    def read_shot_events(
-        self,
-        match_id: Optional[Union[str, list[str]]] = None,
-        force_cache: bool = False,
-    ) -> pd.DataFrame:
-        """Retrieve shooting data for the selected seasons or selected matches.
+    def _validate_page(self, url: str) -> str:
+        """Validate the page content.
 
-        The data returned includes who took the shot, when, with which body
-        part and from how far away. Additionally, the player creating the
-        chance and also the creation before this are included in the data.
+        Polls for the presence of a table element and checks for IP blocks.
 
         Parameters
         ----------
-        match_id : int or list of int, optional
-            Retrieve the shots for a specific game.
-        force_cache : bool
-            By default no cached data is used to scrape the list of available
-            games for the current season. If True, will force the use of
-            cached data anyway.
-
-        Raises
-        ------
-        ValueError
-            If no games with the given IDs were found for the selected seasons and leagues.
+        url : str
+            The URL being downloaded.
 
         Returns
         -------
-        pd.DataFrame.
+        str
+            The validated page source.
         """
-        urlmask = FBREF_API + "/en/matches/{}"
-        filemask = "match_{}.html"
+        # Poll for presence of table elements up to a timeout
+        start = time.time()
+        timeout = 15  # seconds
+        page_html = ""
+        while time.time() - start < timeout:
+            page_html = self._driver.page_source
+            # If a table is present, assume main content loaded
+            if "<table" in page_html:
+                tree = html.fromstring(page_html)
+                body = tree.xpath("//body")
+                if not body:
+                    raise Exception("No <body> tag found.")
+                # Wrap body in minimal HTML with charset hint for lxml
+                body_html = html.tostring(body[0], encoding="unicode")
+                return f"<html><head><meta charset='utf-8'></head>{body_html}</html>"
+            time.sleep(0.5)
 
-        # Retrieve games for which a match report is available
-        df_schedule = self.read_schedule(force_cache).reset_index()
-        df_schedule = df_schedule[~df_schedule.game_id.isna() & ~df_schedule.match_report.isnull()]
-        # Selec requested games if available
-        if match_id is not None:
-            iterator = df_schedule[
-                df_schedule.game_id.isin([match_id] if isinstance(match_id, str) else match_id)
-            ]
-            if len(iterator) == 0:
-                raise ValueError("No games found with the given IDs in the selected seasons.")
-        else:
-            iterator = df_schedule
-
-        shots = []
-        for i, game in iterator.reset_index().iterrows():
-            url = urlmask.format(game["game_id"])
-            # get league anigd season
-            logger.info(
-                "[%s/%s] Retrieving game with id=%s",
-                i + 1,
-                len(iterator),
-                game["game_id"],
-            )
-            filepath = self.data_dir / filemask.format(game["game_id"])
-            reader = self.get(url, filepath)
-            tree = html.parse(reader)
-            html_table = tree.find("//table[@id='shots_all']")
-            if html_table is not None:
-                df_table = _parse_table(html_table)
-                df_table["league"] = game["league"]
-                df_table["season"] = game["season"]
-                df_table["game"] = game["game"]
-                shots.append(df_table)
-            else:
-                logger.warning("No shot data found for game with id=%s", game["game_id"])
-
-        if len(shots) == 0:
-            return pd.DataFrame()
-
-        return (
-            _concat(shots, key=["game"])
-            .rename(columns={"Squad": "team"})
-            .replace({"team": TEAMNAME_REPLACEMENTS})
-            .pipe(
-                standardize_colnames,
-                cols=[
-                    "Outcome",
-                    "Minute",
-                    "Distance",
-                    "Player",
-                    "Body Part",
-                    "Notes",
-                    "Event",
-                ],
-            )
-            .set_index(["league", "season", "game"])
-            .sort_index()
-            .dropna(how="all")
+        raise Exception(
+            "Could not retrieve page content within timeout. "
+            "Possible reasons: failed CAPTCHA, IP block or network issues."
         )
 
 
@@ -1147,8 +1046,10 @@ def _parse_table(html_table: html.HtmlElement) -> pd.DataFrame:
     pd.DataFrame
     """
     # remove icons
-    for elem in html_table.xpath("//span[contains(@class, 'f-i')]"):
-        etree.strip_elements(elem.getparent(), "span", with_tail=False)
+    for elem in html_table.xpath(".//span[contains(@class, 'f-i')]"):
+        parent = elem.getparent()
+        if parent is not None:
+            etree.strip_elements(parent, "span", with_tail=False)
     # remove sep rows
     for elem in html_table.xpath("//tbody/tr[contains(@class, 'spacer')]"):
         elem.getparent().remove(elem)
@@ -1156,7 +1057,7 @@ def _parse_table(html_table: html.HtmlElement) -> pd.DataFrame:
     for elem in html_table.xpath("//tbody/tr[contains(@class, 'thead')]"):
         elem.getparent().remove(elem)
     # parse HTML to dataframe
-    (df_table,) = pd.read_html(html.tostring(html_table), flavor="lxml")
+    (df_table,) = pd.read_html(html.tostring(html_table, encoding="unicode"), flavor="lxml")
     return df_table.convert_dtypes()
 
 

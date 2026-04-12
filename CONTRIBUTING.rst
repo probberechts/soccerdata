@@ -99,7 +99,7 @@ that soccerdata supports:
 
 .. code:: console
 
-    $ uv venv --python 3.9
+    $ uv venv --python 3.10
     $ source .venv/bin/activate
 
 Alternatively, you can use `pip`. You'll need to have at least the minimum
@@ -155,6 +155,51 @@ Unit tests are located in the ``tests`` directory,
 and are written using the pytest_ testing framework.
 
 .. _pytest: https://pytest.readthedocs.io/
+
+
+Data Version Control (DVC)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The project uses DVC_ to manage the test data used by the test suite. This data
+is stored in the ``tests/appdata/data`` directory and is tracked by the
+``tests/appdata/data.dvc`` file.
+
+Using DVC ensures that tests are fast and reproducible by providing a cached
+version of the data, thus avoiding the need to scrape external websites during
+every test run. This is particularly important for CI, but also helps during
+local development.
+
+To pull the latest test data from the remote storage, run:
+
+.. code:: console
+
+   $ uv run dvc pull
+
+If you've added a new scraper or modified an existing one, you might need to
+update the test data. To do this, run the test suite (or a specific test) with
+the ``SOCCERDATA_DIR`` environment variable set to ``tests/appdata``. This will
+cause the scrapers to save the downloaded data to the test data directory.
+
+.. code:: console
+
+   $ SOCCERDATA_DIR=tests/appdata uv run pytest tests/test_MyNewScraper.py
+
+After running the tests, you can add the new data to DVC:
+
+.. code:: console
+
+   $ uv run dvc add tests/appdata/data
+
+This will update the ``tests/appdata/data.dvc`` file, which you should then
+include in your pull request. Note that only maintainers have write access to
+the DVC remote, so you won't be able to run ``dvc push``. The maintainers will
+push the new data once your pull request is merged.
+
+DVC is included in the ``test`` dependency group and should be available if
+you've followed the environment setup instructions.
+
+.. _DVC: https://dvc.org/
+
 
 Code style
 ~~~~~~~~~~~

@@ -24,16 +24,16 @@ classifiers = [
 
 # ━━━━━━━━━━━━━━━━━━━━━━ Primary Dependencies ━━━━━━━━━━━━━━━━━━━━━━ #
 
-requires-python = ">=3.9,<3.14"
+requires-python = ">=3.10,<3.15"
 dependencies = [
     "html5lib>=1.1,<2.0.0",
-    "pandas>=2.0.0,!=2.1.0,<3.0.0",
-    "wrapper-tls-requests>=1.1.4,<2.0.0",
-    "tqdm>=4.67.1,<5.0.0",
-    "rich>=14.0.0,<15.0.0",
-    "seleniumbase>=4.38.2,<5.0.0",
-    "unidecode>=1.4.0,<2.0.0",
-    "urllib3<2",
+    "pandas>=2.0.0,!=2.1.0,<4.0.0",
+    "wrapper-tls-requests>=1.1.4,<3.0.0",
+    "tqdm>=4.67.1,<6.0.0",
+    "rich>=14.0.0,<16.0.0",
+    "seleniumbase>=4.38.2,<6.0.0",
+    "unidecode>=1.4.0,<3.0.0",
+    "urllib3<3",
     "lxml>=5.0.0; python_version >= '3.13'",
     "lxml>=4.9.4; python_version < '3.13'"
 ]
@@ -58,15 +58,15 @@ lint = [
     "ruff",
     "mypy",
     "pyright>=1.1.403",
-    "pre-commit>=4.0.0,<5.0.0",
+    "pre-commit>=4.0.0,<6.0.0",
 ]
 
 # Testing
 test = [
-    "pytest>=8.0.0,<9.0.0",
-    "pytest-mock>=3.10.0,<4.0.0",
+    "pytest>=8.0.0,<10.0.0",
+    "pytest-mock>=3.10.0,<5.0.0",
     "pytest-cov>=6.2.1",
-    "time-machine>=2.8.2,<3.0.0",
+    "time-machine>=2.8.2,<4.0.0",
     "dvc[gs]>=3.62.0",
 ]
 
@@ -77,10 +77,10 @@ release = [
 
 # Documentation
 docs = [
-    "Sphinx>=7.0.0,<8.0.0",
-    "furo>=2024.0.0,<2025.0.0",
+    "Sphinx>=7.0.0,<10.0.0",
+    "furo>=2024.0.0,<2026.0.0",
     "nbsphinx>=0.9.0,<1.0.0",
-    "sphinx-autobuild>=2024.0.0,<2025.0.0",
+    "sphinx-autobuild>=2024.0.0,<2026.0.0",
 ]
 
 # Example notebooks
@@ -104,7 +104,7 @@ default-groups = [
 [tool.ruff]
 src = ['soccerdata', 'tests']
 line-length = 99
-target-version = 'py39'
+target-version = 'py310'
 
 [tool.ruff.lint]
 ignore = ['B904']

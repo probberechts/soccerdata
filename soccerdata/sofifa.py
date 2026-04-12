@@ -1,17 +1,20 @@
 """Scraper for http://sofifa.com."""
 
+import io
 import json
+import random
 import re
+import time
 from datetime import timedelta
 from itertools import product
 from pathlib import Path
-from typing import Callable, Optional, Union
+from typing import Callable, Iterable, Optional, Union
 
 import pandas as pd
 from lxml import html
 
 from ._common import (
-    BaseRequestsReader,
+    BaseSeleniumReader,
     add_standardized_team_name,
     safe_xpath_text,
     standardize_colnames,
@@ -22,7 +25,7 @@ SO_FIFA_DATADIR = DATA_DIR / "SoFIFA"
 SO_FIFA_API = "https://sofifa.com"
 
 
-class SoFIFA(BaseRequestsReader):
+class SoFIFA(BaseSeleniumReader):
     """Provides pd.DataFrames from data at http://sofifa.com.
 
     Data will be downloaded as necessary and cached locally in
@@ -53,6 +56,11 @@ class SoFIFA(BaseRequestsReader):
         If True, will not store downloaded data.
     data_dir : Path
         Path to directory where data will be cached.
+    path_to_browser : Path, optional
+        Path to the Chrome executable.
+    headless : bool, default: True
+        If True, will run Chrome in headless mode. Setting this to False might
+        help to avoid getting blocked. Only supported for Selenium <4.13.
     """
 
     def __init__(
@@ -63,6 +71,8 @@ class SoFIFA(BaseRequestsReader):
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
         data_dir: Path = SO_FIFA_DATADIR,
+        path_to_browser: Optional[Path] = None,
+        headless: bool = True,
     ):
         """Initialize SoFIFA reader."""
         super().__init__(
@@ -491,3 +501,17 @@ class SoFIFA(BaseRequestsReader):
 
         # return data frame
         return pd.DataFrame(ratings).pipe(standardize_colnames).set_index(["player"]).sort_index()
+
+    def _validate_page(self, url: str) -> str:
+        """Validate the page content.
+
+        For JSON API endpoints, return the page text so json.load works.
+        For HTML pages, use the base class logic to extract the body.
+        """
+        if "/api/" in url:
+            page_text = self._driver.execute_script("return document.body.innerText;")
+            if not page_text:
+                raise Exception("Empty response.")
+            return page_text
+
+        return super()._validate_page(url)

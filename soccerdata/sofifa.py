@@ -1,14 +1,11 @@
 """Scraper for http://sofifa.com."""
 
-import io
 import json
-import random
 import re
-import time
 from datetime import timedelta
 from itertools import product
 from pathlib import Path
-from typing import Callable, Iterable, Optional, Union
+from typing import Callable, Optional, Union
 
 import pandas as pd
 from lxml import html

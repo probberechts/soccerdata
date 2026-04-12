@@ -1,5 +1,6 @@
 """Scraper for http://fbref.com."""
 
+import io
 import time
 import warnings
 from datetime import datetime, timezone
@@ -1057,7 +1058,9 @@ def _parse_table(html_table: html.HtmlElement) -> pd.DataFrame:
     for elem in html_table.xpath("//tbody/tr[contains(@class, 'thead')]"):
         elem.getparent().remove(elem)
     # parse HTML to dataframe
-    (df_table,) = pd.read_html(html.tostring(html_table, encoding="unicode"), flavor="lxml")
+    (df_table,) = pd.read_html(
+        io.StringIO(html.tostring(html_table, encoding="unicode")), flavor="lxml"
+    )
     return df_table.convert_dtypes()
 
 

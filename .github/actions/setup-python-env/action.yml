@@ -19,7 +19,7 @@ runs:
         python-version: ${{inputs.python-version}}
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v7
+      uses: astral-sh/setup-uv@v8.1.0
       with:
         version: ${{inputs.uv-version}}
         enable-cache: true

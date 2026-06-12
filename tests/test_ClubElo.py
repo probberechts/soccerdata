@@ -86,6 +86,17 @@ class TestReadTeamHistory:
         with pytest.raises(ValueError, match="No data found for team Team & City"):
             _ = elo.read_team_history("Team & City", max_age=None)
 
+    def test_with_hyphenated_team_name(self, elo: ClubElo) -> None:
+        """It should keep hyphens that ClubElo uses in team URLs (e.g. Saint-Etienne)."""
+        df = elo.read_team_history("Saint-Etienne", max_age=None)
+        self._check_dataframe(df)
+
+    def test_with_numeric_team_name(self, elo: ClubElo) -> None:
+        """It should keep digits so 'Metalist 1925' isn't confused with the older 'Metalist'."""
+        df = elo.read_team_history("Metalist 1925", max_age=None)
+        self._check_dataframe(df)
+        assert (df["team"] == "Metalist 1925").all()
+
     @pytest.mark.fails_gha
     def test_respects_max_age_and_updates_cache(self, elo: ClubElo) -> None:
         """It should not use cached data if it is older than max_age."""

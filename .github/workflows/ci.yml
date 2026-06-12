@@ -1,15 +1,30 @@
 name: CI
 on:
-  - push
-  - pull_request
+  push:
+  pull_request_target:
+
 jobs:
+  authorize:
+    name: Authorize
+    runs-on: ubuntu-latest
+    # Use 'external' environment for forks to require manual approval
+    # Use 'internal' for local branches/pushes (no approval needed)
+    environment: >-
+      ${{ (github.event_name == 'pull_request_target' &&
+           github.event.pull_request.head.repo.full_name != github.repository) &&
+           'external' || 'internal' }}
+    steps:
+      - run: true
+
   quality:
+    needs: authorize
     runs-on: ubuntu-latest
     steps:
       - name: Check out
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
       - uses: actions/cache@v5
         with:
@@ -25,13 +40,14 @@ jobs:
           uv export --no-hashes --only-group=docs --output-file=docs/requirements.txt
 
       - name: Commit changes if needed
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
         run: |
           if ! git diff --quiet requirements.txt docs/requirements.txt; then
             git config --local user.email "action@github.com"
             git config --local user.name "GitHub Action"
             git add requirements.txt docs/requirements.txt
             git diff --staged --quiet || git commit -m "chore: update requirements.txt files"
-            git push
+            git push origin HEAD:${{ github.event.pull_request.head.ref || github.ref_name }}
           fi
 
       - name: Run pre-commit
@@ -41,6 +57,7 @@ jobs:
         run: uv sync --locked
 
   tests-and-type-check:
+    needs: authorize
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -52,6 +69,8 @@ jobs:
     steps:
       - name: Check out
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
       - name: Set up the environment
         uses: ./.github/actions/setup-python-env
@@ -90,10 +109,13 @@ jobs:
         if: ${{matrix.python-version == '3.11'}}
 
   check-docs:
+    needs: authorize
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
       - name: Set up Python
         uses: actions/setup-python@v6

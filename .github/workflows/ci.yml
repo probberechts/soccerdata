@@ -9,7 +9,6 @@ jobs:
       - name: Check out
         uses: actions/checkout@v6
         with:
-          ref: ${{ github.head_ref }}
           fetch-depth: 0
 
       - uses: actions/cache@v5

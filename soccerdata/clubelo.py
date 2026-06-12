@@ -145,7 +145,8 @@ class ClubElo(BaseRequestsReader):
 
         for _team in teams_to_check:
             filepath = self.data_dir / f"{_team}.csv"
-            url = f"{CLUB_ELO_API}/{re.sub(r'[^a-zA-Z]', '', _team)}"
+            # Keep digits and hyphens: ClubElo URLs use them (e.g. Saint-Etienne, Metalist 1925).
+            url = f"{CLUB_ELO_API}/{re.sub(r'[^a-zA-Z0-9-]', '', _team)}"
             data = self.get(url, filepath, max_age)
 
             df = (

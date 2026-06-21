@@ -69,7 +69,7 @@ class SoFIFA(BaseSeleniumReader):
         no_store: bool = NOSTORE,
         data_dir: Path = SO_FIFA_DATADIR,
         path_to_browser: Optional[Path] = None,
-        headless: bool = True,
+        headless: bool = False,
     ):
         """Initialize SoFIFA reader."""
         super().__init__(
@@ -78,6 +78,8 @@ class SoFIFA(BaseSeleniumReader):
             no_cache=no_cache,
             no_store=no_store,
             data_dir=data_dir,
+            path_to_browser=path_to_browser,
+            headless=headless,
         )
         self.rate_limit = 1
         if versions == "latest":
@@ -505,10 +507,17 @@ class SoFIFA(BaseSeleniumReader):
         For JSON API endpoints, return the page text so json.load works.
         For HTML pages, use the base class logic to extract the body.
         """
+        if self._is_captcha_present():
+            raise Exception("CAPTCHA detected")
+
         if "/api/" in url:
             page_text = self._driver.execute_script("return document.body.innerText;")
             if not page_text:
                 raise Exception("Empty response.")
             return page_text
+
+        # Ensure we are on SoFIFA
+        if "sofifa" not in self._driver.page_source.lower():
+            raise Exception("Not on SoFIFA page")
 
         return super()._validate_page(url)

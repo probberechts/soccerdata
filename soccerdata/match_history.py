@@ -11,6 +11,16 @@ from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
 
 MATCH_HISTORY_DATA_DIR = DATA_DIR / "MatchHistory"
 MATCH_HISTORY_API = "https://www.football-data.co.uk"
+MATCH_HISTORY_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,"
+    "image/webp,image/apng,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+}
 
 
 def _parse_csv(raw_data: IO[bytes], lkey: str, skey: str) -> pd.DataFrame:
@@ -72,7 +82,12 @@ class MatchHistory(BaseRequestsReader):
         data_dir: Path = MATCH_HISTORY_DATA_DIR,
     ):
         super().__init__(
-            leagues=leagues, proxy=proxy, no_cache=no_cache, no_store=no_store, data_dir=data_dir
+            leagues=leagues,
+            proxy=proxy,
+            no_cache=no_cache,
+            no_store=no_store,
+            data_dir=data_dir,
+            headers=MATCH_HISTORY_HEADERS,
         )
         self.seasons = seasons
 

@@ -842,17 +842,27 @@ class WhoScored(BaseSeleniumReader):
             )
         if not page_html:
             raise Exception("Empty response.")
-        # Browsers render JSON responses as <pre> inside HTML; unwrap so callers
-        # that json.load() the response keep working.
+
         stripped = page_html.lstrip()
+
+        # If it already looks like JSON, return early
+        if stripped.startswith("{") or stripped.startswith("["):
+            return stripped
+
         if stripped.startswith("<"):
             try:
                 tree = html.fromstring(page_html)
             except Exception:
                 return page_html
-            pre = tree.xpath("//pre")
-            if pre and pre[0].text:
-                text = pre[0].text.strip()
-                if text and text[0] in "{[":
-                    return text
+
+            node = tree.xpath("//pre") or tree.xpath("//body")
+            if not node:
+                return page_html
+
+            text = node[0].xpath("string(.)").strip()
+
+            # Only accept pure JSON
+            if text.startswith("{") or text.startswith("["):
+                return text
+
         return page_html

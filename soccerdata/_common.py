@@ -583,13 +583,55 @@ class BaseSeleniumReader(BaseReader):
         resolver_rules = None
         if proxy_str is not None:
             resolver_rules = "MAP * ~NOTFOUND , EXCLUDE 127.0.0.1"
-        return sb.Driver(
+
+        driver = sb.Driver(
             uc=True,
             headless=self.headless,
             binary_location=self.path_to_browser,
             host_resolver_rules=resolver_rules,
             proxy=proxy_str,
         )
+
+        if self.headers:
+            driver.execute_cdp_cmd("Network.setExtraHTTPHeaders", {"headers": self.headers})
+
+        return driver
+
+    def solve_captcha(self) -> None:
+        """Solve a captcha if present on the current page."""
+        if self.headless:
+            logger.warning("Cannot use GUI captcha solver in headless mode.")
+            self._driver.sleep(10)
+            return
+
+        try:
+            self._driver.uc_gui_handle_captcha()
+        except Exception as e:
+            logger.debug("uc_gui_handle_captcha failed: %s", e)
+
+        try:
+            self._driver.uc_gui_handle_cf()
+        except Exception as e:
+            logger.debug("uc_gui_handle_cf failed: %s", e)
+
+        self._driver.sleep(10)
+
+    def _is_captcha_present(self) -> bool:
+        """Check if a captcha is present on the current page."""
+        try:
+            page_source = self._driver.page_source
+        except Exception:
+            return False
+
+        captcha_indicators = [
+            "Verify you are human",
+            "Checking your browser",
+            "Just a moment...",
+            "Ray ID:",
+            "cf-challenge",
+            "Please stand by",
+        ]
+        return any(indicator in page_source for indicator in captcha_indicators)
 
     def _download_and_save(
         self,
@@ -603,8 +645,49 @@ class BaseSeleniumReader(BaseReader):
                 self._driver.get(url)
                 time.sleep(self.rate_limit + random.random() * self.max_delay)
 
+                if self._is_captcha_present():
+                    if i < 4:
+                        logger.warning(
+                            "CAPTCHA detected for %s (attempt %d of 5). "
+                            "Attempting to solve captcha...",
+                            url,
+                            i + 1,
+                        )
+                        self.solve_captcha()
+                        # If still there, try one reload
+                        if self._is_captcha_present():
+                            self._driver.get(url)
+                            time.sleep(5)
+                    else:
+                        raise Exception("CAPTCHA detected and could not be solved.")
+
+                try:
+                    page_source = self._validate_page(url)
+                except Exception as e:
+                    if "CAPTCHA detected" in str(e) and i < 4:
+                        logger.warning(
+                            "Validation failed for %s (attempt %d of 5): %s. "
+                            "Attempting to solve captcha...",
+                            url,
+                            i + 1,
+                            e,
+                        )
+                        self.solve_captcha()
+                        page_source = self._validate_page(url)
+                    elif i < 4:
+                        logger.warning(
+                            "Validation failed for %s (attempt %d of 5): %s. Retrying...",
+                            url,
+                            i + 1,
+                            e,
+                        )
+                        time.sleep(i * 10)
+                        continue
+                    else:
+                        raise
+
                 if var is None:
-                    response = self._validate_page(url).encode("utf-8")
+                    response = page_source.encode("utf-8")
                 else:
                     if not isinstance(var, str):
                         raise NotImplementedError("Only implemented for single variables.")
@@ -619,7 +702,10 @@ class BaseSeleniumReader(BaseReader):
                     with filepath.open(mode="wb") as fh:
                         fh.write(response)
                 return io.BytesIO(response)
-            except Exception:
+            except Exception as e:
+                if "CAPTCHA detected" in str(e) and i < 4:
+                    continue
+
                 logger.exception(
                     "Error while scraping %s. Retrying in %d seconds... (attempt %d of 5).",
                     url,

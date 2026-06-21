@@ -23,7 +23,7 @@ from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
 FBREF_DATADIR = DATA_DIR / "FBref"
 FBREF_API = "https://fbref.com"
 FBREF_HEADERS = {
-    "sec-ch-ua": '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
+    "sec-ch-ua": '"Not)A;Brand";v="8", "Chromium";v="149", "Google Chrome";v="149"',
 }
 
 BIG_FIVE_DICT = {
@@ -81,7 +81,7 @@ class FBref(BaseSeleniumReader):
         no_store: bool = NOSTORE,
         data_dir: Path = FBREF_DATADIR,
         path_to_browser: Optional[Path] = None,
-        headless: bool = True,
+        headless: bool = False,
     ):
         """Initialize FBref reader."""
         super().__init__(
@@ -1011,6 +1011,9 @@ class FBref(BaseSeleniumReader):
         str
             The validated page source.
         """
+        if self._is_captcha_present():
+            raise Exception("CAPTCHA detected")
+
         # Poll for presence of table elements up to a timeout
         start = time.time()
         timeout = 15  # seconds
@@ -1026,7 +1029,15 @@ class FBref(BaseSeleniumReader):
                 # Wrap body in minimal HTML with charset hint for lxml
                 body_html = html.tostring(body[0], encoding="unicode")
                 return f"<html><head><meta charset='utf-8'></head>{body_html}</html>"
+
+            if self._is_captcha_present():
+                raise Exception("CAPTCHA detected")
+
             time.sleep(0.5)
+
+        # Ensure we are on FBref
+        if "fbref" not in self._driver.page_source.lower():
+            raise Exception("Not on FBref page")
 
         raise Exception(
             "Could not retrieve page content within timeout. "

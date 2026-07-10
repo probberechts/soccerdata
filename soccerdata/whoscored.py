@@ -855,4 +855,11 @@ class WhoScored(BaseSeleniumReader):
                 text = pre[0].text.strip()
                 if text and text[0] in "{[":
                     return text
+            # Some browser/driver combinations render JSON responses as bare
+            # <body> text without a <pre> element (see #940).
+            body = tree.xpath("//body")
+            if body:
+                text = body[0].text_content().strip()
+                if text and text[0] in "{[":
+                    return text
         return page_html

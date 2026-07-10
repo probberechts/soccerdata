@@ -25,6 +25,22 @@ def test_validate_page_unwraps_json_in_pre():
     assert instance._validate_page("http://example") == '{"tournaments": []}'
 
 
+def test_validate_page_unwraps_json_in_body_without_pre():
+    instance = WhoScored.__new__(WhoScored)
+    driver = MagicMock()
+    driver.page_source = '<html><head></head><body>{"tournaments": []}</body></html>'
+    instance._driver = driver
+    assert instance._validate_page("http://example") == '{"tournaments": []}'
+
+
+def test_validate_page_unwraps_json_in_body_with_whitespace():
+    instance = WhoScored.__new__(WhoScored)
+    driver = MagicMock()
+    driver.page_source = '<html><head></head><body>\n {"tournaments": []}\n</body></html>'
+    instance._driver = driver
+    assert instance._validate_page("http://example") == '{"tournaments": []}'
+
+
 def test_validate_page_passes_through_html():
     instance = WhoScored.__new__(WhoScored)
     driver = MagicMock()

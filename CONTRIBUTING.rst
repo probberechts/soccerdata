@@ -102,8 +102,8 @@ virtual environment:
 
     $ uv venv --python 3.10
     $ source .venv/bin/activate
+    $ uv pip install -e .
     $ uv pip install -r requirements.txt
-    $ uv pip install -e 
 
 Alternatively, you can use `pip`. You'll need to have at least the minimum
 Python version that soccerdata supports. Next, install the required

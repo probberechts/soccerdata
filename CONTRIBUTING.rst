@@ -95,12 +95,13 @@ Information about installation options and instructions for Windows can be found
 `uv's installation guide <https://docs.astral.sh/uv/getting-started/installation/>`_.
 
 Next, create and activate a virtual environment using uv with a Python version
-that soccerdata supports:
+that soccerdata supports, and install the required dependencies in the 
+virtual environment:
 
 .. code:: console
 
     $ uv venv --python 3.10
-    $ source .venv/bin/activate
+    $ uv sync
 
 Alternatively, you can use `pip`. You'll need to have at least the minimum
 Python version that soccerdata supports. Next, install the required

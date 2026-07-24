@@ -4,9 +4,9 @@ import itertools
 import json
 import re
 import time
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import Callable, Literal, Optional, Union
+from typing import Literal, Union
 
 import numpy as np
 import pandas as pd
@@ -148,13 +148,13 @@ class WhoScored(BaseSeleniumReader):
 
     def __init__(
         self,
-        leagues: Optional[Union[str, list[str]]] = None,
-        seasons: Optional[Union[str, int, Iterable[Union[str, int]]]] = None,
-        proxy: Optional[Union[str, list[str], Callable[[], str]]] = None,
+        leagues: str | list[str] | None = None,
+        seasons: str | int | Iterable[str | int] | None = None,
+        proxy: str | list[str] | Callable[[], str] | None = None,
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
         data_dir: Path = WHOSCORED_DATADIR,
-        path_to_browser: Optional[Path] = None,
+        path_to_browser: Path | None = None,
         headless: bool = False,
     ):
         """Initialize the WhoScored reader."""
@@ -479,7 +479,7 @@ class WhoScored(BaseSeleniumReader):
 
     def read_missing_players(
         self,
-        match_id: Optional[Union[int, list[int]]] = None,
+        match_id: int | list[int] | None = None,
         force_cache: bool = False,
     ) -> pd.DataFrame:
         """Retrieve a list of injured and suspended players ahead of each game.
@@ -582,15 +582,15 @@ class WhoScored(BaseSeleniumReader):
             .sort_index()
         )
 
-    def read_events(  # noqa: C901
+    def read_events(
         self,
-        match_id: Optional[Union[int, list[int]]] = None,
+        match_id: int | list[int] | None = None,
         force_cache: bool = False,
         live: bool = False,
-        output_fmt: Optional[str] = "events",
+        output_fmt: str | None = "events",
         retry_missing: bool = True,
         on_error: Literal["raise", "skip"] = "raise",
-    ) -> Optional[Union[pd.DataFrame, dict[int, list], "OptaLoader"]]:  # type: ignore  # noqa: F821
+    ) -> Union[pd.DataFrame, dict[int, list], "OptaLoader"] | None:  # type: ignore  # noqa: F821
         """Retrieve the the event data for each game in the selected leagues and seasons.
 
         Parameters
@@ -841,18 +841,18 @@ class WhoScored(BaseSeleniumReader):
                 "Your IP is blocked. Use tor or a proxy to continue scraping."
             )
         if not page_html:
-            raise Exception("Empty response.")
+            raise Exception("Empty response.")  # noqa: TRY002
 
         stripped = page_html.lstrip()
 
         # If it already looks like JSON, return early
-        if stripped.startswith("{") or stripped.startswith("["):
+        if stripped.startswith(("{", "[")):
             return stripped
 
         if stripped.startswith("<"):
             try:
                 tree = html.fromstring(page_html)
-            except Exception:
+            except Exception:  # noqa: BLE001
                 return page_html
 
             node = tree.xpath("//pre") or tree.xpath("//body")
@@ -862,7 +862,7 @@ class WhoScored(BaseSeleniumReader):
             text = node[0].xpath("string(.)").strip()
 
             # Only accept pure JSON
-            if text.startswith("{") or text.startswith("["):
+            if text.startswith(("{", "[")):
                 return text
 
         return page_html

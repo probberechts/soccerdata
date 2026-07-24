@@ -2,10 +2,9 @@
 
 import itertools
 import json
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable, Optional, Union
 
 import pandas as pd
 
@@ -49,9 +48,9 @@ class Sofascore(BaseRequestsReader):
 
     def __init__(
         self,
-        leagues: Optional[Union[str, list[str]]] = None,
-        seasons: Optional[Union[str, int, Iterable[Union[str, int]]]] = None,
-        proxy: Optional[Union[str, list[str], Callable[[], str]]] = None,
+        leagues: str | list[str] | None = None,
+        seasons: str | int | Iterable[str | int] | None = None,
+        proxy: str | list[str] | Callable[[], str] | None = None,
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
         data_dir: Path = SOFASCORE_DATADIR,
@@ -218,7 +217,7 @@ class Sofascore(BaseRequestsReader):
             season_data = json.load(reader1)
             rounds = season_data["rounds"]
 
-            for round in rounds:  # noqa: A001
+            for round in rounds:
                 filepath2 = self.data_dir / filemask2.format(lkey, skey, round["round"])
                 url2 = urlmask2.format(season["league_id"], season["season_id"], round["round"])
                 reader2 = self.get(url2, filepath2, no_cache=current_season and not force_cache)

@@ -4,7 +4,7 @@
 
 project = "soccerdata"
 author = "Pieter Robberechts"
-copyright = f"2021, {author}"  # noqa: A001
+copyright = f"2021, {author}"
 
 # The full version, including alpha/beta/rc tags
 release = "1.9.0"
@@ -89,7 +89,7 @@ nbsphinx_prolog = r"""
     \nbsphinxstartnotebook{\scriptsize\noindent\strut
     \textcolor{gray}{The following section was generated from
     \sphinxcode{\sphinxupquote{\strut {{ docname | escape_latex }}}} \dotfill}}
-"""  # noqa
+"""
 
 # This is processed by Jinja2 and inserted after each notebook
 nbsphinx_epilog = r"""

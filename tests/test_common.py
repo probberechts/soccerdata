@@ -35,7 +35,9 @@ def mock_tls_client():
             mock_get.return_value = mock_resp
             return mock_get
 
-        def _return_js_var(var_name="statData", data={"key": "value"}):
+        def _return_js_var(var_name="statData", data=None):
+            if data is None:
+                data = {"key": "value"}
             """
             Mimics: var name = JSON.parse('\x7b\x22key\x22\x3a\x22value\x22\x7d')
             The regex in the reader expects string-escaped content inside single quotes.
@@ -257,7 +259,7 @@ def test_is_complete_default_value(mocker):
         assert reader._is_complete("FAKE-Dummy League", "1920")
 
 
-def test_is_complete_undefined_league(mocker):  # noqa: ARG001
+def test_is_complete_undefined_league(mocker):
     reader = BaseRequestsReader(no_store=True)
     with pytest.raises(
         ValueError,

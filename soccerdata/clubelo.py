@@ -1,9 +1,10 @@
 """Scraper for api.clubelo.com."""
 
 import re
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import IO, Callable, Optional, Union
+from typing import IO
 
 import pandas as pd
 from unidecode import unidecode
@@ -52,7 +53,7 @@ class ClubElo(BaseRequestsReader):
 
     def __init__(
         self,
-        proxy: Optional[Union[str, list[str], Callable[[], str]]] = None,
+        proxy: str | list[str] | Callable[[], str] | None = None,
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
         data_dir: Path = CLUB_ELO_DATADIR,
@@ -60,7 +61,7 @@ class ClubElo(BaseRequestsReader):
         """Initialize a new ClubElo reader."""
         super().__init__(proxy=proxy, no_cache=no_cache, no_store=no_store, data_dir=data_dir)
 
-    def read_by_date(self, date: Optional[Union[str, datetime]] = None) -> pd.DataFrame:
+    def read_by_date(self, date: str | datetime | None = None) -> pd.DataFrame:
         """Retrieve ELO scores for all teams at specified date.
 
         Elo scores are available as early as 1939. Values before 1960 should
@@ -110,9 +111,7 @@ class ClubElo(BaseRequestsReader):
             .set_index("team")
         )
 
-    def read_team_history(
-        self, team: str, max_age: Optional[Union[int, timedelta]] = 1
-    ) -> pd.DataFrame:
+    def read_team_history(self, team: str, max_age: int | timedelta | None = 1) -> pd.DataFrame:
         """Retrieve full ELO history for one club.
 
         For the exact spelling of a club's name, check the result of

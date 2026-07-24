@@ -1,8 +1,9 @@
 """Scraper for http://www.football-data.co.uk/data.php."""
 
 import itertools
+from collections.abc import Callable
 from pathlib import Path
-from typing import IO, Callable, Optional, Union
+from typing import IO
 
 import pandas as pd
 
@@ -74,9 +75,9 @@ class MatchHistory(BaseRequestsReader):
 
     def __init__(
         self,
-        leagues: Optional[Union[str, list[str]]] = None,
-        seasons: Optional[Union[str, int, list]] = None,
-        proxy: Optional[Union[str, list[str], Callable[[], str]]] = None,
+        leagues: str | list[str] | None = None,
+        seasons: str | int | list | None = None,
+        proxy: str | list[str] | Callable[[], str] | None = None,
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
         data_dir: Path = MATCH_HISTORY_DATA_DIR,

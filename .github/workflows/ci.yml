@@ -26,7 +26,7 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/pre-commit
           key: pre-commit-${{hashFiles('.pre-commit-config.yaml')}}
@@ -86,7 +86,7 @@ jobs:
         run: uv run dvc remote modify --local myremote credentialpath credentials.json
 
       - name: Cache DVC
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: .dvc/cache
           key: dvc-cache-${{ hashFiles('**/dvc.lock') }}

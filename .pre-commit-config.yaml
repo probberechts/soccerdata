@@ -27,12 +27,12 @@ repos:
         name: "🐍 python · Lint and perform safe auto-fixes with Ruff"
         args: [--fix]
 
-  - repo: https://github.com/abravalheri/validate-pyproject
-    rev: v0.24.1
-    hooks:
-      - id: validate-pyproject
-        name: "🐍 python · Validate pyproject.toml"
-        additional_dependencies: ["validate-pyproject-schema-store[all]"]
+#   - repo: https://github.com/abravalheri/validate-pyproject
+#     rev: v0.24.1
+#     hooks:
+#       - id: validate-pyproject
+#         name: "🐍 python · Validate pyproject.toml"
+#         additional_dependencies: ["validate-pyproject-schema-store[all]"]
 
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.21.2

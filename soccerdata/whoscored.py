@@ -27,6 +27,8 @@ WHOSCORED_URL = "https://www.whoscored.com"
 COLS_EVENTS = {
     # The ID of the game
     "game_id": np.nan,
+    # The ID of the event
+    "event_id": np.nan,
     # 'PreMatch', 'FirstHalf', 'SecondHalf', 'PostGame'
     "period": np.nan,
     # Integer indicating the minute of the event, ignoring stoppage time

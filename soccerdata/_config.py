@@ -127,7 +127,7 @@ LEAGUE_DICT = {
         "ClubElo": "ITA_1",
         "MatchHistory": "I1",
         "FiveThirtyEight": "serie-a",
-        "FBref": "Serie A",
+        "FBref": "Serie A (M)",
         "ESPN": "ita.1",
         "Sofascore": "Serie A",
         "SoFIFA": "[Italy] Serie A",

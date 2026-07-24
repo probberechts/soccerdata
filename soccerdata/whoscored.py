@@ -66,8 +66,10 @@ COLS_EVENTS = {
     "is_goal": False,
     # 'Yellow', 'Red', 'SecondYellow'
     "card_type": np.nan,
+    # The ID of the current event
+    "event_id": None,
     # The ID of an associated event
-    "related_event_id": np.nan,
+    "related_event_id": None,
     # The ID of a secondary player that the event is associated with
     "related_player_id": np.nan,
 }
@@ -795,6 +797,8 @@ class WhoScored(BaseSeleniumReader):
             for col, default in COLS_EVENTS.items():
                 if col not in df.columns:
                     df[col] = default
+            df["event_id"] = df["event_id"].fillna(df["id"]).astype("Int64")
+            df["related_event_id"] = df["related_event_id"].astype("Int64")
             df["outcome_type"] = df["outcome_type"].apply(
                 lambda x: x.get("displayName") if pd.notnull(x) else x
             )

@@ -6,11 +6,11 @@ import re
 import time
 import warnings
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
-from typing import IO, Callable, Optional, Union
+from typing import IO
 
 import numpy as np
 import pandas as pd
@@ -96,7 +96,7 @@ class SeasonCode(Enum):
         )
         return SeasonCode.MULTI_YEAR
 
-    def parse(self, season: Union[str, int]) -> str:  # noqa: C901
+    def parse(self, season: str | int) -> str:
         """Convert a string or int to a standard season format."""
         season = str(season)
         patterns = [
@@ -220,8 +220,8 @@ class BaseReader(ABC):
 
     def __init__(
         self,
-        leagues: Optional[Union[str, list[str]]] = None,
-        proxy: Optional[Union[str, list[str], Callable[[], str]]] = None,
+        leagues: str | list[str] | None = None,
+        proxy: str | list[str] | Callable[[], str] | None = None,
         no_cache: bool = False,
         no_store: bool = False,
         data_dir: Path = DATA_DIR,
@@ -253,10 +253,10 @@ class BaseReader(ABC):
     def get(
         self,
         url: str,
-        filepath: Optional[Path] = None,
-        max_age: Optional[Union[int, timedelta]] = MAXAGE,
+        filepath: Path | None = None,
+        max_age: int | timedelta | None = MAXAGE,
         no_cache: bool = False,
-        var: Optional[Union[str, Iterable[str]]] = None,
+        var: str | Iterable[str] | None = None,
     ) -> IO[bytes]:
         """Load data from `url`.
 
@@ -298,8 +298,8 @@ class BaseReader(ABC):
 
     def _is_cached(
         self,
-        filepath: Optional[Path] = None,
-        max_age: Optional[Union[int, timedelta]] = None,
+        filepath: Path | None = None,
+        max_age: int | timedelta | None = None,
     ) -> bool:
         """Check if `filepath` contains valid cached data.
 
@@ -345,8 +345,8 @@ class BaseReader(ABC):
     def _download_and_save(
         self,
         url: str,
-        filepath: Optional[Path] = None,
-        var: Optional[Union[str, Iterable[str]]] = None,
+        filepath: Path | None = None,
+        var: str | Iterable[str] | None = None,
     ) -> IO[bytes]:
         """Download data at `url` to `filepath`.
 
@@ -394,7 +394,7 @@ class BaseReader(ABC):
         return self._leagues_dict
 
     @_selected_leagues.setter
-    def _selected_leagues(self, ids: Optional[Union[str, list[str]]] = None) -> None:
+    def _selected_leagues(self, ids: str | list[str] | None = None) -> None:
         if ids is None:
             self._leagues_dict = self._all_leagues()
         else:
@@ -457,7 +457,7 @@ class BaseReader(ABC):
         return self._season_ids
 
     @seasons.setter
-    def seasons(self, seasons: Optional[Union[str, int, Iterable[Union[str, int]]]]) -> None:
+    def seasons(self, seasons: str | int | Iterable[str | int] | None) -> None:
         if seasons is None:
             logger.info("No seasons provided. Will retrieve data for the last 5 seasons.")
             year = datetime.now(tz=timezone.utc).year
@@ -472,12 +472,12 @@ class BaseRequestsReader(BaseReader):
 
     def __init__(
         self,
-        leagues: Optional[Union[str, list[str]]] = None,
-        proxy: Optional[Union[str, list[str], Callable[[], str]]] = None,
+        leagues: str | list[str] | None = None,
+        proxy: str | list[str] | Callable[[], str] | None = None,
         no_cache: bool = False,
         no_store: bool = False,
         data_dir: Path = DATA_DIR,
-        headers: Optional[dict[str, str]] = None,
+        headers: dict[str, str] | None = None,
     ):
         """Initialize the reader."""
         super().__init__(
@@ -490,14 +490,14 @@ class BaseRequestsReader(BaseReader):
 
         self._session = self._init_session(headers)
 
-    def _init_session(self, headers: Optional[dict[str, str]] = None) -> tls_requests.Client:
+    def _init_session(self, headers: dict[str, str] | None = None) -> tls_requests.Client:
         return tls_requests.Client(proxy=self.proxy(), headers=headers)
 
     def _download_and_save(
         self,
         url: str,
-        filepath: Optional[Path] = None,
-        var: Optional[Union[str, Iterable[str]]] = None,
+        filepath: Path | None = None,
+        var: str | Iterable[str] | None = None,
     ) -> IO[bytes]:
         """Download file at url to filepath. Overwrites if filepath exists."""
         for i in range(5):
@@ -523,7 +523,7 @@ class BaseRequestsReader(BaseReader):
                     with filepath.open(mode="wb") as fh:
                         fh.write(payload)
                 return io.BytesIO(payload)
-            except Exception:
+            except Exception:  # noqa: BLE001
                 logger.exception(
                     "Error while scraping %s. Retrying... (attempt %d of 5).",
                     url,
@@ -540,14 +540,14 @@ class BaseSeleniumReader(BaseReader):
 
     def __init__(
         self,
-        leagues: Optional[Union[str, list[str]]] = None,
-        proxy: Optional[Union[str, list[str], Callable[[], str]]] = None,
+        leagues: str | list[str] | None = None,
+        proxy: str | list[str] | Callable[[], str] | None = None,
         no_cache: bool = False,
         no_store: bool = False,
         data_dir: Path = DATA_DIR,
-        path_to_browser: Optional[Path] = None,
+        path_to_browser: Path | None = None,
         headless: bool = True,
-        headers: Optional[dict[str, str]] = None,
+        headers: dict[str, str] | None = None,
     ):
         """Initialize the reader."""
         super().__init__(
@@ -583,7 +583,8 @@ class BaseSeleniumReader(BaseReader):
         resolver_rules = None
         if proxy_str is not None:
             resolver_rules = "MAP * ~NOTFOUND , EXCLUDE 127.0.0.1"
-        return sb.Driver(
+
+        driver = sb.Driver(
             uc=True,
             headless=self.headless,
             binary_location=self.path_to_browser,
@@ -591,11 +592,52 @@ class BaseSeleniumReader(BaseReader):
             proxy=proxy_str,
         )
 
+        if self.headers:
+            driver.execute_cdp_cmd("Network.setExtraHTTPHeaders", {"headers": self.headers})
+
+        return driver
+
+    def solve_captcha(self) -> None:
+        """Solve a captcha if present on the current page."""
+        if self.headless:
+            logger.warning("Cannot use GUI captcha solver in headless mode.")
+            self._driver.sleep(10)
+            return
+
+        try:
+            self._driver.uc_gui_handle_captcha()
+        except Exception as e:  # noqa: BLE001
+            logger.debug("uc_gui_handle_captcha failed: %s", e)
+
+        try:
+            self._driver.uc_gui_handle_cf()
+        except Exception as e:  # noqa: BLE001
+            logger.debug("uc_gui_handle_cf failed: %s", e)
+
+        self._driver.sleep(10)
+
+    def _is_captcha_present(self) -> bool:
+        """Check if a captcha is present on the current page."""
+        try:
+            page_source = self._driver.page_source
+        except Exception:  # noqa: BLE001
+            return False
+
+        captcha_indicators = [
+            "Verify you are human",
+            "Checking your browser",
+            "Just a moment...",
+            "Ray ID:",
+            "cf-challenge",
+            "Please stand by",
+        ]
+        return any(indicator in page_source for indicator in captcha_indicators)
+
     def _download_and_save(
         self,
         url: str,
-        filepath: Optional[Path] = None,
-        var: Optional[Union[str, Iterable[str]]] = None,
+        filepath: Path | None = None,
+        var: str | Iterable[str] | None = None,
     ) -> IO[bytes]:
         """Download file at url to filepath. Overwrites if filepath exists."""
         for i in range(5):
@@ -603,8 +645,49 @@ class BaseSeleniumReader(BaseReader):
                 self._driver.get(url)
                 time.sleep(self.rate_limit + random.random() * self.max_delay)
 
+                if self._is_captcha_present():
+                    if i < 4:
+                        logger.warning(
+                            "CAPTCHA detected for %s (attempt %d of 5). "
+                            "Attempting to solve captcha...",
+                            url,
+                            i + 1,
+                        )
+                        self.solve_captcha()
+                        # If still there, try one reload
+                        if self._is_captcha_present():
+                            self._driver.get(url)
+                            time.sleep(5)
+                    else:
+                        raise Exception("CAPTCHA detected and could not be solved.")  # noqa: TRY002
+
+                try:
+                    page_source = self._validate_page(url)
+                except Exception as e:
+                    if "CAPTCHA detected" in str(e) and i < 4:
+                        logger.warning(
+                            "Validation failed for %s (attempt %d of 5): %s. "
+                            "Attempting to solve captcha...",
+                            url,
+                            i + 1,
+                            e,
+                        )
+                        self.solve_captcha()
+                        page_source = self._validate_page(url)
+                    elif i < 4:
+                        logger.warning(
+                            "Validation failed for %s (attempt %d of 5): %s. Retrying...",
+                            url,
+                            i + 1,
+                            e,
+                        )
+                        time.sleep(i * 10)
+                        continue
+                    else:
+                        raise
+
                 if var is None:
-                    response = self._validate_page(url).encode("utf-8")
+                    response = page_source.encode("utf-8")
                 else:
                     if not isinstance(var, str):
                         raise NotImplementedError("Only implemented for single variables.")
@@ -619,7 +702,10 @@ class BaseSeleniumReader(BaseReader):
                     with filepath.open(mode="wb") as fh:
                         fh.write(response)
                 return io.BytesIO(response)
-            except Exception:
+            except Exception as e:  # noqa: BLE001
+                if "CAPTCHA detected" in str(e) and i < 4:
+                    continue
+
                 logger.exception(
                     "Error while scraping %s. Retrying in %d seconds... (attempt %d of 5).",
                     url,
@@ -650,11 +736,11 @@ class BaseSeleniumReader(BaseReader):
         """
         page_html = self._driver.page_source
         if not page_html:
-            raise Exception("Empty response.")
+            raise Exception("Empty response.")  # noqa: TRY002
         tree = html.fromstring(page_html)
         body = tree.xpath("//body")
         if not body:
-            raise Exception("No <body> tag found.")
+            raise Exception("No <body> tag found.")  # noqa: TRY002
         # Wrap body in minimal HTML with charset hint for lxml
         body_html = html.tostring(body[0], encoding="unicode")
         return f"<html><head><meta charset='utf-8'></head>{body_html}</html>"
@@ -676,7 +762,7 @@ def make_game_id(row: pd.Series) -> str:
     return game_id
 
 
-def add_alt_team_names(team: Union[str, list[str]]) -> set[str]:
+def add_alt_team_names(team: str | list[str]) -> set[str]:
     """Add a set of alternative team names for a standardized team name.
 
     If a standardized team name is given, add the set of alternative
@@ -696,15 +782,15 @@ def add_alt_team_names(team: Union[str, list[str]]) -> set[str]:
     teams = [team] if isinstance(team, str) else team
 
     alt_teams = set()
-    for team in teams:
+    for t in teams:
         for alt_name, norm_name in TEAMNAME_REPLACEMENTS.items():
-            if norm_name == team:
+            if norm_name == t:
                 alt_teams.add(alt_name)
-        alt_teams.add(team)
+        alt_teams.add(t)
     return alt_teams
 
 
-def add_standardized_team_name(team: Union[str, list[str]]) -> set[str]:
+def add_standardized_team_name(team: str | list[str]) -> set[str]:
     """Add the standardized team name for a non-standardized team name.
 
     If a non-standardized team name is given, add the standardized
@@ -731,7 +817,7 @@ def add_standardized_team_name(team: Union[str, list[str]]) -> set[str]:
     return std_teams
 
 
-def standardize_colnames(df: pd.DataFrame, cols: Optional[list[str]] = None) -> pd.DataFrame:
+def standardize_colnames(df: pd.DataFrame, cols: list[str] | None = None) -> pd.DataFrame:
     """Convert DataFrame column names to snake case."""
 
     def to_snake(name: str) -> str:
@@ -800,12 +886,12 @@ def check_proxy(proxy: dict) -> bool:
     try:
         r0 = tls_requests.get("https://ipinfo.io/json", proxies=proxy, timeout=15)
         return r0.status_code == 200
-    except Exception as error:
+    except Exception as error:  # noqa: BLE001
         logger.error(f"BAD PROXY: Reason: {error!s}\n")
         return False
 
 
-def safe_xpath_text(node: _Element, xpath_expr: str, warn: Optional[str] = None) -> Optional[str]:
+def safe_xpath_text(node: _Element, xpath_expr: str, warn: str | None = None) -> str | None:
     result = node.xpath(xpath_expr)
     if not result and warn is not None:
         warnings.warn(warn, stacklevel=2)

@@ -1,13 +1,13 @@
 """Scraper for understat.com."""
 
-import itertools
 import io
+import itertools
 import json
 import re
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from html import unescape
 from pathlib import Path
-from typing import Any, Callable, IO, Optional, Union
+from typing import IO, Any
 
 import pandas as pd
 
@@ -69,9 +69,9 @@ class Understat(BaseRequestsReader):
 
     def __init__(
         self,
-        leagues: Optional[Union[str, list[str]]] = None,
-        seasons: Optional[Union[str, int, Iterable[Union[str, int]]]] = None,
-        proxy: Optional[Union[str, list[str], Callable[[], str]]] = None,
+        leagues: str | list[str] | None = None,
+        seasons: str | int | Iterable[str | int] | None = None,
+        proxy: str | list[str] | Callable[[], str] | None = None,
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
         data_dir: Path = UNDERSTAT_DATADIR,
@@ -447,9 +447,7 @@ class Understat(BaseRequestsReader):
             .convert_dtypes()
         )
 
-    def read_player_match_stats(
-        self, match_id: Optional[Union[int, list[int]]] = None
-    ) -> pd.DataFrame:
+    def read_player_match_stats(self, match_id: int | list[int] | None = None) -> pd.DataFrame:
         """Retrieve the player match stats for the selected leagues and seasons.
 
         Parameters
@@ -535,7 +533,7 @@ class Understat(BaseRequestsReader):
             .convert_dtypes()
         )
 
-    def read_shot_events(self, match_id: Optional[Union[int, list[int]]] = None) -> pd.DataFrame:
+    def read_shot_events(self, match_id: int | list[int] | None = None) -> pd.DataFrame:
         """Retrieve the shot events for the selected matches or the selected leagues and seasons.
 
         Parameters
@@ -634,7 +632,7 @@ class Understat(BaseRequestsReader):
     def _select_matches(
         self,
         df_schedule: pd.DataFrame,
-        match_id: Optional[Union[int, list[int]]] = None,
+        match_id: int | list[int] | None = None,
     ) -> pd.DataFrame:
         if match_id is not None:
             match_ids = [match_id] if isinstance(match_id, int) else match_id
@@ -673,7 +671,7 @@ class Understat(BaseRequestsReader):
             "teamsData": data["teams"],
         }
 
-    def _read_match(self, url: str, match_id: int) -> Optional[dict]:
+    def _read_match(self, url: str, match_id: int) -> dict | None:
         self._ensure_cookies()
         try:
             api_url = UNDERSTAT_URL + f"/getMatchData/{match_id}"
@@ -704,7 +702,7 @@ class Understat(BaseRequestsReader):
             return None
 
     def _request_api(
-        self, url: str, filepath: Optional[Path] = None, no_cache: bool = False
+        self, url: str, filepath: Path | None = None, no_cache: bool = False
     ) -> IO[bytes]:
         """Make an API request with proper headers and caching."""
         is_cached = (
@@ -733,28 +731,28 @@ class Understat(BaseRequestsReader):
         return ""
 
 
-def _as_bool(value: Any) -> Optional[bool]:
+def _as_bool(value: Any) -> bool | None:
     try:
         return bool(value)
     except (TypeError, ValueError):
         return None
 
 
-def _as_float(value: Any) -> Optional[float]:
+def _as_float(value: Any) -> float | None:
     try:
         return float(value)
     except (TypeError, ValueError):
         return None
 
 
-def _as_int(value: Any) -> Optional[int]:
+def _as_int(value: Any) -> int | None:
     try:
         return int(value)
     except (TypeError, ValueError):
         return None
 
 
-def _as_str(value: Any) -> Optional[str]:
+def _as_str(value: Any) -> str | None:
     try:
         return unescape(value)
     except (TypeError, ValueError):

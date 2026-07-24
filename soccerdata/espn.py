@@ -3,9 +3,9 @@
 import itertools
 import json
 import re
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable, Optional, Union
 
 import pandas as pd
 
@@ -54,9 +54,9 @@ class ESPN(BaseRequestsReader):
 
     def __init__(
         self,
-        leagues: Optional[Union[str, list[str]]] = None,
-        seasons: Optional[Union[str, int, list]] = None,
-        proxy: Optional[Union[str, list[str], Callable[[], str]]] = None,
+        leagues: str | list[str] | None = None,
+        seasons: str | int | list | None = None,
+        proxy: str | list[str] | Callable[[], str] | None = None,
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
         data_dir: Path = ESPN_DATADIR,
@@ -136,7 +136,7 @@ class ESPN(BaseRequestsReader):
             .sort_index()
         )
 
-    def read_matchsheet(self, match_id: Optional[Union[int, list[int]]] = None) -> pd.DataFrame:
+    def read_matchsheet(self, match_id: int | list[int] | None = None) -> pd.DataFrame:
         """Retrieve match sheets for the selected leagues and seasons.
 
         Parameters
@@ -207,9 +207,7 @@ class ESPN(BaseRequestsReader):
             .sort_index()
         )
 
-    def read_lineup(  # noqa: C901
-        self, match_id: Optional[Union[int, list[int]]] = None
-    ) -> pd.DataFrame:
+    def read_lineup(self, match_id: int | list[int] | None = None) -> pd.DataFrame:
         """Retrieve lineups for the selected leagues and seasons.
 
         Parameters

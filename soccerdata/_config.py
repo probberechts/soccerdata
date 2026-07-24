@@ -6,7 +6,6 @@ import logging.config
 import os
 import sys
 from pathlib import Path
-from typing import Dict
 
 from rich.logging import RichHandler
 
@@ -15,7 +14,7 @@ NOCACHE = os.environ.get("SOCCERDATA_NOCACHE", "False").lower() in ("true", "1",
 NOSTORE = os.environ.get("SOCCERDATA_NOSTORE", "False").lower() in ("true", "1", "t")
 MAXAGE = None
 if os.environ.get("SOCCERDATA_MAXAGE") is not None:
-    MAXAGE = int(os.environ.get("SOCCERDATA_MAXAGE", 0))
+    MAXAGE = int(os.environ.get("SOCCERDATA_MAXAGE", "0"))
 LOGLEVEL = os.environ.get("SOCCERDATA_LOGLEVEL", "INFO").upper()
 
 # Directories
@@ -36,7 +35,7 @@ logging_config = {
     "formatters": {
         "minimal": {"format": "%(message)s"},
         "detailed": {
-            "format": "%(levelname)s %(asctime)s [%(filename)s:%(funcName)s:%(lineno)d]\n%(message)s\n"  # noqa: E501
+            "format": "%(levelname)s %(asctime)s [%(filename)s:%(funcName)s:%(lineno)d]\n%(message)s\n"
         },
     },
     "handlers": {
@@ -77,7 +76,7 @@ logger = logging.getLogger("root")
 logger.handlers[0] = RichHandler(markup=True)
 
 # Team name replacements
-TEAMNAME_REPLACEMENTS: Dict[str, str] = {}
+TEAMNAME_REPLACEMENTS: dict[str, str] = {}
 _f_custom_teamnname_replacements = CONFIG_DIR / "teamname_replacements.json"
 if _f_custom_teamnname_replacements.is_file():
     with _f_custom_teamnname_replacements.open(encoding="utf8") as json_file:
@@ -127,7 +126,7 @@ LEAGUE_DICT = {
         "ClubElo": "ITA_1",
         "MatchHistory": "I1",
         "FiveThirtyEight": "serie-a",
-        "FBref": "Serie A",
+        "FBref": "Serie A (M)",
         "ESPN": "ita.1",
         "Sofascore": "Serie A",
         "SoFIFA": "[Italy] Serie A",

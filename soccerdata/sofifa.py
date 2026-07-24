@@ -2,10 +2,10 @@
 
 import json
 import re
+from collections.abc import Callable
 from datetime import timedelta
 from itertools import product
 from pathlib import Path
-from typing import Callable, Optional, Union
 
 import pandas as pd
 from lxml import html
@@ -62,14 +62,14 @@ class SoFIFA(BaseSeleniumReader):
 
     def __init__(
         self,
-        leagues: Optional[Union[str, list[str]]] = None,
-        versions: Union[str, int, list[int]] = "latest",
-        proxy: Optional[Union[str, list[str], Callable[[], str]]] = None,
+        leagues: str | list[str] | None = None,
+        versions: str | int | list[int] = "latest",
+        proxy: str | list[str] | Callable[[], str] | None = None,
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
         data_dir: Path = SO_FIFA_DATADIR,
-        path_to_browser: Optional[Path] = None,
-        headless: bool = True,
+        path_to_browser: Path | None = None,
+        headless: bool = False,
     ):
         """Initialize SoFIFA reader."""
         super().__init__(
@@ -78,6 +78,8 @@ class SoFIFA(BaseSeleniumReader):
             no_cache=no_cache,
             no_store=no_store,
             data_dir=data_dir,
+            path_to_browser=path_to_browser,
+            headless=headless,
         )
         self.rate_limit = 1
         if versions == "latest":
@@ -122,7 +124,7 @@ class SoFIFA(BaseSeleniumReader):
             .loc[self._selected_leagues.keys()]
         )
 
-    def read_versions(self, max_age: Union[int, timedelta] = 1) -> pd.DataFrame:
+    def read_versions(self, max_age: int | timedelta = 1) -> pd.DataFrame:
         """Retrieve available FIFA releases and rating updates.
 
         Parameters
@@ -218,7 +220,7 @@ class SoFIFA(BaseSeleniumReader):
         # return data frame
         return pd.DataFrame(teams).replace({"team": TEAMNAME_REPLACEMENTS}).set_index(["team_id"])
 
-    def read_players(self, team: Optional[Union[str, list[str]]] = None) -> pd.DataFrame:
+    def read_players(self, team: str | list[str] | None = None) -> pd.DataFrame:
         """Retrieve all players for the selected leagues.
 
         Parameters
@@ -381,8 +383,8 @@ class SoFIFA(BaseSeleniumReader):
 
     def read_player_ratings(
         self,
-        team: Optional[Union[str, list[str]]] = None,
-        player: Optional[Union[int, list[int]]] = None,
+        team: str | list[str] | None = None,
+        player: int | list[int] | None = None,
     ) -> pd.DataFrame:
         """Retrieve ratings for players.
 
@@ -453,18 +455,18 @@ class SoFIFA(BaseSeleniumReader):
         ]
 
         iterator = list(product(self.versions.iterrows(), players))
-        for i, ((version_id, version), player) in enumerate(iterator):
+        for i, ((version_id, version), p) in enumerate(iterator):
             logger.info(
                 "[%s/%s] Retrieving ratings for player with ID %s in %s edition",
                 i + 1,
                 len(iterator),
-                player,
+                p,
                 version["update"],
             )
 
             # read html page (player overview)
-            filepath = self.data_dir / filemask.format(player, version_id)
-            url = urlmask.format(player, version_id)
+            filepath = self.data_dir / filemask.format(p, version_id)
+            url = urlmask.format(p, version_id)
             reader = self.get(url, filepath)
 
             # extract scores one-by-one
@@ -505,10 +507,17 @@ class SoFIFA(BaseSeleniumReader):
         For JSON API endpoints, return the page text so json.load works.
         For HTML pages, use the base class logic to extract the body.
         """
+        if self._is_captcha_present():
+            raise Exception("CAPTCHA detected")  # noqa: TRY002
+
         if "/api/" in url:
             page_text = self._driver.execute_script("return document.body.innerText;")
             if not page_text:
-                raise Exception("Empty response.")
+                raise Exception("Empty response.")  # noqa: TRY002
             return page_text
+
+        # Ensure we are on SoFIFA
+        if "sofifa" not in self._driver.page_source.lower():
+            raise Exception("Not on SoFIFA page")  # noqa: TRY002
 
         return super()._validate_page(url)

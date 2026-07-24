@@ -3,10 +3,10 @@
 import io
 import time
 import warnings
+from collections.abc import Callable
 from datetime import datetime, timezone
 from functools import reduce
 from pathlib import Path
-from typing import Callable, Optional, Union
 
 import pandas as pd
 from lxml import etree, html
@@ -23,7 +23,7 @@ from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
 FBREF_DATADIR = DATA_DIR / "FBref"
 FBREF_API = "https://fbref.com"
 FBREF_HEADERS = {
-    "sec-ch-ua": '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
+    "sec-ch-ua": '"Not)A;Brand";v="8", "Chromium";v="149", "Google Chrome";v="149"',
 }
 
 BIG_FIVE_DICT = {
@@ -74,14 +74,14 @@ class FBref(BaseSeleniumReader):
 
     def __init__(
         self,
-        leagues: Optional[Union[str, list[str]]] = None,
-        seasons: Optional[Union[str, int, list]] = None,
-        proxy: Optional[Union[str, list[str], Callable[[], str]]] = None,
+        leagues: str | list[str] | None = None,
+        seasons: str | int | list | None = None,
+        proxy: str | list[str] | Callable[[], str] | None = None,
         no_cache: bool = NOCACHE,
         no_store: bool = NOSTORE,
         data_dir: Path = FBREF_DATADIR,
-        path_to_browser: Optional[Path] = None,
-        headless: bool = True,
+        path_to_browser: Path | None = None,
+        headless: bool = False,
     ):
         """Initialize FBref reader."""
         super().__init__(
@@ -112,7 +112,7 @@ class FBref(BaseSeleniumReader):
     def leagues(self) -> list[str]:
         """Return a list of selected leagues."""
         if "Big 5 European Leagues Combined" in self._leagues_dict:
-            for _, standardized_name in BIG_FIVE_DICT.items():
+            for standardized_name in BIG_FIVE_DICT.values():
                 if standardized_name in self._leagues_dict:
                     del self._leagues_dict[standardized_name]
         return list(self._leagues_dict.keys())
@@ -336,11 +336,11 @@ class FBref(BaseSeleniumReader):
             .sort_index()
         )
 
-    def read_team_match_stats(  # noqa: C901
+    def read_team_match_stats(
         self,
         stat_type: str = "schedule",
         opponent_stats: bool = False,
-        team: Optional[Union[str, list[str]]] = None,
+        team: str | list[str] | None = None,
         force_cache: bool = False,
     ) -> pd.DataFrame:
         """Retrieve the match logs for all teams in the selected leagues and seasons.
@@ -404,9 +404,9 @@ class FBref(BaseSeleniumReader):
 
         # collect match logs for each team
         stats = []
-        for (lkey, skey, team), team_url in iterator.url.items():
+        for (lkey, skey, t), team_url in iterator.url.items():
             # read html page
-            filepath = self.data_dir / filemask.format(team, skey, stat_type)
+            filepath = self.data_dir / filemask.format(t, skey, stat_type)
             if len(team_url.split("/")) == 6:  # already have season in the url
                 url = (
                     FBREF_API
@@ -703,7 +703,7 @@ class FBref(BaseSeleniumReader):
     def read_player_match_stats(
         self,
         stat_type: str = "summary",
-        match_id: Optional[Union[str, list[str]]] = None,
+        match_id: str | list[str] | None = None,
         force_cache: bool = False,
     ) -> pd.DataFrame:
         """Retrieve the match stats for the selected leagues and seasons.
@@ -808,7 +808,7 @@ class FBref(BaseSeleniumReader):
 
     def read_lineup(
         self,
-        match_id: Optional[Union[str, list[str]]] = None,
+        match_id: str | list[str] | None = None,
         force_cache: bool = False,
     ) -> pd.DataFrame:
         """Retrieve lineups for the selected leagues and seasons.
@@ -899,7 +899,7 @@ class FBref(BaseSeleniumReader):
 
     def read_events(
         self,
-        match_id: Optional[Union[str, list[str]]] = None,
+        match_id: str | list[str] | None = None,
         force_cache: bool = False,
     ) -> pd.DataFrame:
         """Retrieve match events for the selected seasons or selected matches.
@@ -1011,6 +1011,9 @@ class FBref(BaseSeleniumReader):
         str
             The validated page source.
         """
+        if self._is_captcha_present():
+            raise Exception("CAPTCHA detected")  # noqa: TRY002
+
         # Poll for presence of table elements up to a timeout
         start = time.time()
         timeout = 15  # seconds
@@ -1022,13 +1025,21 @@ class FBref(BaseSeleniumReader):
                 tree = html.fromstring(page_html)
                 body = tree.xpath("//body")
                 if not body:
-                    raise Exception("No <body> tag found.")
+                    raise Exception("No <body> tag found.")  # noqa: TRY002
                 # Wrap body in minimal HTML with charset hint for lxml
                 body_html = html.tostring(body[0], encoding="unicode")
                 return f"<html><head><meta charset='utf-8'></head>{body_html}</html>"
+
+            if self._is_captcha_present():
+                raise Exception("CAPTCHA detected")  # noqa: TRY002
+
             time.sleep(0.5)
 
-        raise Exception(
+        # Ensure we are on FBref
+        if "fbref" not in self._driver.page_source.lower():
+            raise Exception("Not on FBref page")  # noqa: TRY002
+
+        raise Exception(  # noqa: TRY002
             "Could not retrieve page content within timeout. "
             "Possible reasons: failed CAPTCHA, IP block or network issues."
         )

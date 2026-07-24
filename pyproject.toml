@@ -1,146 +1,120 @@
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━ Build System ━━━━━━━━━━━━━━━━━━━━━━━━━━ #
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Project ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ #
-
 [project]
 name = "soccerdata"
-version = "1.9.0"
+version = "1.9.1"
 description = "A collection of scrapers for soccer data from various websites / APIs."
-authors = [
-    { name = "Pieter Robberechts", email = "pieter.robberechts@kuleuven.be"}
-]
+readme = "README.rst"
 license = "Apache-2.0"
-readme = 'README.rst'
-keywords = ["soccer", "football", "soccer data", "web scraping", "soccer analytics"]
+authors = [
+  { name = "Pieter Robberechts", email = "pieter.robberechts@kuleuven.be" }
+]
+keywords = [
+  "football",
+  "soccer",
+  "soccer analytics",
+  "soccer data",
+  "web scraping"
+]
 classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: Apache Software License",
-    "Operating System :: OS Independent"
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3"
 ]
 
 # ━━━━━━━━━━━━━━━━━━━━━━ Primary Dependencies ━━━━━━━━━━━━━━━━━━━━━━ #
 
 requires-python = ">=3.10,<3.15"
 dependencies = [
-    "html5lib>=1.1,<2.0.0",
-    "pandas>=2.0.0,!=2.1.0,<4.0.0",
-    "wrapper-tls-requests>=1.1.4,<3.0.0",
-    "tqdm>=4.67.1,<6.0.0",
-    "rich>=14.0.0,<16.0.0",
-    "seleniumbase>=4.38.2,<6.0.0",
-    "unidecode>=1.4.0,<3.0.0",
-    "urllib3<3",
-    "lxml>=5.0.0; python_version >= '3.13'",
-    "lxml>=4.9.4; python_version < '3.13'"
-]
-
-[project.optional-dependencies]
-socceraction = [
-    "socceraction",
+  "html5lib>=1.1,<2.0.0",
+  "lxml>=4.9.4; python_version < '3.13'",
+  "lxml>=5.0.0; python_version >= '3.13'",
+  "pandas>=2.0.0,!=2.1.0,<4.0.0",
+  "rich>=14.0.0,<16.0.0",
+  "seleniumbase>=4.38.2,<6.0.0",
+  "tqdm>=4.67.1,<6.0.0",
+  "unidecode>=1.4.0,<3.0.0",
+  "urllib3<3",
+  "wrapper-tls-requests>=1.1.4,<3.0.0"
 ]
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ URLs ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ #
 [project.urls]
+Changelog = "https://github.com/probberechts/soccerdata/releases"
+Documentation = "https://soccerdata.readthedocs.io"
 Homepage = "https://github.com/probberechts/soccerdata"
 Repository = "https://github.com/probberechts/soccerdata"
-Documentation = "https://soccerdata.readthedocs.io"
-Changelog = "https://github.com/probberechts/soccerdata/releases"
 
 # ━━━━━━━━━━━━━━━━━━━━━━━ Extra Dependencies ━━━━━━━━━━━━━━━━━━━━━━━ #
+
+[project.optional-dependencies]
+socceraction = [
+  "socceraction",
+]
 
 [dependency-groups]
 # Linting and type-checking
 lint = [
-    "ruff",
-    "mypy",
-    "pyright>=1.1.403",
-    "pre-commit>=4.0.0,<6.0.0",
+  "mypy",
+  "pre-commit>=4.0.0,<6.0.0",
+  "pyright>=1.1.403",
+  "ruff",
 ]
 
 # Testing
 test = [
-    "pytest>=8.0.0,<10.0.0",
-    "pytest-mock>=3.10.0,<5.0.0",
-    "pytest-cov>=6.2.1",
-    "time-machine>=2.8.2,<4.0.0",
-    "dvc[gs]>=3.62.0",
+  "dvc[gs]>=3.62.0",
+  "pytest>=8.0.0,<10.0.0",
+  "pytest-cov>=6.2.1",
+  "pytest-mock>=3.10.0,<5.0.0",
+  "time-machine>=2.8.2,<4.0.0",
 ]
 
 # Versioning and automation
 release = [
-    "bump-my-version>=1.2.1",
+  "bump-my-version>=1.2.1",
 ]
 
 # Documentation
 docs = [
-    "Sphinx>=7.0.0,<10.0.0",
-    "furo>=2024.0.0,<2026.0.0",
-    "nbsphinx>=0.9.0,<1.0.0",
-    "sphinx-autobuild>=2024.0.0,<2026.0.0",
+  "Sphinx>=7.0.0,<10.0.0",
+  "furo>=2024.0.0,<2026.0.0",
+  "nbsphinx>=0.9.0,<1.0.0",
+  "sphinx-autobuild>=2024.0.0,<2026.0.0",
 ]
 
 # Example notebooks
 notebooks = [
-    "ipykernel>=6.29.5",
-    "matplotlib>=3.9.4",
-    "seaborn>=0.13.2",
+  "ipykernel>=6.29.5",
+  "matplotlib>=3.9.4",
+  "seaborn>=0.13.2",
 ]
 
-[tool.uv]
-default-groups = [
-    "lint",
-    "test",
-    "release",
-    "docs",
-    "notebooks",
-]
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Ruff ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ #
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Project ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ #
 
-[tool.ruff]
-src = ['soccerdata', 'tests']
-line-length = 99
-target-version = 'py310'
-
-[tool.ruff.lint]
-ignore = ['B904']
-
-[tool.ruff.lint.per-file-ignores]
-"__init__.py" = ['F401']
-"tests/*" = [
-    'S',
-    'D212',
-    'D415',
-    'D205',
-    'D103',
-    'D104',
-    'N999',
-    'SLF001',
-]
-
-[tool.ruff.lint.mccabe]
-max-complexity = 10
-
-[tool.ruff.lint.pydocstyle]
-convention = 'numpy'
-
-[tool.ruff.lint.isort]
-known-first-party = ["soccerdata", "tests"]
-
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Pytest ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ #
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-log_file = "./logs/pytest.log"
-addopts = """
---tb=long
---code-highlight=yes
+[tool.bumpversion]
+current_version = "1.9.1"
+parse = """(?x)
+(?P<major>0|[1-9]\\d*)\\.
+(?P<minor>0|[1-9]\\d*)\\.
+(?P<patch>0|[1-9]\\d*)
+(?:\\.dev(?P<dev>0|[1-9]\\d*))?
 """
+serialize = ["{major}.{minor}.{patch}.dev{dev}", "{major}.{minor}.{patch}"]
+
+[tool.bumpversion.parts.dev]
+type = "int"
+optional = true
+
+[[tool.bumpversion.files]]
+filename = "soccerdata/__init__.py"
+
+[[tool.bumpversion.files]]
+filename = "docs/conf.py"
 
 [tool.coverage.paths]
 source = ["soccerdata", "*/site-packages"]
@@ -182,24 +156,53 @@ venv = ".venv"
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ bumpversion ━━━━━━━━━━━━━━━━━━━━━━━━━━━ #
 
-[tool.bumpversion]
-current_version = "1.9.0"
-parse = """(?x)
-(?P<major>0|[1-9]\\d*)\\.
-(?P<minor>0|[1-9]\\d*)\\.
-(?P<patch>0|[1-9]\\d*)
-(?:\\.dev(?P<dev>0|[1-9]\\d*))?
+[tool.pytest.ini_options]
+addopts = """
+--tb=long
+--code-highlight=yes
 """
-serialize = [
-  "{major}.{minor}.{patch}.dev{dev}",
-  "{major}.{minor}.{patch}"
+log_file = "./logs/pytest.log"
+testpaths = ["tests"]
+
+[tool.ruff]
+src = ["soccerdata", "tests"]
+line-length = 99
+target-version = "py310"
+
+[tool.ruff.lint]
+ignore = ["B904"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/*" = [
+  "S",
+  "D212",
+  "D415",
+  "D205",
+  "D103",
+  "D104",
+  "N999",
+  "SLF001",
 ]
 
-[tool.bumpversion.parts.dev]
-type = "int"
-optional = true
-[[tool.bumpversion.files]]
-filename = "soccerdata/__init__.py"
+[tool.ruff.lint.mccabe]
+max-complexity = 10
 
-[[tool.bumpversion.files]]
-filename = "docs/conf.py"
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.isort]
+known-first-party = ["soccerdata", "tests"]
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Pytest ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ #
+
+[tool.uv]
+default-groups = [
+  "lint",
+  "test",
+  "release",
+  "docs",
+  "notebooks",
+]
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Ruff ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ #

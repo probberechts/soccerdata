@@ -1,6 +1,7 @@
 """Unittests for soccerdata._common."""
 
 import json
+import locale
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
@@ -12,6 +13,7 @@ import soccerdata
 from soccerdata._common import (
     BaseRequestsReader,
     SeasonCode,
+    _month_from_english_abbr,
     add_alt_team_names,
     add_standardized_team_name,
     make_game_id,
@@ -321,3 +323,54 @@ def test_season_pattern4():
 def test_season_pattern5():
     assert SeasonCode.MULTI_YEAR.parse("13-14") == "1314"
     assert SeasonCode.SINGLE_YEAR.parse("13-14") == "2013"
+
+
+# _month_from_english_abbr (#909: locale-independent month parsing)
+
+
+def test_month_from_english_abbr():
+    assert _month_from_english_abbr("Jan") == 1
+    assert _month_from_english_abbr("Aug") == 8
+    assert _month_from_english_abbr("Dec") == 12
+
+
+def test_month_from_english_abbr_invalid():
+    with pytest.raises(ValueError, match="Invalid month abbreviation 'Foo'"):
+        _month_from_english_abbr("Foo")
+
+
+@pytest.fixture
+def non_english_time_locale():
+    """Switch LC_TIME to a non-English locale for the test, then always restore it.
+
+    Skips the test if the locale isn't installed on this machine (common on
+    minimal CI images), rather than failing for an unrelated reason.
+    """
+    original = locale.setlocale(locale.LC_TIME)
+    for candidate in ("es_ES.UTF-8", "es_ES", "Spanish_Spain.1252"):
+        try:
+            locale.setlocale(locale.LC_TIME, candidate)
+            break
+        except locale.Error:
+            continue
+    else:
+        pytest.skip("No Spanish LC_TIME locale available on this machine")
+    try:
+        yield
+    finally:
+        locale.setlocale(locale.LC_TIME, original)
+
+
+def test_season_code_from_league_is_locale_independent(non_english_time_locale):
+    # Regression test for #909: this used to raise
+    # ValueError: time data 'Aug' does not match format '%b'
+    # under any LC_TIME where month abbreviations aren't English.
+    assert SeasonCode.from_league("ENG-Premier League") == SeasonCode.MULTI_YEAR
+
+
+def test_is_complete_is_locale_independent(non_english_time_locale):
+    reader = BaseRequestsReader(no_store=True)
+    with time_machine.travel(datetime(2021, 7, 1, 1, 24, tzinfo=timezone.utc)):
+        # Regression test for #909, via the same "%b" parsing this method used.
+        assert reader._is_complete("ENG-Premier League", "1920")
+        assert not reader._is_complete("ENG-Premier League", "2122")

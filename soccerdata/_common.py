@@ -23,6 +23,55 @@ from selenium.common.exceptions import JavascriptException, WebDriverException
 
 from ._config import DATA_DIR, LEAGUE_DICT, MAXAGE, TEAMNAME_REPLACEMENTS, logger
 
+# English month abbreviations used by LEAGUE_DICT's "season_start" / "season_end" values
+# (e.g. "Aug", "May"). Looked up directly instead of datetime.strptime(x, "%b"), which
+# depends on the process's current locale and raises ValueError for the very same English
+# strings on any non-English LC_TIME (see #909).
+_ENGLISH_MONTH_ABBR = {
+    "Jan": 1,
+    "Feb": 2,
+    "Mar": 3,
+    "Apr": 4,
+    "May": 5,
+    "Jun": 6,
+    "Jul": 7,
+    "Aug": 8,
+    "Sep": 9,
+    "Oct": 10,
+    "Nov": 11,
+    "Dec": 12,
+}
+
+
+def _month_from_english_abbr(name: str) -> int:
+    """Parse an English month abbreviation (e.g. "Aug") into its month number.
+
+    Locale-independent: does not use datetime.strptime or the calendar module,
+    both of which resolve "%b"/month names against the process's current
+    locale rather than always accepting English abbreviations.
+
+    Parameters
+    ----------
+    name : str
+        A three-letter English month abbreviation, e.g. "Aug".
+
+    Raises
+    ------
+    ValueError
+        If `name` is not a recognized English month abbreviation.
+
+    Returns
+    -------
+    int
+        The month number (1-12).
+    """
+    try:
+        return _ENGLISH_MONTH_ABBR[name]
+    except KeyError:
+        raise ValueError(
+            f"Invalid month abbreviation {name!r}; expected one of {list(_ENGLISH_MONTH_ABBR)}"
+        ) from None
+
 
 class SeasonCode(Enum):
     """How to interpret season codes.
@@ -60,14 +109,8 @@ class SeasonCode(Enum):
         select_league_dict = LEAGUE_DICT[league]
         if "season_code" in select_league_dict:
             return SeasonCode(select_league_dict["season_code"])
-        start_month = datetime.strptime(  # noqa: DTZ007
-            select_league_dict.get("season_start", "Aug"),
-            "%b",
-        ).month
-        end_month = datetime.strptime(  # noqa: DTZ007
-            select_league_dict.get("season_end", "May"),
-            "%b",
-        ).month
+        start_month = _month_from_english_abbr(select_league_dict.get("season_start", "Aug"))
+        end_month = _month_from_english_abbr(select_league_dict.get("season_end", "May"))
         return SeasonCode.MULTI_YEAR if (end_month - start_month) < 0 else SeasonCode.SINGLE_YEAR
 
     @staticmethod
@@ -438,9 +481,7 @@ class BaseReader(ABC):
         else:
             season_ends = datetime(
                 datetime.strptime(season[-2:], "%y").year,  # noqa: DTZ007
-                datetime.strptime(  # noqa: DTZ007
-                    league_dict["season_end"], "%b"
-                ).month,
+                _month_from_english_abbr(league_dict["season_end"]),
                 1,
                 tzinfo=timezone.utc,
             ) + relativedelta(months=1)

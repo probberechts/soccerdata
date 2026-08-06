@@ -1,6 +1,5 @@
 """Scraper for http://www.football-data.co.uk/data.php."""
 
-import itertools
 from collections.abc import Callable
 from pathlib import Path
 from typing import IO
@@ -8,7 +7,14 @@ from typing import IO
 import pandas as pd
 
 from ._common import BaseRequestsReader, make_game_id
-from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
+from ._config import (
+    DATA_DIR,
+    LEAGUE_DICT,
+    NOCACHE,
+    NOSTORE,
+    TEAMNAME_REPLACEMENTS,
+    logger,
+)
 
 MATCH_HISTORY_DATA_DIR = DATA_DIR / "MatchHistory"
 MATCH_HISTORY_API = "https://www.football-data.co.uk"
@@ -22,6 +28,64 @@ MATCH_HISTORY_HEADERS = {
     "Connection": "keep-alive",
     "Upgrade-Insecure-Requests": "1",
 }
+
+
+# Some leagues (typically smaller ones, e.g. the Swiss first division) are
+# published as a single file that contains the full match history for all
+# seasons. The URL has the format "new/{league}.csv" and the file has a
+# different (subset) of columns than the per-season files.
+SINGLE_FILE_URLMASK = MATCH_HISTORY_API + "/new/{}.csv"
+# Column names used in the single-file format, mapped to the names used in
+# the per-season files.
+SINGLE_FILE_COL_RENAME = {
+    "Home": "HomeTeam",
+    "Away": "AwayTeam",
+    "HG": "FTHG",
+    "AG": "FTAG",
+    "Res": "FTR",
+}
+# Columns that are present in the per-season files but missing in the
+# single-file format. They are filled with NaN so the two formats can be
+# merged into a single DataFrame.
+SINGLE_FILE_MISSING_COLS = [
+    "Div",
+    "HTHG",
+    "HTAG",
+    "HTR",
+    "Referee",
+    "HS",
+    "AS",
+    "HST",
+    "AST",
+    "HF",
+    "AF",
+    "HC",
+    "AC",
+    "HY",
+    "AY",
+    "HR",
+    "AR",
+]
+
+
+def _season_str_to_id(season_str: str) -> str:
+    """Map a season string of the form "2012/2013" to a season id "1213"."""
+    start, end = season_str.split("/")
+    return start[-2:] + end[-2:]
+
+
+def _parse_single_file_csv(raw_data: IO[bytes], lkey: str) -> pd.DataFrame:
+    """Read a single-file league CSV and normalize it to the per-season format."""
+    df_games = pd.read_csv(raw_data, encoding="UTF-8-SIG", on_bad_lines="warn")
+    df_games = df_games.rename(columns=SINGLE_FILE_COL_RENAME)
+    df_games["Div"] = lkey
+    for col in SINGLE_FILE_MISSING_COLS:
+        if col not in df_games.columns:
+            df_games[col] = pd.NA
+    # drop the single-file specific columns after extracting the season
+    df_games["season"] = df_games["Season"].map(_season_str_to_id)
+    df_games = df_games.drop(columns=["Country", "League", "Season"])
+    return df_games
 
 
 def _parse_csv(raw_data: IO[bytes], lkey: str, skey: str) -> pd.DataFrame:
@@ -113,18 +177,34 @@ class MatchHistory(BaseRequestsReader):
         }
 
         df_list = []
-        for lkey, skey in itertools.product(self._selected_leagues.values(), self.seasons):
-            filepath = self.data_dir / filemask.format(lkey, skey)
-            url = urlmask.format(skey, lkey)
-            current_season = not self._is_complete(lkey, skey)
+        for canonical, lkey in self._selected_leagues.items():
+            if LEAGUE_DICT[canonical].get("single_file", False):
+                # Leagues that publish the full match history in a single file
+                # (one row per match across all seasons) instead of one file
+                # per season.
+                filepath = self.data_dir / f"{lkey}.csv"
+                url = SINGLE_FILE_URLMASK.format(lkey)
+                current_season = any(
+                    not self._is_complete(canonical, skey) for skey in self.seasons
+                )
+                reader = self.get(url, filepath, no_cache=current_season)
+                df_games = _parse_single_file_csv(reader, lkey)
+                df_games = df_games[df_games["season"].isin(self.seasons)]
+                df_list.append(df_games)
+            else:
+                # Leagues that publish a separate file for each season.
+                for skey in self.seasons:
+                    filepath = self.data_dir / filemask.format(lkey, skey)
+                    url = urlmask.format(skey, lkey)
+                    current_season = not self._is_complete(canonical, skey)
 
-            reader = self.get(url, filepath, no_cache=current_season)
-            df_games = _parse_csv(reader, lkey, skey).assign(season=skey)
+                    reader = self.get(url, filepath, no_cache=current_season)
+                    df_games = _parse_csv(reader, lkey, skey).assign(season=skey)
 
-            if "Time" not in df_games.columns:
-                df_games["Time"] = "12:00"
-            df_games["Time"] = df_games["Time"].fillna("12:00")
-            df_list.append(df_games)
+                    if "Time" not in df_games.columns:
+                        df_games["Time"] = "12:00"
+                    df_games["Time"] = df_games["Time"].fillna("12:00")
+                    df_list.append(df_games)
 
         df = (
             pd.concat(df_list, sort=False)

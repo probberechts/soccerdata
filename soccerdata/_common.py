@@ -460,11 +460,29 @@ class BaseReader(ABC):
     def seasons(self, seasons: str | int | Iterable[str | int] | None) -> None:
         if seasons is None:
             logger.info("No seasons provided. Will retrieve data for the last 5 seasons.")
-            year = datetime.now(tz=timezone.utc).year
-            seasons = [f"{y - 1}-{y}" for y in range(year, year - 6, -1)]
+            seasons = self._default_seasons(datetime.now(tz=timezone.utc))
         if isinstance(seasons, (str, int)):
             seasons = [seasons]
         self._season_ids = [self._season_code.parse(s) for s in seasons]
+
+    def _default_seasons(self, now: datetime) -> list[str]:
+        """Return the last 5 seasons, ending with the current one.
+
+        The current season is derived from the season calendar, not from the
+        calendar year. For a multi-year league (e.g. Aug-May), the current
+        season ends in the next calendar year during the second half of the
+        year, so the end year is shifted by one during that period. For a
+        single-year league, the season id equals the start year of the
+        generated range, so the end year is one ahead of the calendar year.
+        """
+        end_year = now.year
+        if (
+            self._season_code == SeasonCode.SINGLE_YEAR
+            or self._season_code == SeasonCode.MULTI_YEAR
+            and now.month >= 8
+        ):
+            end_year += 1
+        return [f"{y - 1}-{y}" for y in range(end_year, end_year - 5, -1)]
 
 
 class BaseRequestsReader(BaseReader):

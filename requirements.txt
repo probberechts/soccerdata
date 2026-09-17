@@ -41,7 +41,7 @@ asttokens==3.0.1
     # via stack-data
 async-timeout==5.0.1 ; python_full_version < '3.11'
     # via aiohttp
-asyncssh==2.22.0
+asyncssh==2.23.1
     # via scmrepo
 atpublic==7.0.0
     # via flufl-lock

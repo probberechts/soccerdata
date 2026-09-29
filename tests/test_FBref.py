@@ -1,5 +1,7 @@
 """Unittests for class soccerdata.FBref."""
 
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
@@ -59,6 +61,43 @@ def test_read_team_match_stats_alt_names(fbref_ligue1: FBref) -> None:
         fbref_ligue1.read_team_match_stats(stat_type="schedule", team="Olympique de Marseille"),
         pd.DataFrame,
     )
+
+
+@pytest.mark.parametrize(
+    ("team", "cache_name"),
+    [
+        ("Bodø/Glimt", "matchlogs_Bodø%2FGlimt_20-21_schedule.html"),
+        ("Bodø%2FGlimt", "matchlogs_Bodø%252FGlimt_20-21_schedule.html"),
+        ("A\\B", "matchlogs_A%5CB_20-21_schedule.html"),
+        ("A:B", "matchlogs_A%3AB_20-21_schedule.html"),
+        ("Marseille", "matchlogs_Marseille_20-21_schedule.html"),
+    ],
+)
+def test_read_team_match_stats_cache_filename(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, team: str, cache_name: str
+) -> None:
+    fbref = FBref.__new__(FBref)
+    fbref.data_dir = tmp_path
+    teams = pd.DataFrame(
+        {"url": ["/en/squads/12345678/2020/Team-Stats"]},
+        index=pd.MultiIndex.from_tuples(
+            [("FRA-Ligue 1", "20-21", team)], names=["league", "season", "team"]
+        ),
+    )
+    monkeypatch.setattr(fbref, "read_team_season_stats", lambda: teams)
+    monkeypatch.setattr(fbref, "_is_complete", lambda _league, _season: True)
+
+    cache_paths: list[Path] = []
+
+    def capture_cache_path(_url: str, filepath: Path, **_kwargs: object) -> None:
+        cache_paths.append(filepath)
+        raise StopIteration
+
+    monkeypatch.setattr(fbref, "get", capture_cache_path)
+    with pytest.raises(StopIteration):
+        fbref.read_team_match_stats(team=team)
+
+    assert cache_paths == [tmp_path / cache_name]
 
 
 @pytest.mark.parametrize(

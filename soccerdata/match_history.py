@@ -190,6 +190,10 @@ class MatchHistory(BaseRequestsReader):
                 reader = self.get(url, filepath, no_cache=current_season)
                 df_games = _parse_single_file_csv(reader, lkey)
                 df_games = df_games[df_games["season"].isin(self.seasons)]
+
+                if "Time" not in df_games.columns:
+                    df_games["Time"] = "12:00"
+                df_games["Time"] = df_games["Time"].fillna("12:00")
                 df_list.append(df_games)
             else:
                 # Leagues that publish a separate file for each season.

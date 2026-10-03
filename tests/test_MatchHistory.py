@@ -59,3 +59,48 @@ def test_read_games_single_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
     assert "PSCD" in df.columns
     assert df["HTR"].isna().all()
     assert df["referee"].isna().all()
+
+
+@pytest.mark.parametrize(
+    "header",
+    [
+        "Country,League,Season,Date,Time,Home,Away,HG,AG,Res",
+        "Country,League,Season,Date,Home,Away,HG,AG,Res",
+    ],
+    ids=["blank-time", "no-time-column"],
+)
+def test_read_games_single_file_without_time(
+    header: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """It should default the kickoff time to 12:00 when the single file has none.
+
+    Single files give a kickoff time for most matches, but some rows leave it
+    blank. Other files have no time column at all. Both cases must fall back to
+    "12:00". Without this default, the date becomes NaT and the game id loses
+    its date.
+    """
+    row = "Switzerland,Super League,2021/2022,07/08/2021"
+    if "Time" in header:
+        row += ",,Basel,Zurich,2,1,H"
+    else:
+        row += ",Basel,Zurich,2,1,H"
+    (tmp_path / "SWZ.csv").write_bytes(f"{header}\n{row}\n".encode("utf-8-sig"))
+
+    monkeypatch.setitem(
+        _config.LEAGUE_DICT,
+        "SUI-Super League",
+        {
+            "MatchHistory": "SWZ",
+            "single_file": True,
+            "season_start": "Jul",
+            "season_end": "May",
+        },
+    )
+    monkeypatch.delattr(MatchHistory, "_all_leagues_dict", raising=False)
+
+    mh = MatchHistory("SUI-Super League", seasons=["2122"], data_dir=tmp_path)
+    df = mh.read_games()
+
+    assert len(df) == 1
+    assert df["date"].iloc[0] == pd.Timestamp("2021-08-07 12:00")
+    assert list(df.index.get_level_values("game")) == ["2021-08-07 Basel-Zurich"]

@@ -40,6 +40,7 @@ to support. For example, for the Dutch Eredivisie this would be:
       "MatchHistory": "N1",
       "SoFIFA": "[Netherlands] Eredivisie",
       "FBref": "Eredivisie",
+      "FootballCharts": "holland1",
       "ESPN": "ned.1",
       "FiveThirtyEight": "eredivisie",
       "WhoScored": "Netherlands - Eredivisie",
@@ -116,6 +117,13 @@ source.
   to get the list of major leagues and tournaments. Access ``uniqueTournaments``
   in the JSON response, and the ``{league name}`` corresponds to the ``name``
   field.
+
+**FootballCharts**
+  Go to https://footballcharts-backend.onrender.com/api/v1/leagues/ to get the
+  list of available leagues. The internal identifier is the value of the
+  ``league`` field. For leagues played within a calendar year, such as the
+  Swedish Allsvenskan, set ``season_start`` and ``season_end`` (e.g., ``"Mar"``
+  and ``"Nov"``).
 
 Troubleshooting
 ---------------

@@ -6,6 +6,7 @@ __all__ = [
     "ESPN",
     "ClubElo",
     "FBref",
+    "FootballCharts",
     "MatchHistory",
     "SoFIFA",
     "Sofascore",
@@ -16,6 +17,7 @@ __all__ = [
 from .clubelo import ClubElo
 from .espn import ESPN
 from .fbref import FBref
+from .footballcharts import FootballCharts
 from .match_history import MatchHistory
 from .sofascore import Sofascore
 from .sofifa import SoFIFA

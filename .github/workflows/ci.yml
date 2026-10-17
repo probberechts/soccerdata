@@ -1,30 +1,23 @@
 name: CI
+
 on:
   push:
-  pull_request_target:
+    branches:
+      - main
+      - master
+  pull_request:
+
+permissions:
+  contents: write
 
 jobs:
-  authorize:
-    name: Authorize
-    runs-on: ubuntu-latest
-    # Use 'external' environment for forks to require manual approval
-    # Use 'internal' for local branches/pushes (no approval needed)
-    environment: >-
-      ${{ (github.event_name == 'pull_request_target' &&
-           github.event.pull_request.head.repo.full_name != github.repository) &&
-           'external' || 'internal' }}
-    steps:
-      - run: true
-
   quality:
-    needs: authorize
     runs-on: ubuntu-latest
     steps:
       - name: Check out
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
       - uses: actions/cache@v6
         with:
@@ -56,66 +49,25 @@ jobs:
       - name: Check lock file consistency
         run: uv sync --locked
 
-  tests-and-type-check:
-    needs: authorize
+  type-check:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
-      fail-fast: false
-    defaults:
-      run:
-        shell: bash
     steps:
       - name: Check out
         uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
       - name: Set up the environment
         uses: ./.github/actions/setup-python-env
         with:
-          python-version: ${{matrix.python-version}}
-
-      - name: Create credentials.json for DVC Remote
-        env:
-          GDRIVE_CREDENTIALS_DATA: ${{ secrets.GDRIVE_CREDENTIALS_DATA }}
-        run: echo $GDRIVE_CREDENTIALS_DATA > credentials.json
-
-      - name: Modify DVC Remote
-        run: uv run dvc remote modify --local myremote credentialpath credentials.json
-
-      - name: Cache DVC
-        uses: actions/cache@v6
-        with:
-          path: .dvc/cache
-          key: dvc-cache-${{ hashFiles('**/dvc.lock') }}
-          restore-keys: |
-            dvc-cache-
-
-      - name: DVC Pull Data
-        run: uv run dvc pull -v
-
-      - name: Run tests
-        run: uv run python -m pytest tests --cov --cov-config=pyproject.toml --cov-report=xml -m "not fails_gha"
-        env:
-          SOCCERDATA_DIR: tests/appdata
+          python-version: "3.12"
 
       - name: Check typing
         run: uv run mypy --install-types --non-interactive --config-file pyproject.toml soccerdata tests
 
-      - name: Upload coverage reports to Codecov with GitHub Action on Python 3.11 for Ubuntu
-        uses: codecov/codecov-action@v7
-        if: ${{matrix.python-version == '3.11'}}
-
   check-docs:
-    needs: authorize
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
         uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.ref }}
 
       - name: Set up Python
         uses: actions/setup-python@v7

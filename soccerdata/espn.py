@@ -4,7 +4,7 @@ import itertools
 import json
 import re
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pandas as pd
@@ -90,7 +90,7 @@ class ESPN(BaseRequestsReader):
         df_list = []
         # Get match days
         for lkey, skey in itertools.product(self._selected_leagues.values(), self.seasons):
-            if int(skey[:2]) > int(str(datetime.now(tz=timezone.utc).year + 1)[-2:]):
+            if int(skey[:2]) > int(str(datetime.now(tz=UTC).year + 1)[-2:]):
                 start_date = "".join(["19", skey[:2], "07", "01"])
             else:
                 start_date = "".join(["20", skey[:2], "07", "01"])

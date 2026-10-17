@@ -4,7 +4,7 @@ import io
 import time
 import warnings
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from functools import reduce
 from pathlib import Path
 
@@ -137,9 +137,9 @@ class FBref(BaseSeleniumReader):
                 datetime.strptime(season[-2:], "%y").year,  # noqa: DTZ007
                 7,
                 1,
-                tzinfo=timezone.utc,
+                tzinfo=UTC,
             )
-            return datetime.now(tz=timezone.utc) >= season_ends
+            return datetime.now(tz=UTC) >= season_ends
         return super()._is_complete(league, season)
 
     def read_leagues(self, split_up_big5: bool = False) -> pd.DataFrame:

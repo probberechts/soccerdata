@@ -100,7 +100,7 @@ virtual environment:
 
 .. code:: console
 
-    $ uv venv --python 3.10
+    $ uv venv --python 3.11
     $ uv sync
 
 Alternatively, you can use `pip`. You'll need to have at least the minimum

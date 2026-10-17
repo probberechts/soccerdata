@@ -371,7 +371,7 @@ markupsafe==3.0.3
     #   jinja2
     #   nbconvert
     #   seleniumbase
-matplotlib==3.10.8
+matplotlib==3.11.2
     # via seaborn
 matplotlib-inline==0.2.1
     # via
@@ -493,7 +493,7 @@ pluggy==1.6.0
     #   pytest
     #   pytest-cov
     #   seleniumbase
-pre-commit==4.5.1
+pre-commit==4.7.0
 prompt-toolkit==3.0.52
     # via
     #   click-repl

@@ -1,6 +1,14 @@
 """A collection of tools to read and process soccer data from various sources."""
 
-__version__ = "1.9.1"
+try:
+    from ._version import __version__
+except ImportError:
+    from importlib.metadata import PackageNotFoundError, version
+
+    try:
+        __version__ = version("soccerdata")
+    except PackageNotFoundError:  # pragma: no cover
+        __version__ = "unknown"
 
 __all__ = [
     "ESPN",

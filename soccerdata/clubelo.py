@@ -2,7 +2,7 @@
 
 import re
 from collections.abc import Callable
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import IO
 
@@ -85,9 +85,9 @@ class ClubElo(BaseRequestsReader):
         pd.DataFrame
         """
         if not date:
-            date = datetime.now(tz=timezone.utc)
+            date = datetime.now(tz=UTC)
         elif isinstance(date, str):
-            date = datetime.strptime(date, "%Y-%m-%d").astimezone(timezone.utc)
+            date = datetime.strptime(date, "%Y-%m-%d").astimezone(UTC)
 
         if not isinstance(date, datetime):
             raise TypeError("'date' must be a datetime object or string like 'YYYY-MM-DD'")

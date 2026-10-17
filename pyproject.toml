@@ -24,7 +24,7 @@ classifiers = [
 
 # ━━━━━━━━━━━━━━━━━━━━━━ Primary Dependencies ━━━━━━━━━━━━━━━━━━━━━━ #
 
-requires-python = ">=3.10,<3.16"
+requires-python = ">=3.11,<3.16"
 dependencies = [
   "html5lib>=1.1,<2.0.0",
   "lxml>=4.9.4; python_version < '3.13'",
@@ -167,7 +167,7 @@ testpaths = ["tests"]
 [tool.ruff]
 src = ["soccerdata", "tests"]
 line-length = 99
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 ignore = ["B904"]

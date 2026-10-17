@@ -35,16 +35,10 @@ colorama==0.4.6
     #   sphinx-autobuild
 defusedxml==0.7.1
     # via nbconvert
-docutils==0.21.2 ; python_full_version < '3.11'
+docutils==0.22.4
     # via
     #   nbsphinx
     #   sphinx
-docutils==0.22.4 ; python_full_version >= '3.11'
-    # via
-    #   nbsphinx
-    #   sphinx
-exceptiongroup==1.3.1 ; python_full_version < '3.11'
-    # via anyio
 fastjsonschema==2.21.2
     # via nbformat
 furo==2025.12.19
@@ -117,7 +111,7 @@ referencing==0.37.0
     #   jsonschema-specifications
 requests==2.33.1
     # via sphinx
-roman-numerals==4.1.0 ; python_full_version >= '3.11'
+roman-numerals==4.1.0
     # via sphinx
 rpds-py==0.30.0
     # via
@@ -129,13 +123,7 @@ snowballstemmer==3.0.1
     # via sphinx
 soupsieve==2.8.3
     # via beautifulsoup4
-sphinx==8.1.3 ; python_full_version < '3.11'
-    # via
-    #   furo
-    #   nbsphinx
-    #   sphinx-autobuild
-    #   sphinx-basic-ng
-sphinx==9.0.4 ; python_full_version == '3.11.*'
+sphinx==9.0.4 ; python_full_version < '3.12'
     # via
     #   furo
     #   nbsphinx
@@ -147,8 +135,7 @@ sphinx==9.1.0 ; python_full_version >= '3.12'
     #   nbsphinx
     #   sphinx-autobuild
     #   sphinx-basic-ng
-sphinx-autobuild==2024.10.3 ; python_full_version < '3.11'
-sphinx-autobuild==2025.8.25 ; python_full_version >= '3.11'
+sphinx-autobuild==2025.8.25
 sphinx-basic-ng==1.0.0b2
     # via furo
 sphinxcontrib-applehelp==2.0.0
@@ -167,8 +154,6 @@ starlette==1.0.0
     # via sphinx-autobuild
 tinycss2==1.4.0
     # via bleach
-tomli==2.4.1 ; python_full_version < '3.11'
-    # via sphinx
 tornado==6.5.5
     # via jupyter-client
 traitlets==5.14.3
@@ -183,11 +168,8 @@ typing-extensions==4.15.0
     # via
     #   anyio
     #   beautifulsoup4
-    #   exceptiongroup
-    #   mistune
     #   referencing
     #   starlette
-    #   uvicorn
 urllib3==2.6.3
     # via requests
 uvicorn==0.44.0

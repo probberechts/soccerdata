@@ -7,7 +7,7 @@ import time
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from pathlib import Path
 from typing import IO
@@ -130,7 +130,7 @@ class SeasonCode(Enum):
             ),
         ]
 
-        current_year = datetime.now(tz=timezone.utc).year
+        current_year = datetime.now(tz=UTC).year
 
         def process_four_digit_year(season: str) -> str:
             """Process a 4-digit string like '1994' or '9495'."""
@@ -334,8 +334,8 @@ class BaseReader(ABC):
         cache_invalid = False
         # Check if cached file is too old
         if _max_age is not None and filepath is not None and filepath.exists():
-            last_modified = datetime.fromtimestamp(filepath.stat().st_mtime, tz=timezone.utc)
-            now = datetime.now(timezone.utc)
+            last_modified = datetime.fromtimestamp(filepath.stat().st_mtime, tz=UTC)
+            now = datetime.now(UTC)
             if (now - last_modified) > _max_age:
                 cache_invalid = True
 
@@ -433,7 +433,7 @@ class BaseReader(ABC):
                 datetime.strptime(season[-2:], "%y").year,  # noqa: DTZ007
                 7,
                 1,
-                tzinfo=timezone.utc,
+                tzinfo=UTC,
             )
         else:
             season_ends = datetime(
@@ -442,9 +442,9 @@ class BaseReader(ABC):
                     league_dict["season_end"], "%b"
                 ).month,
                 1,
-                tzinfo=timezone.utc,
+                tzinfo=UTC,
             ) + relativedelta(months=1)
-        return datetime.now(tz=timezone.utc) >= season_ends
+        return datetime.now(tz=UTC) >= season_ends
 
     @property
     def leagues(self) -> list[str]:
@@ -460,7 +460,7 @@ class BaseReader(ABC):
     def seasons(self, seasons: str | int | Iterable[str | int] | None) -> None:
         if seasons is None:
             logger.info("No seasons provided. Will retrieve data for the last 5 seasons.")
-            year = datetime.now(tz=timezone.utc).year
+            year = datetime.now(tz=UTC).year
             seasons = [f"{y - 1}-{y}" for y in range(year, year - 6, -1)]
         if isinstance(seasons, (str, int)):
             seasons = [seasons]

@@ -27,50 +27,68 @@ from ._config import DATA_DIR, LEAGUE_DICT, MAXAGE, TEAMNAME_REPLACEMENTS, logge
 # (e.g. "Aug", "May"). Looked up directly instead of datetime.strptime(x, "%b"), which
 # depends on the process's current locale and raises ValueError for the very same English
 # strings on any non-English LC_TIME (see #909).
-_ENGLISH_MONTH_ABBR = {
-    "Jan": 1,
-    "Feb": 2,
-    "Mar": 3,
-    "Apr": 4,
-    "May": 5,
-    "Jun": 6,
-    "Jul": 7,
-    "Aug": 8,
-    "Sep": 9,
-    "Oct": 10,
-    "Nov": 11,
-    "Dec": 12,
+_ENGLISH_MONTHS = {
+    "jan": 1,
+    "feb": 2,
+    "mar": 3,
+    "apr": 4,
+    "may": 5,
+    "jun": 6,
+    "jul": 7,
+    "aug": 8,
+    "sep": 9,
+    "oct": 10,
+    "nov": 11,
+    "dec": 12,
 }
 
 
-def _month_from_english_abbr(name: str) -> int:
-    """Parse an English month abbreviation (e.g. "Aug") into its month number.
+def _parse_month(month: int | str) -> int:
+    """Parse a month (int, abbreviation, or name) into a month number (1-12).
 
     Locale-independent: does not use datetime.strptime or the calendar module,
-    both of which resolve "%b"/month names against the process's current
-    locale rather than always accepting English abbreviations.
+    both of which resolve month names against the process's current
+    locale rather than accepting English month names.
 
     Parameters
     ----------
-    name : str
-        A three-letter English month abbreviation, e.g. "Aug".
+    month : int or str
+        A month number (1-12), numeric string ("1"-"12"), English month
+        abbreviation (e.g. "Aug"), or full English month name (e.g. "August").
 
     Raises
     ------
     ValueError
-        If `name` is not a recognized English month abbreviation.
+        If `month` cannot be parsed into a valid month number between 1 and 12.
+    TypeError
+        If `month` is not an int or str.
 
     Returns
     -------
     int
         The month number (1-12).
     """
-    try:
-        return _ENGLISH_MONTH_ABBR[name]
-    except KeyError:
-        raise ValueError(
-            f"Invalid month abbreviation {name!r}; expected one of {list(_ENGLISH_MONTH_ABBR)}"
-        ) from None
+    if isinstance(month, int) and not isinstance(month, bool):
+        if 1 <= month <= 12:
+            return month
+        raise ValueError(f"Invalid month {month}; must be between 1 and 12")
+
+    if isinstance(month, str):
+        cleaned = month.strip()
+        if cleaned.isdigit():
+            val = int(cleaned)
+            if 1 <= val <= 12:
+                return val
+            raise ValueError(f"Invalid month {month!r}; must be between 1 and 12")
+        key = cleaned[:3].lower()
+        if key in _ENGLISH_MONTHS:
+            return _ENGLISH_MONTHS[key]
+        raise ValueError(f"Invalid month {month!r}; expected integer (1-12) or English month name")
+
+    raise TypeError(f"Invalid month type {type(month).__name__!r}; expected str or int")
+
+
+_month_from_english_abbr = _parse_month
 
 
 class SeasonCode(Enum):
@@ -109,8 +127,8 @@ class SeasonCode(Enum):
         select_league_dict = LEAGUE_DICT[league]
         if "season_code" in select_league_dict:
             return SeasonCode(select_league_dict["season_code"])
-        start_month = _month_from_english_abbr(select_league_dict.get("season_start", "Aug"))
-        end_month = _month_from_english_abbr(select_league_dict.get("season_end", "May"))
+        start_month = _parse_month(select_league_dict.get("season_start", "Aug"))
+        end_month = _parse_month(select_league_dict.get("season_end", "May"))
         return SeasonCode.MULTI_YEAR if (end_month - start_month) < 0 else SeasonCode.SINGLE_YEAR
 
     @staticmethod
@@ -481,7 +499,7 @@ class BaseReader(ABC):
         else:
             season_ends = datetime(
                 datetime.strptime(season[-2:], "%y").year,  # noqa: DTZ007
-                _month_from_english_abbr(league_dict["season_end"]),
+                _parse_month(league_dict["season_end"]),
                 1,
                 tzinfo=timezone.utc,
             ) + relativedelta(months=1)

@@ -1,6 +1,6 @@
 version = 1
-revision = 3
-requires-python = ">=3.10, <3.15"
+revision = 5
+requires-python = ">=3.10, <3.16"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform == 'emscripten'",
@@ -5734,6 +5734,7 @@ wheels = [
 name = "soccerdata"
 version = "1.9.1"
 source = { editable = "." }
+default-groups = ["docs", "lint", "notebooks", "release", "test"]
 dependencies = [
     { name = "html5lib" },
     { name = "lxml" },

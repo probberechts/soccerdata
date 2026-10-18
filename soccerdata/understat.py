@@ -575,7 +575,7 @@ class Understat(BaseRequestsReader):
             for team_data in rosters_data.values():
                 for player in team_data.values():
                     player_name = _as_str(player["player"])
-                    player_id = _as_int(player["id"])
+                    player_id = _as_int(player["player_id"])
                     player_name_to_id[player_name] = player_id
 
             shots_data = data["shotsData"]

@@ -14,6 +14,7 @@ from lxml import etree, html
 from ._common import (
     BaseSeleniumReader,
     SeasonCode,
+    _sanitize_filename,
     add_alt_team_names,
     make_game_id,
     standardize_colnames,
@@ -33,14 +34,6 @@ BIG_FIVE_DICT = {
     "Premier League": "ENG-Premier League",
     "Fußball-Bundesliga": "GER-Bundesliga",
 }
-
-
-def _cache_filename_component(value: str) -> str:
-    """Escape unsafe filename characters without changing ordinary team names."""
-    unsafe = '/\\:*?"<>|%'
-    return "".join(
-        f"%{ord(char):02X}" if char in unsafe or ord(char) < 32 else char for char in value
-    )
 
 
 class FBref(BaseSeleniumReader):
@@ -414,9 +407,7 @@ class FBref(BaseSeleniumReader):
         stats = []
         for (lkey, skey, t), team_url in iterator.url.items():
             # read html page
-            filepath = self.data_dir / filemask.format(
-                _cache_filename_component(t), skey, stat_type
-            )
+            filepath = self.data_dir / filemask.format(_sanitize_filename(t), skey, stat_type)
             if len(team_url.split("/")) == 6:  # already have season in the url
                 url = (
                     FBREF_API

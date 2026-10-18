@@ -12,6 +12,7 @@ import soccerdata
 from soccerdata._common import (
     BaseRequestsReader,
     SeasonCode,
+    _sanitize_filename,
     add_alt_team_names,
     add_standardized_team_name,
     make_game_id,
@@ -206,6 +207,24 @@ def test_add_standardize_team_name():
     assert add_standardized_team_name("Valencia") == {"Valencia", "Valencia CF"}
     # "Real Madrid" is not replaced
     assert add_standardized_team_name("Arsenal") == {"Arsenal"}
+
+
+# _sanitize_filename
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("Bodø/Glimt", "Bodø%2FGlimt"),
+        ("Bodø%2FGlimt", "Bodø%252FGlimt"),
+        ("A\\B", "A%5CB"),
+        ("A:B", "A%3AB"),
+        ("A\tB", "A%09B"),
+        ("Brighton & Hove Albion", "Brighton & Hove Albion"),
+    ],
+)
+def test_sanitize_filename(value, expected):
+    assert _sanitize_filename(value) == expected
 
 
 # standardize_colnames

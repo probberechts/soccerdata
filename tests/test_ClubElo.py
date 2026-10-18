@@ -97,6 +97,23 @@ class TestReadTeamHistory:
         self._check_dataframe(df)
         assert (df["team"] == "Metalist 1925").all()
 
+    def test_escapes_unsafe_characters_in_cache_filename(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """It should not use a '/' in a team name as a directory separator."""
+        elo = ClubElo(data_dir=tmp_path)
+        cache_paths: list[Path] = []
+
+        def capture_cache_path(_url: str, filepath: Path, _max_age: object) -> None:
+            cache_paths.append(filepath)
+            raise StopIteration
+
+        monkeypatch.setattr(elo, "get", capture_cache_path)
+        with pytest.raises(StopIteration):
+            elo.read_team_history("Bodø/Glimt")
+
+        assert cache_paths == [tmp_path / "Bodo%2FGlimt.csv"]
+
     @pytest.mark.fails_gha
     def test_respects_max_age_and_updates_cache(self, elo: ClubElo) -> None:
         """It should not use cached data if it is older than max_age."""

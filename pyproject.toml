@@ -24,12 +24,11 @@ classifiers = [
 
 # ━━━━━━━━━━━━━━━━━━━━━━ Primary Dependencies ━━━━━━━━━━━━━━━━━━━━━━ #
 
-requires-python = ">=3.10,<3.15"
+requires-python = ">=3.11,<3.16"
 dependencies = [
   "html5lib>=1.1,<2.0.0",
-  "lxml>=4.9.4; python_version < '3.13'",
-  "lxml>=5.0.0; python_version >= '3.13'",
-  "pandas>=2.0.0,!=2.1.0,<4.0.0",
+  "lxml>=5.0.0,<7.0.0",
+  "pandas>=3.0.0,<4.0.0",
   "rich>=14.0.0,<16.0.0",
   "seleniumbase>=4.38.2,<6.0.0",
   "tqdm>=4.67.1,<6.0.0",
@@ -56,7 +55,7 @@ socceraction = [
 # Linting and type-checking
 lint = [
   "mypy",
-  "pre-commit>=4.0.0,<6.0.0",
+  "pre-commit>=4.7.0,<6.0.0",
   "pyright>=1.1.403",
   "ruff",
 ]
@@ -65,23 +64,23 @@ lint = [
 test = [
   "dvc[gs]>=3.62.0",
   "pytest>=8.0.0,<10.0.0",
-  "pytest-cov>=6.2.1",
-  "pytest-mock>=3.10.0,<5.0.0",
-  "time-machine>=2.8.2,<4.0.0",
+  "pytest-cov>=7.0.0",
+  "pytest-mock>=3.14.0,<5.0.0",
+  "time-machine>=3.0.0,<4.0.0",
 ]
 
 # Documentation
 docs = [
-  "Sphinx>=7.0.0,<10.0.0",
+  "Sphinx>=9.0.0,<10.0.0",
   "furo>=2024.0.0,<2026.0.0",
   "nbsphinx>=0.9.0,<1.0.0",
-  "sphinx-autobuild>=2024.0.0,<2026.0.0",
+  "sphinx-autobuild>=2025.0.0,<2026.0.0",
 ]
 
 # Example notebooks
 notebooks = [
-  "ipykernel>=6.29.5",
-  "matplotlib>=3.9.4",
+  "ipykernel>=7.0.0",
+  "matplotlib>=3.11.0",
   "seaborn>=0.13.2",
 ]
 
@@ -148,7 +147,7 @@ testpaths = ["tests"]
 [tool.ruff]
 src = ["soccerdata", "tests"]
 line-length = 99
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 ignore = ["B904"]

@@ -1,13 +1,13 @@
 """Sphinx configuration."""
 
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as get_package_version
+
 # -- Project information -----------------------------------------------------
 
 project = "soccerdata"
 author = "Pieter Robberechts"
 copyright = f"2021, {author}"
-
-from importlib.metadata import PackageNotFoundError
-from importlib.metadata import version as get_package_version
 
 try:
     release = get_package_version("soccerdata")

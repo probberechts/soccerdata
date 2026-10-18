@@ -3,7 +3,7 @@
 import itertools
 import json
 from collections.abc import Callable, Iterable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pandas as pd
@@ -237,9 +237,7 @@ class Sofascore(BaseRequestsReader):
                                 "season": skey,
                                 "round": round["round"],
                                 "week": _match["roundInfo"]["round"],
-                                "date": datetime.fromtimestamp(
-                                    _match["startTimestamp"], tz=timezone.utc
-                                ),
+                                "date": datetime.fromtimestamp(_match["startTimestamp"], tz=UTC),
                                 "home_team": _match["homeTeam"]["name"],
                                 "away_team": _match["awayTeam"]["name"],
                                 "home_score": home_score,

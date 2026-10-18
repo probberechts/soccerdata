@@ -1,7 +1,7 @@
 """Unittests for soccerdata._common."""
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -184,7 +184,7 @@ def test_download_and_save_variable_no_store_no_filepath(mock_tls_client):
 def test_make_game_id():
     s = pd.Series(
         {
-            "date": datetime(1993, 7, 30, tzinfo=timezone.utc),
+            "date": datetime(1993, 7, 30, tzinfo=UTC),
             "home_team": "Barcelona",
             "away_team": "Real Madrid",
         }
@@ -260,13 +260,13 @@ def test_standardize_colnames():
 
 def test_is_complete():
     reader = BaseRequestsReader(no_store=True)
-    with time_machine.travel(datetime(2020, 12, 25, 1, 24, tzinfo=timezone.utc)):
+    with time_machine.travel(datetime(2020, 12, 25, 1, 24, tzinfo=UTC)):
         assert reader._is_complete("ENG-Premier League", "1920")
         assert not reader._is_complete("ENG-Premier League", "2021")
-    with time_machine.travel(datetime(2021, 2, 25, 1, 24, tzinfo=timezone.utc)):
+    with time_machine.travel(datetime(2021, 2, 25, 1, 24, tzinfo=UTC)):
         assert reader._is_complete("ENG-Premier League", "1920")
         assert not reader._is_complete("ENG-Premier League", "2021")
-    with time_machine.travel(datetime(2021, 7, 1, 1, 24, tzinfo=timezone.utc)):
+    with time_machine.travel(datetime(2021, 7, 1, 1, 24, tzinfo=UTC)):
         assert reader._is_complete("ENG-Premier League", "1920")
         assert reader._is_complete("ENG-Premier League", "2021")
         assert not reader._is_complete("ENG-Premier League", "2122")
@@ -275,7 +275,7 @@ def test_is_complete():
 def test_is_complete_default_value(mocker):
     mocker.patch.object(soccerdata._common, "LEAGUE_DICT", {"FAKE-Dummy League": {}})
     reader = BaseRequestsReader(no_store=True)
-    with time_machine.travel(datetime(2020, 12, 25, 1, 24, tzinfo=timezone.utc)):
+    with time_machine.travel(datetime(2020, 12, 25, 1, 24, tzinfo=UTC)):
         assert reader._is_complete("FAKE-Dummy League", "1920")
 
 
@@ -291,8 +291,8 @@ def test_is_complete_undefined_league(mocker):
 def test_default_seasons(mocker):
     """It should default to the last 5 seasons ending with the current season."""
     reader = BaseRequestsReader(no_store=True)
-    october = datetime(2024, 10, 30, 12, 0, tzinfo=timezone.utc)
-    march = datetime(2024, 3, 30, 12, 0, tzinfo=timezone.utc)
+    october = datetime(2024, 10, 30, 12, 0, tzinfo=UTC)
+    march = datetime(2024, 3, 30, 12, 0, tzinfo=UTC)
 
     # multi-year leagues: the current season ends next year after August
     mocker.patch.object(
@@ -451,3 +451,11 @@ def test_parse_month_invalid(invalid_input):
 def test_parse_month_invalid_type(invalid_type):
     with pytest.raises(TypeError):
         _parse_month(invalid_type)
+
+
+def test_all_leagues_not_inherited_from_base():
+    """It should ensure that caching _all_leagues on a base reader does not shadow subclasses."""
+    BaseRequestsReader(no_store=True)
+    from soccerdata.espn import ESPN
+
+    assert len(ESPN.available_leagues()) > 0

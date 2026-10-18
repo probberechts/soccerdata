@@ -38,8 +38,6 @@ appnope==0.1.4 ; sys_platform == 'darwin'
     # via ipykernel
 asttokens==3.0.1
     # via stack-data
-async-timeout==5.0.1 ; python_full_version < '3.11'
-    # via aiohttp
 asyncssh==2.22.0
     # via scmrepo
 atpublic==7.0.0
@@ -119,9 +117,7 @@ comm==0.2.3
     # via ipykernel
 configobj==5.0.9
     # via dvc
-contourpy==1.3.2 ; python_full_version < '3.11'
-    # via matplotlib
-contourpy==1.3.3 ; python_full_version >= '3.11'
+contourpy==1.3.3
     # via matplotlib
 coverage==7.13.5
     # via pytest-cov
@@ -151,11 +147,7 @@ distro==1.9.0
     # via
     #   dvc
     #   iterative-telemetry
-docutils==0.21.2 ; python_full_version < '3.11'
-    # via
-    #   nbsphinx
-    #   sphinx
-docutils==0.22.4 ; python_full_version >= '3.11'
+docutils==0.22.4
     # via
     #   nbsphinx
     #   sphinx
@@ -187,14 +179,7 @@ dvc-task==0.40.2
 entrypoints==0.4
     # via gto
 exceptiongroup==1.3.1
-    # via
-    #   anyio
-    #   celery
-    #   ipython
-    #   pytest
-    #   seleniumbase
-    #   trio
-    #   trio-websocket
+    # via seleniumbase
 execnet==2.1.2
     # via
     #   pytest-xdist
@@ -317,13 +302,11 @@ iniconfig==2.3.0
     #   pytest
     #   seleniumbase
 ipykernel==7.2.0
-ipython==8.39.0 ; python_full_version < '3.11'
-    # via ipykernel
-ipython==9.10.1 ; python_full_version == '3.11.*'
+ipython==9.10.1 ; python_full_version < '3.12'
     # via ipykernel
 ipython==9.12.0 ; python_full_version >= '3.12'
     # via ipykernel
-ipython-pygments-lexers==1.1.1 ; python_full_version >= '3.11'
+ipython-pygments-lexers==1.1.1
     # via ipython
 iterative-telemetry==0.0.10
     # via dvc
@@ -373,7 +356,7 @@ markupsafe==3.0.3
     #   jinja2
     #   nbconvert
     #   seleniumbase
-matplotlib==3.10.8
+matplotlib==3.11.2
     # via seaborn
 matplotlib-inline==0.2.1
     # via
@@ -408,21 +391,13 @@ nbformat==5.10.4
 nbsphinx==0.9.8
 nest-asyncio==1.6.0
     # via ipykernel
-networkx==3.4.2 ; python_full_version < '3.11'
-    # via dvc
-networkx==3.6.1 ; python_full_version >= '3.11'
+networkx==3.6.1
     # via dvc
 nodeenv==1.10.0
     # via
     #   pre-commit
     #   pyright
-numpy==2.2.6 ; python_full_version < '3.11'
-    # via
-    #   contourpy
-    #   matplotlib
-    #   pandas
-    #   seaborn
-numpy==2.4.4 ; python_full_version >= '3.11'
+numpy==2.4.4
     # via
     #   contourpy
     #   matplotlib
@@ -457,11 +432,7 @@ packaging==26.0
     #   seleniumbase
     #   sphinx
     #   wheel
-pandas==2.3.3 ; python_full_version < '3.11'
-    # via
-    #   seaborn
-    #   soccerdata
-pandas==3.0.2 ; python_full_version >= '3.11'
+pandas==3.0.2
     # via
     #   seaborn
     #   soccerdata
@@ -507,7 +478,7 @@ pluggy==1.6.0
     #   pytest
     #   pytest-cov
     #   seleniumbase
-pre-commit==4.5.1
+pre-commit==4.7.0
 prompt-toolkit==3.0.52
     # via
     #   click-repl
@@ -557,9 +528,7 @@ pydot==4.0.1
     # via dvc
 pygetwindow==0.0.9 ; sys_platform == 'linux'
     # via pyautogui
-pygit2==1.18.2 ; python_full_version < '3.11'
-    # via scmrepo
-pygit2==1.19.2 ; python_full_version >= '3.11'
+pygit2==1.19.2
     # via scmrepo
 pygments==2.20.0
     # via
@@ -604,17 +573,7 @@ pyscreeze==1.0.1 ; sys_platform == 'linux'
     # via pyautogui
 pysocks==1.7.1
     # via urllib3
-pytest==8.4.2 ; python_full_version < '3.11'
-    # via
-    #   pytest-cov
-    #   pytest-html
-    #   pytest-metadata
-    #   pytest-mock
-    #   pytest-ordering
-    #   pytest-rerunfailures
-    #   pytest-xdist
-    #   seleniumbase
-pytest==9.0.3 ; python_full_version >= '3.11'
+pytest==9.0.3
     # via
     #   pytest-cov
     #   pytest-html
@@ -656,8 +615,6 @@ python3-xlib==0.15 ; sys_platform == 'linux'
     #   pyautogui
 pytweening==1.2.0 ; sys_platform == 'linux'
     # via pyautogui
-pytz==2026.1.post1 ; python_full_version < '3.11'
-    # via pandas
 pywin32==311 ; sys_platform == 'win32'
     # via dvc-task
 pyyaml==6.0.3
@@ -693,7 +650,7 @@ rich==14.3.4
     #   seleniumbase
     #   soccerdata
     #   typer
-roman-numerals==4.1.0 ; python_full_version >= '3.11'
+roman-numerals==4.1.0
     # via sphinx
 rpds-py==0.30.0
     # via
@@ -754,13 +711,7 @@ soupsieve==2.8.3
     # via
     #   beautifulsoup4
     #   seleniumbase
-sphinx==8.1.3 ; python_full_version < '3.11'
-    # via
-    #   furo
-    #   nbsphinx
-    #   sphinx-autobuild
-    #   sphinx-basic-ng
-sphinx==9.0.4 ; python_full_version == '3.11.*'
+sphinx==9.0.4 ; python_full_version < '3.12'
     # via
     #   furo
     #   nbsphinx
@@ -772,8 +723,7 @@ sphinx==9.1.0 ; python_full_version >= '3.12'
     #   nbsphinx
     #   sphinx-autobuild
     #   sphinx-basic-ng
-sphinx-autobuild==2024.10.3 ; python_full_version < '3.11'
-sphinx-autobuild==2025.8.25 ; python_full_version >= '3.11'
+sphinx-autobuild==2025.8.25
 sphinx-basic-ng==1.0.0b2
     # via furo
 sphinxcontrib-applehelp==2.0.0
@@ -806,11 +756,7 @@ time-machine==3.2.0
 tinycss2==1.4.0
     # via bleach
 tomli==2.4.1 ; python_full_version <= '3.11'
-    # via
-    #   coverage
-    #   mypy
-    #   pytest
-    #   sphinx
+    # via coverage
 tomlkit==0.14.0
     # via dvc
 tornado==6.5.5
@@ -852,13 +798,10 @@ typing-extensions==4.15.0
     #   anyio
     #   asyncssh
     #   beautifulsoup4
-    #   cryptography
     #   dulwich
     #   exceptiongroup
     #   grpcio
     #   ipython
-    #   mistune
-    #   multidict
     #   mypy
     #   pydantic
     #   pydantic-core
@@ -868,8 +811,6 @@ typing-extensions==4.15.0
     #   seleniumbase
     #   starlette
     #   typing-inspection
-    #   uvicorn
-    #   virtualenv
 typing-inspection==0.4.2
     # via
     #   pydantic

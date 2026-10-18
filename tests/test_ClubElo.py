@@ -1,7 +1,7 @@
 """Unittests for class soccerdata.ClubElo."""
 
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -39,7 +39,7 @@ class TestReadByDate:
 
     def test_datetime_date(self, elo: ClubElo) -> None:
         """It should accept a datetime object."""
-        df = elo.read_by_date(datetime(2017, 4, 1, tzinfo=timezone.utc))
+        df = elo.read_by_date(datetime(2017, 4, 1, tzinfo=UTC))
         self._check_dataframe(df)
 
     def test_raises_on_bad_params(self, elo: ClubElo) -> None:
@@ -114,4 +114,4 @@ class TestReadTeamHistory:
     def test_raises_on_bad_params(self, elo: ClubElo) -> None:
         """It should raise an error if the parameters are invalid."""
         with pytest.raises(TypeError, match="'max_age' must be of type int or datetime.timedelta"):
-            _ = elo.read_team_history("Feyenoord", max_age=datetime.now(tz=timezone.utc))  # type: ignore
+            _ = elo.read_team_history("Feyenoord", max_age=datetime.now(tz=UTC))  # type: ignore

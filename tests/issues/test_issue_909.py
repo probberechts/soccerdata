@@ -1,7 +1,7 @@
 """Tests for issue #909: Locale-independent month parsing."""
 
 import locale
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 import time_machine
@@ -57,6 +57,6 @@ def test_season_code_from_league_is_locale_independent(non_english_time_locale):
 
 def test_is_complete_is_locale_independent(non_english_time_locale):
     reader = BaseRequestsReader(no_store=True)
-    with time_machine.travel(datetime(2021, 7, 1, 1, 24, tzinfo=timezone.utc)):
+    with time_machine.travel(datetime(2021, 7, 1, 1, 24, tzinfo=UTC)):
         assert reader._is_complete("ENG-Premier League", "1920")
         assert not reader._is_complete("ENG-Premier League", "2122")

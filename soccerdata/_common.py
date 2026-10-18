@@ -23,32 +23,9 @@ from selenium.common.exceptions import JavascriptException, WebDriverException
 
 from ._config import DATA_DIR, LEAGUE_DICT, MAXAGE, TEAMNAME_REPLACEMENTS, logger
 
-# English month abbreviations used by LEAGUE_DICT's "season_start" / "season_end" values
-# (e.g. "Aug", "May"). Looked up directly instead of datetime.strptime(x, "%b"), which
-# depends on the process's current locale and raises ValueError for the very same English
-# strings on any non-English LC_TIME (see #909).
-_ENGLISH_MONTHS = {
-    "jan": 1,
-    "feb": 2,
-    "mar": 3,
-    "apr": 4,
-    "may": 5,
-    "jun": 6,
-    "jul": 7,
-    "aug": 8,
-    "sep": 9,
-    "oct": 10,
-    "nov": 11,
-    "dec": 12,
-}
-
 
 def _parse_month(month: int | str) -> int:
     """Parse a month (int, abbreviation, or name) into a month number (1-12).
-
-    Locale-independent: does not use datetime.strptime or the calendar module,
-    both of which resolve month names against the process's current
-    locale rather than accepting English month names.
 
     Parameters
     ----------
@@ -68,6 +45,21 @@ def _parse_month(month: int | str) -> int:
     int
         The month number (1-12).
     """
+    _ENGLISH_MONTHS = {
+        "jan": 1,
+        "feb": 2,
+        "mar": 3,
+        "apr": 4,
+        "may": 5,
+        "jun": 6,
+        "jul": 7,
+        "aug": 8,
+        "sep": 9,
+        "oct": 10,
+        "nov": 11,
+        "dec": 12,
+    }
+
     if isinstance(month, int) and not isinstance(month, bool):
         if 1 <= month <= 12:
             return month
@@ -86,9 +78,6 @@ def _parse_month(month: int | str) -> int:
         raise ValueError(f"Invalid month {month!r}; expected integer (1-12) or English month name")
 
     raise TypeError(f"Invalid month type {type(month).__name__!r}; expected str or int")
-
-
-_month_from_english_abbr = _parse_month
 
 
 class SeasonCode(Enum):
@@ -127,8 +116,8 @@ class SeasonCode(Enum):
         select_league_dict = LEAGUE_DICT[league]
         if "season_code" in select_league_dict:
             return SeasonCode(select_league_dict["season_code"])
-        start_month = _parse_month(select_league_dict.get("season_start", "Aug"))
-        end_month = _parse_month(select_league_dict.get("season_end", "May"))
+        start_month = _parse_month(select_league_dict.get("season_start", "aug"))
+        end_month = _parse_month(select_league_dict.get("season_end", "may"))
         return SeasonCode.MULTI_YEAR if (end_month - start_month) < 0 else SeasonCode.SINGLE_YEAR
 
     @staticmethod

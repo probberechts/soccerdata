@@ -857,6 +857,20 @@ def standardize_colnames(df: pd.DataFrame, cols: list[str] | None = None) -> pd.
     return df.rename(columns={c: to_snake(c) for c in cols})
 
 
+def _sanitize_filename(value: str) -> str:
+    """Escape characters that are unsafe in a filename.
+
+    Filesystem-reserved characters, control characters and ``%`` are
+    replaced by ``%XX`` escapes. Ordinary names are returned unchanged, so
+    existing cache files keep their names. Escaping ``%`` keeps distinct
+    names such as ``Bodø/Glimt`` and ``Bodø%2FGlimt`` apart.
+    """
+    unsafe = '/\\:*?"<>|%'
+    return "".join(
+        f"%{ord(char):02X}" if char in unsafe or ord(char) < 32 else char for char in value
+    )
+
+
 def get_proxy() -> dict[str, str]:
     """Return a public proxy."""
     # list of free proxy apis

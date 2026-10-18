@@ -65,6 +65,9 @@ jobs:
       - name: DVC Pull Data
         run: uv run dvc pull -v
 
+      - name: Set up non-English locale for tests
+        run: sudo locale-gen es_ES.UTF-8
+
       - name: Run tests
         run: uv run python -m pytest tests --cov --cov-config=pyproject.toml --cov-report=xml -m "not fails_gha"
         env:

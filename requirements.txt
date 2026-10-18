@@ -30,7 +30,6 @@ antlr4-python3-runtime==4.9.3
     #   omegaconf
 anyio==4.13.0
     # via
-    #   httpx
     #   starlette
     #   watchfiles
 appdirs==1.4.4
@@ -67,17 +66,12 @@ billiard==4.2.4
     # via celery
 bleach==6.3.0
     # via nbconvert
-bracex==2.6
-    # via wcmatch
-bump-my-version==1.3.0
 celery==5.6.3
     # via
     #   dvc
     #   dvc-task
 certifi==2026.2.25
     # via
-    #   httpcore
-    #   httpx
     #   requests
     #   selenium
     #   seleniumbase
@@ -96,12 +90,10 @@ charset-normalizer==3.4.7
     #   wrapper-tls-requests
 click==8.3.2
     # via
-    #   bump-my-version
     #   celery
     #   click-didyoumean
     #   click-plugins
     #   click-repl
-    #   rich-click
     #   typer
     #   uvicorn
 click-didyoumean==0.3.1
@@ -117,7 +109,6 @@ colorama==0.4.6
     #   ipython
     #   pdbp
     #   pytest
-    #   rich-click
     #   seleniumbase
     #   sphinx
     #   sphinx-autobuild
@@ -287,16 +278,11 @@ gto==1.9.0
     # via dvc
 h11==0.16.0
     # via
-    #   httpcore
     #   seleniumbase
     #   uvicorn
     #   wsproto
 html5lib==1.1
     # via soccerdata
-httpcore==1.0.9
-    # via httpx
-httpx==0.28.1
-    # via bump-my-version
 hydra-core==1.3.2
     # via dvc
 identify==2.6.18
@@ -304,7 +290,6 @@ identify==2.6.18
 idna==3.11
     # via
     #   anyio
-    #   httpx
     #   requests
     #   seleniumbase
     #   trio
@@ -498,7 +483,6 @@ prompt-toolkit==3.0.52
     # via
     #   click-repl
     #   ipython
-    #   questionary
 propcache==0.4.1
     # via
     #   aiohttp
@@ -534,15 +518,12 @@ pycparser==3.0 ; implementation_name != 'PyPy'
     # via cffi
 pydantic==2.12.5
     # via
-    #   bump-my-version
     #   gto
     #   pydantic-settings
 pydantic-core==2.41.5
     # via pydantic
 pydantic-settings==2.13.1
-    # via
-    #   bump-my-version
-    #   gto
+    # via gto
 pydot==4.0.1
     # via dvc
 pygetwindow==0.0.9 ; sys_platform == 'linux'
@@ -645,8 +626,6 @@ pyzmq==27.1.0
     # via
     #   ipykernel
     #   jupyter-client
-questionary==2.1.1
-    # via bump-my-version
 referencing==0.37.0
     # via
     #   jsonschema
@@ -666,15 +645,11 @@ requests-oauthlib==2.0.0
     # via google-auth-oauthlib
 rich==14.3.4
     # via
-    #   bump-my-version
     #   dvc
     #   gto
-    #   rich-click
     #   seleniumbase
     #   soccerdata
     #   typer
-rich-click==1.9.7
-    # via bump-my-version
 roman-numerals==4.1.0
     # via sphinx
 rpds-py==0.30.0
@@ -783,9 +758,7 @@ tinycss2==1.4.0
 tomli==2.4.1 ; python_full_version <= '3.11'
     # via coverage
 tomlkit==0.14.0
-    # via
-    #   bump-my-version
-    #   dvc
+    # via dvc
 tornado==6.5.5
     # via
     #   ipykernel
@@ -873,8 +846,6 @@ voluptuous==0.16.0
     #   dvc-studio-client
 watchfiles==1.1.1
     # via sphinx-autobuild
-wcmatch==10.1
-    # via bump-my-version
 wcwidth==0.6.0
     # via prompt-toolkit
 webencodings==0.5.1

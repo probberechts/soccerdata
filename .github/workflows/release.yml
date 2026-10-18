@@ -1,10 +1,10 @@
 name: Release
 
 on:
-  push:
-    branches:
-      - main
-      - master
+  schedule:
+    # Every Monday at 08:00 UTC
+    - cron: "0 8 * * 1"
+  workflow_dispatch:
 
 jobs:
   release:
@@ -17,53 +17,77 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v7
         with:
-          fetch-depth: 2
+          ref: master
+          fetch-depth: 0
+
+      - name: Check for new commits since last release
+        id: check-commits
+        run: |
+          git fetch --tags --force
+          LATEST_TAG=$(git tag -l "v*" --sort=-creatordate | head -n 1)
+          echo "Latest release tag: $LATEST_TAG"
+          if [ -z "$LATEST_TAG" ]; then
+            echo "No existing tags found. Proceeding with release."
+            echo "has_commits=true" >> "$GITHUB_OUTPUT"
+          else
+            COMMITS=$(git rev-list "${LATEST_TAG}..HEAD" --count)
+            echo "Number of commits since $LATEST_TAG: $COMMITS"
+            if [ "$COMMITS" -gt 0 ]; then
+              echo "has_commits=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "No new commits since $LATEST_TAG. Skipping release."
+              echo "has_commits=false" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+      - name: Determine new version tag
+        id: version
+        if: steps.check-commits.outputs.has_commits == 'true'
+        run: |
+          YEAR=$(date +'%Y')
+          WEEK=$(date +'%-V')
+
+          EXISTING_TAGS=$(git tag -l "v${YEAR}.${WEEK}.*" --sort=-v:refname)
+          if [ -n "$EXISTING_TAGS" ]; then
+            LATEST_WEEK_TAG=$(echo "$EXISTING_TAGS" | head -n 1)
+            PATCH=$(( ${LATEST_WEEK_TAG##*.} + 1 ))
+          else
+            PATCH=0
+          fi
+
+          TAG="v${YEAR}.${WEEK}.${PATCH}"
+          echo "New release tag: $TAG"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        if: steps.check-commits.outputs.has_commits == 'true'
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.version.outputs.tag }}" -m "Release ${{ steps.version.outputs.tag }}"
+          git push origin "${{ steps.version.outputs.tag }}"
 
       - name: Set up the environment
+        if: steps.check-commits.outputs.has_commits == 'true'
         uses: ./.github/actions/setup-python-env
 
-      - name: Check if there is a parent commit
-        id: check-parent-commit
-        run: |
-          echo "::set-output name=sha::$(git rev-parse --verify --quiet HEAD^)"
-
-      - name: Detect and tag new version
-        id: check-version
-        if: steps.check-parent-commit.outputs.sha
-        uses: salsify/action-detect-and-tag-new-version@v2.0.3
-        with:
-          version-command: |
-            bash -o pipefail -c "uv version | awk '{ print \$2 }'"
-
-      - name: Bump version for developmental release
-        if: "! steps.check-version.outputs.tag"
-        run: |
-          next=$(uv run bump-my-version show new_version --increment patch)
-          uv run bump-my-version bump --new-version "${next}.dev$(date +%s)" --allow-dirty
-
       - name: Build package
+        if: steps.check-commits.outputs.has_commits == 'true'
         run: |
           uv build
 
       - name: Publish package on PyPI
-        if: steps.check-version.outputs.tag
+        if: steps.check-commits.outputs.has_commits == 'true'
         uses: pypa/gh-action-pypi-publish@v1.14.2
         with:
           user: __token__
           password: ${{ secrets.PYPI_TOKEN }}
 
-      - name: Publish package on TestPyPI
-        if: "! steps.check-version.outputs.tag"
-        uses: pypa/gh-action-pypi-publish@v1.14.2
-        with:
-          user: __token__
-          password: ${{ secrets.TEST_PYPI_TOKEN }}
-          repository_url: https://test.pypi.org/legacy/
-
       - name: Publish the release notes
+        if: steps.check-commits.outputs.has_commits == 'true'
         uses: release-drafter/release-drafter@v7.10.0
         with:
-          publish: ${{ steps.check-version.outputs.tag != '' }}
-          tag: ${{ steps.check-version.outputs.tag }}
+          publish: true
+          tag: ${{ steps.version.outputs.tag }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

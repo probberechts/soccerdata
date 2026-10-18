@@ -49,3 +49,6 @@ docs/modules/generated/
 !.gitignore
 !.dvc
 !.github
+
+# Hatchling VCS auto-generated version file
+soccerdata/_version.py

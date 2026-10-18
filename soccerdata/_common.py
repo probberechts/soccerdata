@@ -24,6 +24,62 @@ from selenium.common.exceptions import JavascriptException, WebDriverException
 from ._config import DATA_DIR, LEAGUE_DICT, MAXAGE, TEAMNAME_REPLACEMENTS, logger
 
 
+def _parse_month(month: int | str) -> int:
+    """Parse a month (int, abbreviation, or name) into a month number (1-12).
+
+    Parameters
+    ----------
+    month : int or str
+        A month number (1-12), numeric string ("1"-"12"), English month
+        abbreviation (e.g. "Aug"), or full English month name (e.g. "August").
+
+    Raises
+    ------
+    ValueError
+        If `month` cannot be parsed into a valid month number between 1 and 12.
+    TypeError
+        If `month` is not an int or str.
+
+    Returns
+    -------
+    int
+        The month number (1-12).
+    """
+    _ENGLISH_MONTHS = {
+        "jan": 1,
+        "feb": 2,
+        "mar": 3,
+        "apr": 4,
+        "may": 5,
+        "jun": 6,
+        "jul": 7,
+        "aug": 8,
+        "sep": 9,
+        "oct": 10,
+        "nov": 11,
+        "dec": 12,
+    }
+
+    if isinstance(month, int) and not isinstance(month, bool):
+        if 1 <= month <= 12:
+            return month
+        raise ValueError(f"Invalid month {month}; must be between 1 and 12")
+
+    if isinstance(month, str):
+        cleaned = month.strip()
+        if cleaned.isdigit():
+            val = int(cleaned)
+            if 1 <= val <= 12:
+                return val
+            raise ValueError(f"Invalid month {month!r}; must be between 1 and 12")
+        key = cleaned[:3].lower()
+        if key in _ENGLISH_MONTHS:
+            return _ENGLISH_MONTHS[key]
+        raise ValueError(f"Invalid month {month!r}; expected integer (1-12) or English month name")
+
+    raise TypeError(f"Invalid month type {type(month).__name__!r}; expected str or int")
+
+
 class SeasonCode(Enum):
     """How to interpret season codes.
 
@@ -60,14 +116,8 @@ class SeasonCode(Enum):
         select_league_dict = LEAGUE_DICT[league]
         if "season_code" in select_league_dict:
             return SeasonCode(select_league_dict["season_code"])
-        start_month = datetime.strptime(  # noqa: DTZ007
-            select_league_dict.get("season_start", "Aug"),
-            "%b",
-        ).month
-        end_month = datetime.strptime(  # noqa: DTZ007
-            select_league_dict.get("season_end", "May"),
-            "%b",
-        ).month
+        start_month = _parse_month(select_league_dict.get("season_start", "aug"))
+        end_month = _parse_month(select_league_dict.get("season_end", "may"))
         return SeasonCode.MULTI_YEAR if (end_month - start_month) < 0 else SeasonCode.SINGLE_YEAR
 
     @staticmethod
@@ -438,9 +488,7 @@ class BaseReader(ABC):
         else:
             season_ends = datetime(
                 datetime.strptime(season[-2:], "%y").year,  # noqa: DTZ007
-                datetime.strptime(  # noqa: DTZ007
-                    league_dict["season_end"], "%b"
-                ).month,
+                _parse_month(league_dict["season_end"]),
                 1,
                 tzinfo=UTC,
             ) + relativedelta(months=1)
@@ -460,11 +508,29 @@ class BaseReader(ABC):
     def seasons(self, seasons: str | int | Iterable[str | int] | None) -> None:
         if seasons is None:
             logger.info("No seasons provided. Will retrieve data for the last 5 seasons.")
-            year = datetime.now(tz=UTC).year
-            seasons = [f"{y - 1}-{y}" for y in range(year, year - 6, -1)]
+            seasons = self._default_seasons(datetime.now(tz=UTC))
         if isinstance(seasons, (str, int)):
             seasons = [seasons]
         self._season_ids = [self._season_code.parse(s) for s in seasons]
+
+    def _default_seasons(self, now: datetime) -> list[str]:
+        """Return the last 5 seasons, ending with the current one.
+
+        The current season is derived from the season calendar, not from the
+        calendar year. For a multi-year league (e.g. Aug-May), the current
+        season ends in the next calendar year during the second half of the
+        year, so the end year is shifted by one during that period. For a
+        single-year league, the season id equals the start year of the
+        generated range, so the end year is one ahead of the calendar year.
+        """
+        end_year = now.year
+        if (
+            self._season_code == SeasonCode.SINGLE_YEAR
+            or self._season_code == SeasonCode.MULTI_YEAR
+            and now.month >= 8
+        ):
+            end_year += 1
+        return [f"{y - 1}-{y}" for y in range(end_year, end_year - 5, -1)]
 
 
 class BaseRequestsReader(BaseReader):
@@ -837,6 +903,20 @@ def standardize_colnames(df: pd.DataFrame, cols: list[str] | None = None) -> pd.
         cols = list(df.columns)
 
     return df.rename(columns={c: to_snake(c) for c in cols})
+
+
+def _sanitize_filename(value: str) -> str:
+    """Escape characters that are unsafe in a filename.
+
+    Filesystem-reserved characters, control characters and ``%`` are
+    replaced by ``%XX`` escapes. Ordinary names are returned unchanged, so
+    existing cache files keep their names. Escaping ``%`` keeps distinct
+    names such as ``Bodø/Glimt`` and ``Bodø%2FGlimt`` apart.
+    """
+    unsafe = '/\\:*?"<>|%'
+    return "".join(
+        f"%{ord(char):02X}" if char in unsafe or ord(char) < 32 else char for char in value
+    )
 
 
 def get_proxy() -> dict[str, str]:

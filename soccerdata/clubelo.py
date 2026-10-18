@@ -9,7 +9,12 @@ from typing import IO
 import pandas as pd
 from unidecode import unidecode
 
-from ._common import BaseRequestsReader, add_alt_team_names, standardize_colnames
+from ._common import (
+    BaseRequestsReader,
+    _sanitize_filename,
+    add_alt_team_names,
+    standardize_colnames,
+)
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS
 
 CLUB_ELO_DATADIR = DATA_DIR / "ClubElo"
@@ -143,7 +148,7 @@ class ClubElo(BaseRequestsReader):
         teams_to_check = {re.sub(r"[\s']", "", unidecode(team)) for team in teams_to_check}
 
         for _team in teams_to_check:
-            filepath = self.data_dir / f"{_team}.csv"
+            filepath = self.data_dir / f"{_sanitize_filename(_team)}.csv"
             # Keep digits and hyphens: ClubElo URLs use them (e.g. Saint-Etienne, Metalist 1925).
             url = f"{CLUB_ELO_API}/{re.sub(r'[^a-zA-Z0-9-]', '', _team)}"
             data = self.get(url, filepath, max_age)

@@ -451,3 +451,11 @@ def test_parse_month_invalid(invalid_input):
 def test_parse_month_invalid_type(invalid_type):
     with pytest.raises(TypeError):
         _parse_month(invalid_type)
+
+
+def test_all_leagues_not_inherited_from_base():
+    """It should ensure that caching _all_leagues on a base reader does not shadow subclasses."""
+    BaseRequestsReader(no_store=True)
+    from soccerdata.espn import ESPN
+
+    assert len(ESPN.available_leagues()) > 0

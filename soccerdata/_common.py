@@ -423,7 +423,7 @@ class BaseReader(ABC):
     @classmethod
     def _all_leagues(cls) -> dict[str, str]:
         """Return a dict mapping all canonical league IDs to source league IDs."""
-        if not hasattr(cls, "_all_leagues_dict"):
+        if "_all_leagues_dict" not in cls.__dict__:
             cls._all_leagues_dict = {  # type: ignore
                 k: v[cls.__name__] for k, v in LEAGUE_DICT.items() if cls.__name__ in v
             }

@@ -6,8 +6,18 @@ project = "soccerdata"
 author = "Pieter Robberechts"
 copyright = f"2021, {author}"
 
-# The full version, including alpha/beta/rc tags
-release = "1.9.1"
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as get_package_version
+
+try:
+    release = get_package_version("soccerdata")
+except PackageNotFoundError:
+    try:
+        from soccerdata import __version__ as release
+    except ImportError:
+        release = "unknown"
+
+version = release
 
 # -- General configuration ------------------------------------------------
 
@@ -59,7 +69,7 @@ nbsphinx_thumbnails = {
 
 # This is processed by Jinja2 and inserted before each notebook
 nbsphinx_prolog = r"""
-{% set docname = 'doc/' + env.doc2path(env.docname, base=None) %}
+{% set docname = 'doc/' ~ env.doc2path(env.docname, base=None) %}
 
 .. raw:: html
 
@@ -93,7 +103,7 @@ nbsphinx_prolog = r"""
 
 # This is processed by Jinja2 and inserted after each notebook
 nbsphinx_epilog = r"""
-{% set docname = 'doc/' + env.doc2path(env.docname, base=None) %}
+{% set docname = 'doc/' ~ env.doc2path(env.docname, base=None) %}
 .. raw:: latex
 
     \nbsphinxstopnotebook{\scriptsize\noindent\strut

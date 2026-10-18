@@ -2,7 +2,7 @@
 
 [project]
 name = "soccerdata"
-version = "1.9.1"
+dynamic = ["version"]
 description = "A collection of scrapers for soccer data from various websites / APIs."
 readme = "README.rst"
 license = "Apache-2.0"
@@ -70,11 +70,6 @@ test = [
   "time-machine>=2.8.2,<4.0.0",
 ]
 
-# Versioning and automation
-release = [
-  "bump-my-version>=1.2.1",
-]
-
 # Documentation
 docs = [
   "Sphinx>=7.0.0,<10.0.0",
@@ -91,30 +86,16 @@ notebooks = [
 ]
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Project ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ #
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ Hatch ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ #
 
-[tool.bumpversion]
-current_version = "1.9.1"
-parse = """(?x)
-(?P<major>0|[1-9]\\d*)\\.
-(?P<minor>0|[1-9]\\d*)\\.
-(?P<patch>0|[1-9]\\d*)
-(?:\\.dev(?P<dev>0|[1-9]\\d*))?
-"""
-serialize = ["{major}.{minor}.{patch}.dev{dev}", "{major}.{minor}.{patch}"]
+[tool.hatch.version]
+source = "vcs"
 
-[tool.bumpversion.parts.dev]
-type = "int"
-optional = true
-
-[[tool.bumpversion.files]]
-filename = "soccerdata/__init__.py"
-
-[[tool.bumpversion.files]]
-filename = "docs/conf.py"
+[tool.hatch.build.hooks.vcs]
+version-file = "soccerdata/_version.py"
 
 [tool.coverage.paths]
 source = ["soccerdata", "*/site-packages"]
@@ -200,7 +181,6 @@ known-first-party = ["soccerdata", "tests"]
 default-groups = [
   "lint",
   "test",
-  "release",
   "docs",
   "notebooks",
 ]

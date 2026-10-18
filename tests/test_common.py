@@ -12,6 +12,7 @@ import soccerdata
 from soccerdata._common import (
     BaseRequestsReader,
     SeasonCode,
+    _parse_month,
     _sanitize_filename,
     add_alt_team_names,
     add_standardized_team_name,
@@ -384,3 +385,69 @@ def test_season_pattern4():
 def test_season_pattern5():
     assert SeasonCode.MULTI_YEAR.parse("13-14") == "1314"
     assert SeasonCode.SINGLE_YEAR.parse("13-14") == "2013"
+
+
+def test_season_code_from_league(monkeypatch):
+    assert SeasonCode.from_league("ENG-Premier League") == SeasonCode.MULTI_YEAR
+    assert SeasonCode.from_league("INT-World Cup") == SeasonCode.SINGLE_YEAR
+
+    # Verify custom configurations with integers and full month names
+    monkeypatch.setitem(
+        soccerdata._config.LEAGUE_DICT,
+        "TEST-League-Int",
+        {"season_start": 8, "season_end": 5},
+    )
+    assert SeasonCode.from_league("TEST-League-Int") == SeasonCode.MULTI_YEAR
+
+    monkeypatch.setitem(
+        soccerdata._config.LEAGUE_DICT,
+        "TEST-League-Full",
+        {"season_start": "August", "season_end": "May"},
+    )
+    assert SeasonCode.from_league("TEST-League-Full") == SeasonCode.MULTI_YEAR
+
+    monkeypatch.setitem(
+        soccerdata._config.LEAGUE_DICT,
+        "TEST-League-Single",
+        {"season_start": 3, "season_end": 11},
+    )
+    assert SeasonCode.from_league("TEST-League-Single") == SeasonCode.SINGLE_YEAR
+
+
+# _parse_month
+
+
+@pytest.mark.parametrize(
+    ("month_input", "expected"),
+    [
+        ("Jan", 1),
+        ("jan", 1),
+        ("JAN", 1),
+        ("January", 1),
+        ("january", 1),
+        ("Dec", 12),
+        ("1", 1),
+        (" 1 ", 1),
+        (1, 1),
+    ],
+)
+def test_parse_month(month_input, expected):
+    assert _parse_month(month_input) == expected
+
+
+@pytest.mark.parametrize(
+    "invalid_input",
+    ["Foo", "", "   ", "0", "13", "-1", 0, 13, -5],
+)
+def test_parse_month_invalid(invalid_input):
+    with pytest.raises(ValueError):
+        _parse_month(invalid_input)
+
+
+@pytest.mark.parametrize(
+    "invalid_type",
+    [None, True, False, 3.14, [], {}],
+)
+def test_parse_month_invalid_type(invalid_type):
+    with pytest.raises(TypeError):
+        _parse_month(invalid_type)

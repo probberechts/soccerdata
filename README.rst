@@ -38,7 +38,7 @@
 .. badges-end
 
 SoccerData is a collection of scrapers to gather soccer data from popular
-websites, including `Club Elo`_, `ESPN`_, `FBref`_,
+websites, including `Club Elo`_, `ESPN`_, `FBref`_, `Football Charts`_,
 `Football-Data.co.uk`_, `Sofascore`_, `SoFIFA`_, `Understat`_ and `WhoScored`_.
 You get Pandas DataFrames with sensible, matching column names and identifiers
 across datasets. Data is downloaded when needed and cached locally.
@@ -64,6 +64,7 @@ and `API reference <https://soccerdata.readthedocs.io/en/latest/reference/>`__.
 .. _ESPN: https://www.espn.com/soccer/
 .. _FBref: https://www.fbref.com/en/
 .. _FiveThirtyEight: https://fivethirtyeight.com/soccer-predictions/
+.. _Football Charts: https://www.football-charts.com/
 .. _Football-Data.co.uk: https://www.football-data.co.uk/
 .. _Sofascore: https://www.sofascore.com/
 .. _SoFIFA: https://sofifa.com/

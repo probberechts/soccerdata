@@ -14,6 +14,7 @@ from lxml import etree, html
 from ._common import (
     BaseSeleniumReader,
     SeasonCode,
+    _sanitize_filename,
     add_alt_team_names,
     make_game_id,
     standardize_colnames,
@@ -406,7 +407,7 @@ class FBref(BaseSeleniumReader):
         stats = []
         for (lkey, skey, t), team_url in iterator.url.items():
             # read html page
-            filepath = self.data_dir / filemask.format(t, skey, stat_type)
+            filepath = self.data_dir / filemask.format(_sanitize_filename(t), skey, stat_type)
             if len(team_url.split("/")) == 6:  # already have season in the url
                 url = (
                     FBREF_API

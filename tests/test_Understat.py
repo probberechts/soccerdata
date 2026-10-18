@@ -59,6 +59,9 @@ def test_read_shots(understat_epl_1516: Understat) -> None:
     shots_all = understat_epl_1516.read_shot_events()
     assert isinstance(shots_all, pd.DataFrame)
     assert len(shots_all) == 9_819
+    # Assist IDs must identify the player, not their match roster entry.
+    agbonlahor_assist = shots_all.loc[shots_all["shot_id"] == 487144].iloc[0]
+    assert agbonlahor_assist["assist_player_id"] == 890
     shots_utd_bou = understat_epl_1516.read_shot_events(460)
     assert isinstance(shots_utd_bou, pd.DataFrame)
     assert len(shots_utd_bou) == 20

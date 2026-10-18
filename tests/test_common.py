@@ -13,6 +13,7 @@ from soccerdata._common import (
     BaseRequestsReader,
     SeasonCode,
     _parse_month,
+    _sanitize_filename,
     add_alt_team_names,
     add_standardized_team_name,
     make_game_id,
@@ -209,6 +210,24 @@ def test_add_standardize_team_name():
     assert add_standardized_team_name("Arsenal") == {"Arsenal"}
 
 
+# _sanitize_filename
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("Bodø/Glimt", "Bodø%2FGlimt"),
+        ("Bodø%2FGlimt", "Bodø%252FGlimt"),
+        ("A\\B", "A%5CB"),
+        ("A:B", "A%3AB"),
+        ("A\tB", "A%09B"),
+        ("Brighton & Hove Albion", "Brighton & Hove Albion"),
+    ],
+)
+def test_sanitize_filename(value, expected):
+    assert _sanitize_filename(value) == expected
+
+
 # standardize_colnames
 
 
@@ -267,6 +286,50 @@ def test_is_complete_undefined_league(mocker):
         match="Invalid league 'FAKE-Dummy League'",
     ):
         reader._is_complete("FAKE-Dummy League", "1920")
+
+
+def test_default_seasons(mocker):
+    """It should default to the last 5 seasons ending with the current season."""
+    reader = BaseRequestsReader(no_store=True)
+    october = datetime(2024, 10, 30, 12, 0, tzinfo=timezone.utc)
+    march = datetime(2024, 3, 30, 12, 0, tzinfo=timezone.utc)
+
+    # multi-year leagues: the current season ends next year after August
+    mocker.patch.object(
+        BaseRequestsReader,
+        "_season_code",
+        new_callable=mocker.PropertyMock,
+        return_value=SeasonCode.MULTI_YEAR,
+    )
+    assert [SeasonCode.MULTI_YEAR.parse(s) for s in reader._default_seasons(october)] == [
+        "2425",
+        "2324",
+        "2223",
+        "2122",
+        "2021",
+    ]
+    assert [SeasonCode.MULTI_YEAR.parse(s) for s in reader._default_seasons(march)] == [
+        "2324",
+        "2223",
+        "2122",
+        "2021",
+        "1920",
+    ]
+
+    # single-year leagues: seasons are single calendar years
+    mocker.patch.object(
+        BaseRequestsReader,
+        "_season_code",
+        new_callable=mocker.PropertyMock,
+        return_value=SeasonCode.SINGLE_YEAR,
+    )
+    assert [SeasonCode.SINGLE_YEAR.parse(s) for s in reader._default_seasons(october)] == [
+        "2024",
+        "2023",
+        "2022",
+        "2021",
+        "2020",
+    ]
 
 
 # Season codes

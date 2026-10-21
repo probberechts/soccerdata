@@ -80,6 +80,35 @@ def _parse_month(month: int | str) -> int:
     raise TypeError(f"Invalid month type {type(month).__name__!r}; expected str or int")
 
 
+class SeasonNotFoundError(KeyError):
+    """Raised when a selected season is not in the list of available seasons.
+
+    Subclasses KeyError, which was raised before, so existing handlers keep
+    working.
+    """
+
+    def __str__(self) -> str:
+        return str(self.args[0])
+
+
+def _season_not_found_error(
+    missing: Iterable[tuple[str, str]], cache_files: Iterable[Path]
+) -> SeasonNotFoundError:
+    """Build the error for selected seasons that are not available.
+
+    The list of available seasons is cached without expiry by default, so a
+    season that started after it was downloaded is not in it.
+    """
+    missing_str = ", ".join(f"{season} ({league})" for league, season in missing)
+    files_str = "\n".join(f"  {f}" for f in cache_files)
+    return SeasonNotFoundError(
+        f"Season(s) not available: {missing_str}. "
+        "If a season has started since the list of seasons was cached, "
+        "delete the cached file(s) below or set no_cache=True to refresh it.\n"
+        f"{files_str}"
+    )
+
+
 class SeasonCode(Enum):
     """How to interpret season codes.
 

@@ -1,9 +1,12 @@
 """Unittests for class soccerdata.FBref."""
 
+import io
+
 import pandas as pd
 import pytest
 
 import soccerdata as sd
+from soccerdata._common import SeasonNotFoundError
 from soccerdata.fbref import FBref, _concat
 
 
@@ -209,3 +212,48 @@ def test_combine_big5_player_season_stats(fbref_ligue1: FBref, stat_type: str) -
         ligue1,
         bigfive,
     )
+
+
+FBREF_SEASONS_HTML = """
+<table id="seasons"><thead><tr>
+<th data-stat="year_id">Season</th><th>Competition Name</th><th>Squads</th>
+</tr></thead><tbody>
+<tr><th data-stat="year_id"><a href="/en/comps/9/2024-2025/2024-2025-Premier-League-Stats">2024-2025</a></th><td>Premier League</td><td>20</td></tr>
+<tr><th data-stat="year_id"><a href="/en/comps/9/2023-2024/2023-2024-Premier-League-Stats">2023-2024</a></th><td>Premier League</td><td>20</td></tr>
+</tbody></table>
+"""
+
+
+@pytest.fixture
+def fbref_cached_seasons(tmp_path, monkeypatch):
+    """Return an FBref reader whose cached seasons page ends with 2024-2025."""
+
+    def _reader(seasons):
+        monkeypatch.setattr(FBref, "_init_webdriver", lambda self: None)
+        reader = FBref("ENG-Premier League", seasons, data_dir=tmp_path)
+        leagues = pd.DataFrame(
+            {"url": ["/en/comps/9/history/Premier-League-Seasons"]},
+            index=pd.Index(["ENG-Premier League"], name="league"),
+        )
+        monkeypatch.setattr(reader, "read_leagues", lambda split_up_big5=False: leagues)
+        monkeypatch.setattr(
+            reader, "get", lambda url, filepath, **kwargs: io.BytesIO(FBREF_SEASONS_HTML.encode())
+        )
+        return reader
+
+    return _reader
+
+
+def test_read_seasons_cached(fbref_cached_seasons) -> None:
+    seasons = fbref_cached_seasons("2024-2025").read_seasons()
+    assert list(seasons.index) == [("ENG-Premier League", "2425")]
+
+
+def test_read_seasons_not_in_cache(fbref_cached_seasons, tmp_path) -> None:
+    reader = fbref_cached_seasons("2025-2026")
+    with pytest.raises(SeasonNotFoundError, match="2526 \\(ENG-Premier League\\)") as excinfo:
+        reader.read_seasons()
+    assert "no_cache=True" in str(excinfo.value)
+    assert str(tmp_path / "seasons_ENG-Premier League.html") in str(excinfo.value)
+    # still a KeyError, as before
+    assert isinstance(excinfo.value, KeyError)

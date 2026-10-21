@@ -15,6 +15,7 @@ from ._common import (
     BaseSeleniumReader,
     SeasonCode,
     _sanitize_filename,
+    _season_not_found_error,
     add_alt_team_names,
     make_game_id,
     standardize_colnames,
@@ -235,6 +236,13 @@ class FBref(BaseSeleniumReader):
         # if both a 20xx and 19xx season are available, drop the 19xx season
         df.drop_duplicates(subset=["league", "season"], keep="first", inplace=True)
         df = df.set_index(["league", "season"]).sort_index()
+        available = set(df.index.get_level_values("season"))
+        missing = [s for s in self.seasons if s not in available]
+        if missing:
+            raise _season_not_found_error(
+                [(lkey, s) for lkey in df_leagues.index for s in missing],
+                [self.data_dir / filemask.format(lkey) for lkey in df_leagues.index],
+            )
         return df.loc[(slice(None), self.seasons), ["format", "url"]]
 
     def read_team_season_stats(

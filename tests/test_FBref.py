@@ -1,6 +1,8 @@
 """Unittests for class soccerdata.FBref."""
 
 import io
+from collections.abc import Callable
+from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -244,12 +246,14 @@ def fbref_cached_seasons(tmp_path, monkeypatch):
     return _reader
 
 
-def test_read_seasons_cached(fbref_cached_seasons) -> None:
+def test_read_seasons_cached(fbref_cached_seasons: Callable[[str], FBref]) -> None:
     seasons = fbref_cached_seasons("2024-2025").read_seasons()
     assert list(seasons.index) == [("ENG-Premier League", "2425")]
 
 
-def test_read_seasons_not_in_cache(fbref_cached_seasons, tmp_path) -> None:
+def test_read_seasons_not_in_cache(
+    fbref_cached_seasons: Callable[[str], FBref], tmp_path: Path
+) -> None:
     reader = fbref_cached_seasons("2025-2026")
     with pytest.raises(SeasonNotFoundError, match="2526 \\(ENG-Premier League\\)") as excinfo:
         reader.read_seasons()

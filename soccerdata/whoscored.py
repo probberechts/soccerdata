@@ -18,7 +18,12 @@ from selenium.common.exceptions import (
 )
 from selenium.webdriver.common.by import By
 
-from ._common import BaseSeleniumReader, make_game_id, standardize_colnames
+from ._common import (
+    BaseSeleniumReader,
+    _season_not_found_error,
+    make_game_id,
+    standardize_colnames,
+)
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
 
 WHOSCORED_DATADIR = DATA_DIR / "WhoScored"
@@ -248,12 +253,18 @@ class WhoScored(BaseSeleniumReader):
                     }
                 )
 
-        return (
-            pd.DataFrame(seasons)
-            .set_index(["league", "season"])
-            .sort_index()
-            .loc[itertools.product(self.leagues, self.seasons)]
-        )
+        df = pd.DataFrame(seasons).set_index(["league", "season"]).sort_index()
+        selected = list(itertools.product(self.leagues, self.seasons))
+        missing = [key for key in selected if key not in df.index]
+        if missing:
+            raise _season_not_found_error(
+                missing,
+                [
+                    self.data_dir / filemask.format(lkey)
+                    for lkey in dict.fromkeys(m[0] for m in missing)
+                ],
+            )
+        return df.loc[selected]
 
     def read_season_stages(self, force_cache: bool = False) -> pd.DataFrame:
         """Retrieve the season stages for the selected leagues.

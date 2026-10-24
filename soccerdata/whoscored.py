@@ -287,8 +287,24 @@ class WhoScored(BaseSeleniumReader):
             tree = html.parse(reader)
 
             # get default season stage
-            fixtures_url = tree.xpath("//a[text()='Fixtures']/@href")[0]
-            stage_id = _parse_url(fixtures_url)["stage_id"]
+            fixtures = tree.xpath("//a[text()='Fixtures']/@href")
+            if fixtures:
+                stage_id = _parse_url(fixtures[0])["stage_id"]
+            else:
+                # Fallback for localized season pages where "Fixtures" anchor is translated or missing.
+                # The stage id is still present in the page's inline JavaScript / JSON data.
+                page_html = html.tostring(tree, encoding="unicode")
+                m = re.search(r'["\']stageId["\']\s*:\s*(\d+)', page_html)
+                if m is not None:
+                    stage_id = m.group(1)
+                else:
+                    stage_anchors = tree.xpath(
+                        "//a[contains(@href, '/Stages/') or contains(@href, '/stages/')]/@href"
+                    )
+                    if stage_anchors:
+                        stage_id = _parse_url(stage_anchors[0])["stage_id"]
+                    else:
+                        raise ValueError(f"Could not determine stage id for {lkey} {skey}")
             season_stages.append(
                 {
                     "league": lkey,

@@ -78,7 +78,7 @@ jobs:
 
       - name: Publish package on PyPI
         if: steps.check-commits.outputs.has_commits == 'true'
-        uses: pypa/gh-action-pypi-publish@v1.14.2
+        uses: pypa/gh-action-pypi-publish@v1.14.3
         with:
           user: __token__
           password: ${{ secrets.PYPI_TOKEN }}

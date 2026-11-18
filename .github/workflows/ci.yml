@@ -34,13 +34,15 @@ jobs:
 
       - name: Commit changes if needed
         if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
         run: |
           if ! git diff --quiet requirements.txt docs/requirements.txt; then
             git config --local user.email "action@github.com"
             git config --local user.name "GitHub Action"
             git add requirements.txt docs/requirements.txt
             git diff --staged --quiet || git commit -m "chore: update requirements.txt files"
-            git push origin HEAD:${{ github.event.pull_request.head.ref || github.ref_name }}
+            git push origin "HEAD:$HEAD_REF"
           fi
 
       - name: Run pre-commit

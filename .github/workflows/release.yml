@@ -85,7 +85,7 @@ jobs:
 
       - name: Publish the release notes
         if: steps.check-commits.outputs.has_commits == 'true'
-        uses: release-drafter/release-drafter@v7.10.0
+        uses: release-drafter/release-drafter@v7.11.0
         with:
           publish: true
           tag: ${{ steps.version.outputs.tag }}

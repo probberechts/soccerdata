@@ -53,6 +53,19 @@ FBref
 
 -----
 
+Football Charts
+    `URL <https://www.football-charts.com>`__ |
+    :doc:`Example usage <FootballCharts>` |
+    :doc:`API reference </reference/footballcharts>`
+
+    .. code::
+
+      from soccerdata import FootballCharts
+
+    Results with half-time scores and goal minutes for more than 90 leagues, including many lower divisions.
+
+-----
+
 Football-Data.co.uk
     `URL <https://www.football-data.co.uk/data.php>`__ |
     :doc:`Example usage <MatchHistory>` |
@@ -122,6 +135,7 @@ WhoScored
    ClubElo
    ESPN
    FBref
+   FootballCharts
    MatchHistory
    Sofascore
    SoFIFA

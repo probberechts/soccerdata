@@ -12,7 +12,7 @@ from ._common import BaseRequestsReader, make_game_id
 from ._config import DATA_DIR, NOCACHE, NOSTORE, TEAMNAME_REPLACEMENTS, logger
 
 FOOTBALLCHARTS_DATADIR = DATA_DIR / "FootballCharts"
-FOOTBALLCHARTS_API = "https://footballcharts-backend.onrender.com/api/v1/"
+FOOTBALLCHARTS_API = "https://api.football-charts.com/api/v1/"
 # Concept record of the archived dataset; it always resolves to the latest version.
 FOOTBALLCHARTS_ARCHIVE = "https://zenodo.org/api/records/22295583/versions/latest"
 FOOTBALLCHARTS_ARCHIVE_FILE = "football_charts_matches.csv"
@@ -38,7 +38,7 @@ class FootballCharts(BaseRequestsReader):
     read from its archived dataset on Zenodo (https://doi.org/10.5281/zenodo.22295583,
     CC BY 4.0), which lists the minute of every goal. The current season, and any
     season not yet in the archive, is read from its public API, which needs no
-    key (300 requests a day per IP) and gives the minute of the first goal. The
+    key (25 requests a day per IP) and gives the minute of the first goal. The
     data is free for personal and research use with attribution to
     football-charts.com.
 

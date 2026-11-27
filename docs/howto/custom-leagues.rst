@@ -119,7 +119,7 @@ source.
   field.
 
 **FootballCharts**
-  Go to https://footballcharts-backend.onrender.com/api/v1/leagues/ to get the
+  Go to https://api.football-charts.com/api/v1/leagues/ to get the
   list of available leagues. The internal identifier is the value of the
   ``league`` field. For leagues played within a calendar year, such as the
   Swedish Allsvenskan, set ``season_start`` and ``season_end`` (e.g., ``"Mar"``
